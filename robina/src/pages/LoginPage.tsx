@@ -1,11 +1,11 @@
 import { useAuth } from "@/context/AuthContext";
-import { Droplet, ArrowRight, Loader2 } from "lucide-react";
+import { Droplet, ArrowRight, Loader2, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useDisconnect, useAccount } from "wagmi";
 
 export default function LoginPage() {
-  const { signInWithBase, isConnecting } = useAuth();
+  const { signInWithRobinhood, isConnecting } = useAuth();
   const navigate = useNavigate();
   const { disconnectAsync } = useDisconnect();
   const { isConnected } = useAccount();
@@ -18,7 +18,7 @@ export default function LoginPage() {
       }
 
       // Step 2: SIWE Handshake
-      await signInWithBase();
+      await signInWithRobinhood();
 
       // Step 3: SUCCESS
       toast.success("Welcome to BaseDrop!");
@@ -69,7 +69,7 @@ export default function LoginPage() {
             BaseDrop
           </h1>
           <p className="text-sm text-muted-foreground text-center">
-            Earn BD Coins. Level up. Compete on Base.
+            Earn BD Coins. Level up. Compete on Robinhood Chain.
           </p>
         </div>
 
@@ -85,12 +85,8 @@ export default function LoginPage() {
             </div>
           ) : (
             <>
-              <img
-                src="https://avatars.githubusercontent.com/u/108554348?s=40"
-                alt="Base Logo"
-                className="w-6 h-6 rounded-full"
-              />
-              Connect Wallet
+              <Wallet className="w-5 h-5" />
+              Connect Robinhood Wallet
               <ArrowRight className="w-4 h-4" />
             </>
           )}

@@ -4,13 +4,26 @@ import {
   decodeEventLog,
   parseAbi,
   getAddress,
+  defineChain,
 } from "viem";
-import { base } from "viem/chains";
 import { env } from "../config/env.js";
 
+const robinhoodChain = defineChain({
+  id: env.chainId,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: [env.robinhoodRpcUrl] } },
+  blockExplorers: {
+    default: {
+      name: "Robinhood Chain Explorer",
+      url: "https://robinhoodchain.blockscout.com",
+    },
+  },
+});
+
 export const publicClient = createPublicClient({
-  chain: base,
-  transport: http(env.baseRpcUrl),
+  chain: robinhoodChain,
+  transport: http(env.robinhoodRpcUrl),
 });
 
 const erc20Abi = parseAbi([
@@ -37,7 +50,7 @@ function fromUsdcUnits(units) {
 }
 
 /**
- * Verify a USDC transfer on Base Mainnet.
+ * Verify a USDC transfer on Robinhood Chain.
  */
 export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
   if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {

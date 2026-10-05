@@ -1,25 +1,31 @@
 # BaseDrop Backend
 
-Express + MongoDB backend for BaseDrop, enforced for Base Mainnet (`chainId=8453`) with on-chain USDC verification.
+Express + MongoDB backend for BaseDrop, enforced for Robinhood Chain mainnet (`chainId=4663`) with on-chain USDC verification.
 
 ## Setup
 ```bash
 cd backend
-cp .env.example .env
-# edit .env (at minimum: MONGODB_URI, JWT_SECRET, TREASURY_WALLET)
+# Configure environment variables (at minimum:
+# MONGODB_URI, JWT_SECRET, TREASURY_WALLET, ROBINHOOD_RPC_URL,
+# ROBINHOOD_USDC_CONTRACT, SIWE_DOMAIN, SIWE_URI, CORS_ORIGIN,
+# and CHAIN_ID=4663).
 npm install
 npm run dev
 ```
 
 Health check:
-- `GET /health` -> `{ ok: true, chainId: 8453 }`
+- `GET /health` -> `{ ok: true, chainId: 4663 }`
 
 ## Environment Variables
 - `TREASURY_WALLET`: wallet that receives user USDC payments.
 - `ADMIN_LOGIN_WALLET`: optional wallet allowed for wallet-based admin access.
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`: credentials for `/api/admin/login`.
 - `JWT_SECRET`: session signing secret (must be strong).
-- `SIWE_DOMAIN` + `SIWE_URI`: expected SIWE origin values.
+- `SIWE_DOMAIN` + `SIWE_URI`: expected SIWE origin values. Set these to the production frontend host/origin (for example, `your-app.vercel.app` and `https://your-app.vercel.app`).
+- `CORS_ORIGIN`: comma-separated exact frontend origins, including the production `SIWE_URI`.
+- `ROBINHOOD_RPC_URL`: Robinhood Chain mainnet RPC endpoint. Robinhood's public RPC is rate-limited; use a dedicated provider in production.
+- `CHAIN_ID`: must be `4663` (Robinhood Chain mainnet).
+- `ROBINHOOD_USDC_CONTRACT`: USDC contract address on Robinhood Chain (defaults to `0x80e0e24718dbfcad49ecaa6f1e6c89a190586ca8`). The frontend's `VITE_ROBINHOOD_USDC_ADDRESS` should match it.
 
 Legacy aliases still supported:
 - `ADMIN_WALLET` (alias of `TREASURY_WALLET`)

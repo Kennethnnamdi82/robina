@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
-import { sendUsdcOnBase, waitForUsdcTx } from '@/services/usdc';
+import { sendUsdcOnRobinhood, waitForUsdcTx } from '@/services/usdc';
 import { paymentsApi, type PaymentAction, type ApiError } from '@/services/api';
 import { HAS_BACKEND } from '@/lib/backend';
 
@@ -59,28 +59,29 @@ export default function USDCPaymentModal({
           quotedUsdcContract = quote.usdcContract as `0x${string}`;
           setDisplayAmount(quotedAmount);
         } catch (e) {
-          if (!to) {
-            const code = String((e as Error)?.message || "");
-            if (
-              code === "unauthenticated" ||
-              code === "invalid_token" ||
-              code === "token_revoked"
-            ) {
-              throw new Error("Session expired. Please sign in again.");
-            }
-            throw new Error("Payment quote unavailable. Please refresh and try again.");
+          const code = String((e as Error)?.message || "");
+          if (
+            code === "unauthenticated" ||
+            code === "invalid_token" ||
+            code === "token_revoked"
+          ) {
+            throw new Error("Session expired. Please sign in again.");
           }
+          throw new Error("Payment quote unavailable. Please refresh and try again.");
         }
       }
 
+      if (!quotedUsdcContract || !/^0x[0-9a-fA-F]{40}$/.test(quotedUsdcContract)) {
+        throw new Error("Payment token address unavailable from the backend");
+      }
       if (!to) {
         throw new Error('Payment recipient unavailable');
       }
       if (!isConnected) {
-        throw new Error('Connect your Base wallet first');
+        throw new Error('Connect your Robinhood Wallet first');
       }
 
-      const hash = await sendUsdcOnBase(to, quotedAmount, quotedUsdcContract);
+      const hash = await sendUsdcOnRobinhood(to, quotedAmount, quotedUsdcContract);
       toast.message('Transaction submitted', {
         description: `${hash.slice(0, 10)}...`,
       });
@@ -175,9 +176,9 @@ export default function USDCPaymentModal({
 
         <div className="glass-card rounded-xl p-4 space-y-2">
           <p className="text-xs text-muted-foreground">
-            Payment is sent from your connected Base wallet and verified on-chain.
+            Payment is sent from your connected Robinhood Wallet and verified on-chain.
           </p>
-          <p className="text-[10px] text-muted-foreground">Network: Base</p>
+          <p className="text-[10px] text-muted-foreground">Network: Robinhood Chain</p>
         </div>
 
         {status === 'done' ? (

@@ -3,7 +3,7 @@ import { Loader2, Gem, RefreshCw, AlertCircle, Trophy, BadgePercent } from 'luci
 import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
 import { gameApi, paymentsApi, type GameSessionState, type ApiError } from '@/services/api';
-import { sendUsdcOnBase, waitForUsdcTx } from '@/services/usdc';
+import { sendUsdcOnRobinhood, waitForUsdcTx } from '@/services/usdc';
 import { HAS_BACKEND } from '@/lib/backend';
 import { useGame } from '@/context/GameContext';
 import { getCardMultiplierPrice, MAX_CARD_MULTIPLIER, MIN_CARD_MULTIPLIER } from '@/types/game';
@@ -183,7 +183,7 @@ export default function GamingPage() {
     if (processingIndex !== null || isOpenAllProcessing || showingOpenAllResults) return;
     if (cards[index].state !== 'idle') return;
     if (!isConnected) {
-      toast.error('Connect your Base wallet first');
+      toast.error('Connect your Robinhood Wallet first');
       return;
     }
 
@@ -197,7 +197,7 @@ export default function GamingPage() {
       if (!to || !/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error('Payment recipient unavailable');
       if (!usdcContract || !/^0x[0-9a-fA-F]{40}$/.test(usdcContract)) throw new Error('USDC contract unavailable');
 
-      const hash = await sendUsdcOnBase(to, cardPriceUsdc, usdcContract);
+      const hash = await sendUsdcOnRobinhood(to, cardPriceUsdc, usdcContract);
       toast.message('Payment submitted', { description: `${hash.slice(0, 10)}...` });
       await waitForUsdcTx(hash);
 
@@ -269,7 +269,7 @@ export default function GamingPage() {
       return;
     }
     if (!isConnected) {
-      toast.error('Connect your Base wallet first');
+      toast.error('Connect your Robinhood Wallet first');
       return;
     }
 
@@ -283,7 +283,7 @@ export default function GamingPage() {
       if (!to || !/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error('Payment recipient unavailable');
       if (!usdcContract || !/^0x[0-9a-fA-F]{40}$/.test(usdcContract)) throw new Error('USDC contract unavailable');
 
-      const hash = await sendUsdcOnBase(to, openAllPriceUsdc, usdcContract);
+      const hash = await sendUsdcOnRobinhood(to, openAllPriceUsdc, usdcContract);
       toast.message('Open-all payment submitted', { description: `${hash.slice(0, 10)}...` });
       await waitForUsdcTx(hash);
 

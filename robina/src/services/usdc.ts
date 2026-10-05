@@ -9,9 +9,8 @@ import {
 } from "wagmi/actions";
 import {
   wagmiConfig,
-  USDC_ADDRESS,
   USDC_DECIMALS,
-  BASE_CHAIN_ID,
+  ROBINHOOD_CHAIN_ID,
   erc20Abi,
 } from "@/lib/wagmi";
 
@@ -21,14 +20,18 @@ type SimulationLikeError = {
 };
 
 /**
- * Send a USDC transfer on Base Mainnet from the connected wallet.
+ * Send a USDC transfer on Robinhood Chain from the connected wallet.
  * Validates the transaction via simulation before prompting the wallet.
  */
-export async function sendUsdcOnBase(
+export async function sendUsdcOnRobinhood(
   to: `0x${string}`,
   amountUsdc: number,
-  usdcAddress: `0x${string}` = USDC_ADDRESS,
+  usdcAddress: `0x${string}`,
 ): Promise<`0x${string}`> {
+  if (!/^0x[0-9a-fA-F]{40}$/.test(usdcAddress)) {
+    throw new Error("Payment token address was not provided by the backend");
+  }
+
   const account = getAccount(wagmiConfig);
 
   // 1. Connection Check
@@ -38,11 +41,11 @@ export async function sendUsdcOnBase(
 
   // 2. Network Check
   const currentChain = getChainId(wagmiConfig);
-  if (currentChain !== BASE_CHAIN_ID) {
+  if (currentChain !== ROBINHOOD_CHAIN_ID) {
     try {
-      await switchChain(wagmiConfig, { chainId: BASE_CHAIN_ID });
-    } catch (err) {
-      throw new Error("Please switch your wallet network to Base Mainnet.");
+      await switchChain(wagmiConfig, { chainId: ROBINHOOD_CHAIN_ID });
+    } catch {
+      throw new Error("Please switch your wallet network to Robinhood Chain.");
     }
   }
 
@@ -50,7 +53,7 @@ export async function sendUsdcOnBase(
 
   try {
     // 3. ✅ THE SIMULATION STEP
-    // This pre-runs the transaction on the Base RPC.
+    // This pre-runs the transaction on the Robinhood Chain RPC.
     // If you have $0 USDC or 0 ETH for gas, this throws an error IMMEDIATELY.
     const { request } = await simulateContract(wagmiConfig, {
       address: usdcAddress,
@@ -58,7 +61,7 @@ export async function sendUsdcOnBase(
       functionName: "transfer",
       args: [to, value],
       account: account.address,
-      chainId: BASE_CHAIN_ID,
+      chainId: ROBINHOOD_CHAIN_ID,
     });
 
     // 4. Actual Execution
@@ -71,7 +74,7 @@ export async function sendUsdcOnBase(
     console.error("Payment Simulation Error:", error);
 
     if (details.message?.includes("insufficient funds")) {
-      throw new Error("Insufficient ETH for gas fees on Base network.");
+      throw new Error("Insufficient ETH for gas fees on Robinhood Chain.");
     }
     if (details.message?.includes("ERC20: transfer amount exceeds balance")) {
       throw new Error(
@@ -91,12 +94,12 @@ export async function sendUsdcOnBase(
 }
 
 /**
- * Waits for the transaction to be mined on the Base network.
+ * Waits for the transaction to be mined on Robinhood Chain.
  */
 export async function waitForUsdcTx(hash: `0x${string}`) {
   return waitForTransactionReceipt(wagmiConfig, {
     hash,
-    chainId: BASE_CHAIN_ID,
+    chainId: ROBINHOOD_CHAIN_ID,
     confirmations: 1, // Wait for at least 1 block confirmation
   });
 }

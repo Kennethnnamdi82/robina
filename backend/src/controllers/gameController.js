@@ -9,7 +9,7 @@ import {
   applyCardMultiplierToBdPoints,
   effectiveCardMultiplier,
 } from "../config/cardMultipliers.js";
-import { verifyUsdcTransfer } from "../services/baseChain.js";
+import { verifyUsdcTransfer } from "../services/robinhoodChain.js";
 import { logActivity } from "../services/activityLogger.js";
 import { settleReferralReward } from "../services/referrals.js";
 

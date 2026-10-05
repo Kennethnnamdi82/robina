@@ -31,6 +31,21 @@ app.get("/ping", (req, res) => {
   res.status(200).send("pong");
 });
 
+const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+app.use((req, res, next) => {
+  if (!unsafeMethods.has(req.method)) return next();
+
+  const origin = req.get("origin");
+  if (origin && !env.corsOrigins.includes(origin)) {
+    return res.status(403).json({ error: "untrusted_origin" });
+  }
+  if (!origin && req.get("sec-fetch-site") === "cross-site") {
+    return res.status(403).json({ error: "untrusted_origin" });
+  }
+
+  next();
+});
+
 app.use(
   cors({
     origin: (origin, cb) => {

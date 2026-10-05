@@ -16,6 +16,7 @@ import {
   type ApiError,
 } from "@/services/api";
 import { buildAndSignSiwe } from "@/lib/siwe";
+import { ROBINHOOD_CHAIN_ID } from "@/lib/wagmi";
 import { HAS_BACKEND } from "@/lib/backend";
 
 interface BaseUser {
@@ -32,7 +33,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isConnecting: boolean;
   isAuthLoading: boolean;
-  signInWithBase: () => Promise<void>;
+  signInWithRobinhood: () => Promise<void>;
   signInAsAdmin: (
     email: string,
     password: string,
@@ -156,20 +157,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : null;
   }, [address, signedWallet, isAdmin]);
 
-  const signInWithBase = useCallback(async () => {
-    const preferredConnector =
-      connectors.find((c) => c.id === "coinbaseWalletSDK") ||
-      connectors.find((c) => c.id === "coinbaseWallet") ||
-      connectors.find((c) => c.name?.toLowerCase().includes("coinbase")) ||
-      connectors[0];
+  const signInWithRobinhood = useCallback(async () => {
+    const preferredConnector = connectors.find(
+      (connector) => connector.id === "injected",
+    );
 
     if (!preferredConnector) {
-      throw new Error("Wallet connection is unavailable on this device");
+      throw new Error("Robinhood Wallet connection is unavailable on this device");
     }
 
     const result = await connectAsync({
       connector: preferredConnector,
-      chainId: 8453,
+      chainId: ROBINHOOD_CHAIN_ID,
     });
     const wallet = result.accounts[0];
     if (!wallet) throw new Error("No account returned");
@@ -238,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isConnecting,
         isAuthLoading,
-        signInWithBase,
+        signInWithRobinhood,
         signInAsAdmin,
         signOut,
       }}

@@ -1,33 +1,35 @@
-import { http, createConfig } from "wagmi";
-import { base } from "wagmi/chains";
-import { coinbaseWallet } from "wagmi/connectors";
-import { Attribution } from "ox/erc8021";
+import { defineChain, http } from "viem";
+import { createConfig } from "wagmi";
+import { injected } from "wagmi/connectors";
 
-export const BASE_CHAIN_ID = base.id; // 8453
+export const ROBINHOOD_CHAIN_ID = 4663;
 
-// ADD THESE TWO LINES BACK IN:
-export const USDC_ADDRESS =
-  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
-export const USDC_DECIMALS = 6;
+const robinhoodRpcUrl =
+  import.meta.env.VITE_ROBINHOOD_RPC_URL?.trim() ||
+  "https://rpc.mainnet.chain.robinhood.com";
 
-const DATA_SUFFIX = Attribution.toDataSuffix({
-  codes: ["bc_i14ihftr"],
+export const robinhoodChain = defineChain({
+  id: ROBINHOOD_CHAIN_ID,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: [robinhoodRpcUrl] } },
+  blockExplorers: {
+    default: {
+      name: "Robinhood Chain Explorer",
+      url: "https://robinhoodchain.blockscout.com",
+    },
+  },
 });
 
+export const USDC_DECIMALS = 6;
+
 export const wagmiConfig = createConfig({
-  chains: [base],
-  connectors: [
-    coinbaseWallet({
-      appName: "BaseDrop",
-      preference: "all",
-      version: "4",
-    }),
-  ],
+  chains: [robinhoodChain],
+  connectors: [injected()],
   transports: {
-    [base.id]: http("https://mainnet.base.org"),
+    [robinhoodChain.id]: http(robinhoodRpcUrl),
   },
   ssr: false,
-  dataSuffix: DATA_SUFFIX,
 });
 
 export const erc20Abi = [

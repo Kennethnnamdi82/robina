@@ -86,6 +86,9 @@ export async function verifySiwe(req, res) {
   // SIWE Validations... (Keeping your existing logic)
   if (siwe.chainId !== env.chainId)
     return res.status(400).json({ error: "wrong_chain" });
+  if (siwe.uri !== env.siweUri) {
+    return res.status(400).json({ error: "invalid_uri" });
+  }
 
   const wallet = siwe.address.toLowerCase();
   const user = await User.findOne({ wallet });
@@ -96,7 +99,7 @@ export async function verifySiwe(req, res) {
   let referredByWallet = null;
 
   try {
-    const provider = new ethers.JsonRpcProvider(env.baseRpcUrl);
+    const provider = new ethers.JsonRpcProvider(env.robinhoodRpcUrl);
     const result = await siwe.verify(
       { signature, nonce: user.nonce, domain: env.siweDomain },
       { provider },

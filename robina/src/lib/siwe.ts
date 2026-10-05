@@ -1,5 +1,5 @@
 import { signMessage } from "wagmi/actions";
-import { wagmiConfig, BASE_CHAIN_ID } from "./wagmi";
+import { wagmiConfig, ROBINHOOD_CHAIN_ID } from "./wagmi";
 import { SiweMessage } from "siwe";
 import { getAddress } from "viem";
 
@@ -8,10 +8,10 @@ export async function buildAndSignSiwe(address: `0x${string}`, nonce: string) {
   const siweMessage = new SiweMessage({
     domain: window.location.host,
     address: getAddress(address), // Critical for signature math
-    statement: "Sign in to BaseDrop with your Base wallet.",
+    statement: "Sign in to robina with your Robinhood Wallet.",
     uri: window.location.origin,
     version: "1",
-    chainId: BASE_CHAIN_ID,
+    chainId: ROBINHOOD_CHAIN_ID,
     nonce: nonce,
   });
 
