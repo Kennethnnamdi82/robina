@@ -25,7 +25,15 @@ export const USDC_DECIMALS = 6;
 
 export const wagmiConfig = createConfig({
   chains: [robinhoodChain],
-  connectors: [injected()],
+  connectors: [
+    injected({
+      target: {
+        id: "robinhoodWallet",
+        name: "Robinhood Wallet",
+        provider: (window) => window?.ethereum,
+      },
+    }),
+  ],
   transports: {
     [robinhoodChain.id]: http(robinhoodRpcUrl),
   },

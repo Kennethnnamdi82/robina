@@ -2,43 +2,23 @@ import { useAuth } from "@/context/AuthContext";
 import { Droplet, ArrowRight, Loader2, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useDisconnect, useAccount } from "wagmi";
 
 export default function LoginPage() {
   const { signInWithRobinhood, isConnecting } = useAuth();
   const navigate = useNavigate();
-  const { disconnectAsync } = useDisconnect();
-  const { isConnected } = useAccount();
 
   async function handleSignIn() {
     try {
-      // Step 1: Clean slate
-      if (isConnected) {
-        await disconnectAsync();
-      }
-
-      // Step 2: SIWE Handshake
       await signInWithRobinhood();
 
-      // Step 3: SUCCESS
       toast.success("Welcome to BaseDrop!");
 
-      /**
-       * STEP 4: SETTLE DELAY (The Loop Fix)
-       * We wait 150ms to let the AuthContext 'isLoggedIn' state
-       * catch up before navigating to the homepage.
-       */
       setTimeout(() => {
         navigate("/", { replace: true });
       }, 150);
     } catch (e) {
       const error = e as Error;
       const msg = error?.message || "Sign-in failed";
-
-      if (msg.includes("already connected")) {
-        navigate("/", { replace: true });
-        return;
-      }
 
       if (msg.includes("fetch") || msg.includes("Network Error")) {
         toast.error("Server is waking up. Please try again in a few seconds.");
@@ -91,7 +71,9 @@ export default function LoginPage() {
             </>
           )}
         </button>
-        
+        <p className="text-xs text-muted-foreground text-center">
+          Open this page in Robinhood Wallet to connect and sign in.
+        </p>
       </div>
     </div>
   );

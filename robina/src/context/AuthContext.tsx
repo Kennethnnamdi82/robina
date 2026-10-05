@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { getChainId, switchChain } from "wagmi/actions";
 import {
   adminApi,
   authApi,
@@ -16,7 +17,7 @@ import {
   type ApiError,
 } from "@/services/api";
 import { buildAndSignSiwe } from "@/lib/siwe";
-import { ROBINHOOD_CHAIN_ID } from "@/lib/wagmi";
+import { ROBINHOOD_CHAIN_ID, wagmiConfig } from "@/lib/wagmi";
 import { HAS_BACKEND } from "@/lib/backend";
 
 interface BaseUser {
@@ -53,7 +54,7 @@ function shortName(wallet: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { address } = useAccount();
+  const { address, connector: activeConnector } = useAccount();
   const { connectAsync, connectors, isPending: isConnecting } = useConnect();
   const { disconnectAsync } = useDisconnect();
   const [signedIn, setSignedIn] = useState(false);
@@ -158,19 +159,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [address, signedWallet, isAdmin]);
 
   const signInWithRobinhood = useCallback(async () => {
-    const preferredConnector = connectors.find(
-      (connector) => connector.id === "injected",
+    const robinhoodConnector = connectors.find(
+      (connector) => connector.id === "robinhoodWallet",
     );
 
-    if (!preferredConnector) {
+    if (!robinhoodConnector) {
       throw new Error("Robinhood Wallet connection is unavailable on this device");
     }
 
-    const result = await connectAsync({
-      connector: preferredConnector,
-      chainId: ROBINHOOD_CHAIN_ID,
-    });
-    const wallet = result.accounts[0];
+    let wallet = address;
+    if (activeConnector?.id === robinhoodConnector.id && address) {
+      if (getChainId(wagmiConfig) !== ROBINHOOD_CHAIN_ID) {
+        await switchChain(wagmiConfig, { chainId: ROBINHOOD_CHAIN_ID });
+      }
+    } else {
+      wallet = (
+        await connectAsync({
+          connector: robinhoodConnector,
+          chainId: ROBINHOOD_CHAIN_ID,
+        }).catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          if (/provider not found/i.test(message)) {
+            throw new Error(
+              "Robinhood Wallet provider not found. Open this website in Robinhood Wallet's in-app browser and try again.",
+            );
+          }
+          throw error;
+        })
+      ).accounts[0];
+    }
     if (!wallet) throw new Error("No account returned");
 
     if (HAS_BACKEND) {
@@ -189,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(false);
     setSignedWallet(wallet.toLowerCase());
     setSignedIn(true);
-  }, [connectAsync, connectors]);
+  }, [address, activeConnector, connectAsync, connectors]);
 
   const signInAsAdmin = useCallback(async (email: string, password: string) => {
     if (!HAS_BACKEND)

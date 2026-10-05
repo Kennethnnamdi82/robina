@@ -24,4 +24,3 @@ npm run preview
 - `src/services`
 - `src/utils`
 - `src/assets`
-
