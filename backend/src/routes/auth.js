@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import { web3Middleware } from '../middleware/auth.js';
-import { getNonce, verifySiwe, logout, me } from '../controllers/authController.js';
+import rateLimit from 'express-rate-limit';
+import { getNonce, verifySiwe, walletLogin, googleLogin, logout, me } from '../controllers/authController.js';
 
 const router = Router();
 
-router.get('/nonce', getNonce);
+const authRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
+router.get('/nonce', authRateLimit, getNonce);
 router.post('/verify', verifySiwe);
+router.post('/wallet', authRateLimit, walletLogin);
+router.post('/google', authRateLimit, googleLogin);
 router.post('/logout', logout);
 router.get('/me', web3Middleware, me);
 

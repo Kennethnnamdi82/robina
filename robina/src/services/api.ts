@@ -1,30 +1,8 @@
 import { API_BASE_URL } from "@/lib/backend";
 
 const BASE_URL = API_BASE_URL;
-const SESSION_TOKEN_KEY = "basedrop_session_token_v1";
 
 export type ApiError = Error & { status?: number; details?: unknown };
-
-function readSessionToken(): string | null {
-  try {
-    const token = localStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? token.trim() : null;
-  } catch {
-    return null;
-  }
-}
-
-export function setSessionToken(token?: string | null) {
-  try {
-    if (token && token.trim()) {
-      localStorage.setItem(SESSION_TOKEN_KEY, token.trim());
-    } else {
-      localStorage.removeItem(SESSION_TOKEN_KEY);
-    }
-  } catch {
-    // no-op
-  }
-}
 
 /**
  * Enhanced request helper with Render-specific retry logic
@@ -38,12 +16,10 @@ async function request<T>(
   const fullUrl = `${BASE_URL}${normalizedPath}`;
 
   try {
-    const sessionToken = readSessionToken();
     const res = await fetch(fullUrl, {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
         ...(init.headers || {}),
       },
       ...init,
@@ -64,14 +40,6 @@ async function request<T>(
         data && typeof data === "object"
           ? (data as Record<string, unknown>)
           : {};
-      if (
-        res.status === 401 &&
-        ["unauthenticated", "invalid_token", "token_revoked"].includes(
-          String(payload.error || ""),
-        )
-      ) {
-        setSessionToken(null);
-      }
       const err = new Error(
         String(payload.error || `http_${res.status}`),
       ) as ApiError;
@@ -107,6 +75,9 @@ export const api = {
 // --- API Interfaces ---
 export interface ApiUser {
   wallet: string;
+  email?: string | null;
+  authMethod?: "wallet_evm" | "wallet_solana" | "privy_google";
+  chainType?: "evm" | "solana" | "none";
   bdBalance: number;
   level: string;
   cardMultiplier?: number;
@@ -155,9 +126,15 @@ export interface GameSessionState {
   cardPriceUsdc: number;
   openAllPriceUsdc: number;
   cardMultiplier?: number;
-  paymentTo: `0x${string}`;
-  usdcContract: `0x${string}`;
-  chainId: number;
+  paymentTo: string;
+  usdcContract: string;
+  chainId: number | string;
+  paymentNetworks: Array<{
+    chainType: "evm" | "solana";
+    chainId: number | string;
+    usdcContract: string;
+    recipient: string;
+  }>;
   seasonStage: number;
   seasonStageLabel: string;
   seasonEligible: boolean;
@@ -196,15 +173,36 @@ export interface TreasureRewardStateResponse {
 
 // --- API Methods ---
 export const authApi = {
-  nonce: (wallet: string) =>
-    api.get<{ nonce: string }>(`/api/auth/nonce?wallet=${wallet}`),
+  nonce: (
+    wallet: string,
+    options: { chainType: "evm"; chainId: number } | { chainType: "solana" },
+  ) => {
+    const params = new URLSearchParams({
+      wallet,
+      chainType: options.chainType,
+    });
+    if (options.chainType === "evm") params.set("chainId", String(options.chainId));
+    return api.get<{ nonce: string; chainId: string; expiresAt: string }>(
+      `/api/auth/nonce?${params.toString()}`,
+    );
+  },
   verify: (message: string, signature: string, ref?: string) =>
-    api.post<{ ok: true; user: ApiUser; token?: string }>(`/api/auth/verify`, {
+    api.post<{ ok: true; user: ApiUser }>(`/api/auth/verify`, {
       message,
       signature,
       ref,
     }),
-  me: () => api.get<{ user: ApiUser; token?: string | null }>(`/api/auth/me`),
+  wallet: (body: {
+    message: string;
+    signature: string;
+    address: string;
+    chainType: "evm" | "solana";
+    chainId?: string;
+    ref?: string;
+  }) => api.post<{ ok: true; user: ApiUser }>(`/api/auth/wallet`, body),
+  google: (accessToken: string) =>
+    api.post<{ ok: true; user: ApiUser }>(`/api/auth/google`, { accessToken }),
+  me: () => api.get<{ user: ApiUser }>(`/api/auth/me`),
   logout: () => api.post(`/api/auth/logout`),
 };
 
@@ -231,6 +229,35 @@ export const miningApi = {
 };
 
 export const paymentsApi = {
+  createIntent: (
+    action: PaymentAction,
+    targetMultiplier?: number,
+    chainId?: number,
+    chainType: "evm" | "solana" = "evm",
+  ) =>
+    api.post<{
+      intent: {
+        id: string;
+        action: PaymentAction;
+        chainType: "evm" | "solana";
+        chainId: number | string;
+        asset: { type: "native" | "erc20" | "spl"; address?: string | null; symbol: string; decimals: number };
+        amount: string;
+        amountAtomic: string;
+        recipient: string;
+        expiresAt: string;
+      };
+    }>(`/api/payments/intents`, {
+      action,
+      chainType,
+      ...(targetMultiplier ? { targetMultiplier } : {}),
+      ...(chainId ? { chainId } : {}),
+    }),
+  verifyIntent: (intentId: string, transactionHash: string) =>
+    api.post<{ ok: true; intentId: string; status: "verified"; user?: Partial<ApiUser> }>(
+      `/api/payments/verify-intent`,
+      { intentId, transactionHash },
+    ),
   quote: (action: PaymentAction, targetMultiplier?: number) => {
     const params = new URLSearchParams({ action });
     if (targetMultiplier) params.set("multiplier", String(targetMultiplier));
@@ -245,10 +272,10 @@ export const paymentsApi = {
       durationMs?: number;
     }>(`/api/payments/quote?${params.toString()}`);
   },
-  verify: (txHash: string, action: PaymentAction, targetMultiplier?: number) =>
+  verify: (txHash: string, action: PaymentAction, targetMultiplier?: number, chainId?: number) =>
     api.post<{ ok: true; action: PaymentAction; user: Partial<ApiUser> }>(
       `/api/payments/verify`,
-      { txHash, action, ...(targetMultiplier ? { targetMultiplier } : {}) },
+      { txHash, action, ...(targetMultiplier ? { targetMultiplier } : {}), ...(chainId ? { chainId } : {}) },
     ),
   upgradeWithBd: () =>
     api.post<{ ok: true; user: Partial<ApiUser> }>(`/api/payments/upgrade-bd`),
@@ -516,9 +543,9 @@ export const gameApi = {
     api.post<{ ok: true; session: GameSessionState }>(`/api/game/start`),
   state: () =>
     api.get<{ ok: true; session: GameSessionState }>(`/api/game/state`),
-  reveal: (cardIndex: number, txHash: string) =>
-    api.post<RevealResponse>(`/api/game/reveal`, { cardIndex, txHash }),
-  openAll: (txHash: string) =>
+  reveal: (cardIndex: number, txHash: string, chainId: number | string, chainType: "evm" | "solana") =>
+    api.post<RevealResponse>(`/api/game/reveal`, { cardIndex, txHash, chainId: typeof chainId === "number" ? chainId : undefined, chainType }),
+  openAll: (txHash: string, chainId: number | string, chainType: "evm" | "solana") =>
     api.post<{
       ok: true;
       opened: number;
@@ -526,7 +553,7 @@ export const gameApi = {
       guaranteedCompletion?: boolean;
       cards: GameCard[];
       session: GameSessionState;
-    }>(`/api/game/open-all`, { txHash }),
+    }>(`/api/game/open-all`, { txHash, chainId: typeof chainId === "number" ? chainId : undefined, chainType }),
   reset: () =>
     api.post<{ ok: true; session: GameSessionState }>(`/api/game/reset`),
 };

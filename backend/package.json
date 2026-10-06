@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "dev": "node --watch src/server.js",
     "test": "node --test",
     "smoke": "node scripts/smoke-check.mjs",
     "migrate:task-expiry": "node scripts/migrate-task-expiry.mjs",
@@ -17,8 +17,11 @@
     "node": ">=18.17"
   },
   "dependencies": {
+    "@privy-io/node": "^0.35.0",
+    "@solana/kit": "^5.5.1",
     "axios": "^1.16.0",
     "bcryptjs": "^2.4.3",
+    "bs58": "^6.0.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -29,11 +32,9 @@
     "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "siwe": "^2.3.2",
-    "viem": "^2.21.0",
+    "tweetnacl": "^1.0.3",
+    "viem": "^2.57.3",
     "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.18"
   },
   "overrides": {
     "braces": "^3.0.3",

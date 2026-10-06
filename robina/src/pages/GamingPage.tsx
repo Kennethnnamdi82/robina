@@ -3,9 +3,10 @@ import { Loader2, Gem, RefreshCw, AlertCircle, Trophy, BadgePercent } from 'luci
 import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
 import { gameApi, paymentsApi, type GameSessionState, type ApiError } from '@/services/api';
-import { sendUsdcOnRobinhood, waitForUsdcTx } from '@/services/usdc';
+import { sendSolanaUsdc, sendUsdcOnEvm, waitForUsdcTx } from '@/services/usdc';
 import { HAS_BACKEND } from '@/lib/backend';
 import { useGame } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 import { getCardMultiplierPrice, MAX_CARD_MULTIPLIER, MIN_CARD_MULTIPLIER } from '@/types/game';
 import treasure1Image from '@/assets/treasures/treasure-1.jpeg';
 import treasure2Image from '@/assets/treasures/treasure-2.jpeg';
@@ -98,7 +99,13 @@ function buildCardsFromRevealed(
 }
 
 export default function GamingPage() {
-  const { isConnected } = useAccount();
+  const { isConnected, chainId } = useAccount();
+  const {
+    authChainType,
+    baseUser,
+    solanaAddress,
+    connectSolanaWallet,
+  } = useAuth();
   const { user, refreshUser } = useGame();
   const [session, setSession] = useState<GameSessionState | null>(null);
   const [cards, setCards] = useState<UICard[]>(() => buildCards(null));
@@ -110,6 +117,37 @@ export default function GamingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastReveal, setLastReveal] = useState<{ result: 'treasure' | 'empty'; bd: number; treasure?: TreasureItem | null; completedSeason?: boolean } | null>(null);
+
+  async function submitGamePayment(amount: number, gameSession: GameSessionState) {
+    const network = gameSession.paymentNetworks.find((candidate) =>
+      candidate.chainType === authChainType &&
+      (candidate.chainType === "solana" || candidate.chainId === chainId),
+    );
+    if (!network) throw new Error("Payment network is not supported for this signed-in wallet.");
+    if (network.chainType === "solana") {
+      const { wallet, account } = await connectSolanaWallet();
+      if (account.address !== solanaAddress || account.address !== baseUser?.wallet) {
+        throw new Error("Reconnect the same Phantom Solana wallet you used to sign in.");
+      }
+      const signature = await sendSolanaUsdc(
+        wallet,
+        account,
+        network.recipient,
+        network.usdcContract,
+        BigInt(Math.round(amount * 1_000_000)).toString(),
+      );
+      return { signature, chainType: "solana" as const, chainId: network.chainId };
+    }
+    if (!isConnected) throw new Error("Connect your signed-in EVM wallet first.");
+    const signature = await sendUsdcOnEvm(
+      network.recipient as `0x${string}`,
+      amount,
+      network.usdcContract as `0x${string}`,
+      Number(network.chainId),
+    );
+    await waitForUsdcTx(signature, Number(network.chainId));
+    return { signature, chainType: "evm" as const, chainId: network.chainId };
+  }
 
   const refresh = useCallback(async () => {
     if (!HAS_BACKEND) {
@@ -182,8 +220,8 @@ export default function GamingPage() {
     }
     if (processingIndex !== null || isOpenAllProcessing || showingOpenAllResults) return;
     if (cards[index].state !== 'idle') return;
-    if (!isConnected) {
-      toast.error('Connect your Robinhood Wallet first');
+    if (authChainType === "none") {
+      toast.error('Sign in with a supported wallet first');
       return;
     }
 
@@ -192,20 +230,15 @@ export default function GamingPage() {
     setCards((prev) => prev.map((c, i) => (i === index ? { ...c, state: 'processing' } : c)));
 
     try {
-      const to = session?.paymentTo;
-      const usdcContract = session?.usdcContract as `0x${string}` | undefined;
-      if (!to || !/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error('Payment recipient unavailable');
-      if (!usdcContract || !/^0x[0-9a-fA-F]{40}$/.test(usdcContract)) throw new Error('USDC contract unavailable');
-
-      const hash = await sendUsdcOnRobinhood(to, cardPriceUsdc, usdcContract);
-      toast.message('Payment submitted', { description: `${hash.slice(0, 10)}...` });
-      await waitForUsdcTx(hash);
+      const payment = await submitGamePayment(cardPriceUsdc, session!);
+      const { signature } = payment;
+      toast.message('Payment submitted', { description: `${signature.slice(0, 10)}...` });
 
       let res: Awaited<ReturnType<typeof gameApi.reveal>> | null = null;
       let lastErr: ApiError | null = null;
       for (let attempt = 1; attempt <= REVEAL_MAX_ATTEMPTS; attempt += 1) {
         try {
-          res = await gameApi.reveal(index, hash);
+          res = await gameApi.reveal(index, signature, payment.chainId, payment.chainType);
           break;
         } catch (e) {
           const err = e as ApiError;
@@ -268,8 +301,8 @@ export default function GamingPage() {
       toast.error('Open All works only on a fresh card set');
       return;
     }
-    if (!isConnected) {
-      toast.error('Connect your Robinhood Wallet first');
+    if (authChainType === "none") {
+      toast.error('Sign in with a supported wallet first');
       return;
     }
 
@@ -278,20 +311,15 @@ export default function GamingPage() {
     setCards((prev) => prev.map((c) => (c.state === 'idle' ? { ...c, state: 'processing' } : c)));
 
     try {
-      const to = session.paymentTo;
-      const usdcContract = session.usdcContract as `0x${string}` | undefined;
-      if (!to || !/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error('Payment recipient unavailable');
-      if (!usdcContract || !/^0x[0-9a-fA-F]{40}$/.test(usdcContract)) throw new Error('USDC contract unavailable');
-
-      const hash = await sendUsdcOnRobinhood(to, openAllPriceUsdc, usdcContract);
-      toast.message('Open-all payment submitted', { description: `${hash.slice(0, 10)}...` });
-      await waitForUsdcTx(hash);
+      const payment = await submitGamePayment(openAllPriceUsdc, session);
+      const { signature } = payment;
+      toast.message('Open-all payment submitted', { description: `${signature.slice(0, 10)}...` });
 
       let res: Awaited<ReturnType<typeof gameApi.openAll>> | null = null;
       let lastErr: ApiError | null = null;
       for (let attempt = 1; attempt <= REVEAL_MAX_ATTEMPTS; attempt += 1) {
         try {
-          res = await gameApi.openAll(hash);
+          res = await gameApi.openAll(signature, payment.chainId, payment.chainType);
           break;
         } catch (e) {
           const err = e as ApiError;
@@ -368,21 +396,44 @@ export default function GamingPage() {
 
     setIsMultiplierProcessing(true);
     try {
-      const quote = await paymentsApi.quote('multiplier', selectedMultiplier);
-      const to = quote.to as `0x${string}` | undefined;
-      const usdcContract = quote.usdcContract as `0x${string}` | undefined;
-      if (!to || !/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error('Payment recipient unavailable');
-      if (!usdcContract || !/^0x[0-9a-fA-F]{40}$/.test(usdcContract)) throw new Error('USDC contract unavailable');
-
-      const hash = await sendUsdcOnBase(to, quote.amountUsdc, usdcContract);
+      const { intent } = await paymentsApi.createIntent(
+        'multiplier',
+        selectedMultiplier,
+        chainId,
+        authChainType === "solana" ? "solana" : "evm",
+      );
+      let hash: string;
+      if (intent.chainType === "solana") {
+        if (intent.asset.type !== "spl" || !intent.asset.address) throw new Error("Solana USDC quote unavailable.");
+        const { wallet, account } = await connectSolanaWallet();
+        if (account.address !== solanaAddress || account.address !== baseUser?.wallet) {
+          throw new Error("Reconnect the same Phantom Solana wallet you used to sign in.");
+        }
+        hash = await sendSolanaUsdc(
+          wallet,
+          account,
+          intent.recipient,
+          intent.asset.address,
+          intent.amountAtomic,
+        );
+      } else {
+        const to = intent.recipient as `0x${string}`;
+        const usdcContract = intent.asset.address as `0x${string}` | undefined;
+        if (!to || !/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error('Payment recipient unavailable');
+        if (!usdcContract || !/^0x[0-9a-fA-F]{40}$/.test(usdcContract)) throw new Error('USDC contract unavailable');
+        if (!isConnected) throw new Error("Connect your signed-in EVM wallet first.");
+        const paymentChainId = Number(intent.chainId);
+        const evmHash = await sendUsdcOnEvm(to, Number(intent.amount), usdcContract, paymentChainId);
+        hash = evmHash;
+        await waitForUsdcTx(evmHash, paymentChainId);
+      }
       toast.message(`${selectedMultiplier}x multiplier payment submitted`, { description: `${hash.slice(0, 10)}...` });
-      await waitForUsdcTx(hash);
 
       let verified = false;
       let lastErr: ApiError | null = null;
       for (let attempt = 1; attempt <= REVEAL_MAX_ATTEMPTS; attempt += 1) {
         try {
-          await paymentsApi.verify(hash, 'multiplier', selectedMultiplier);
+          await paymentsApi.verifyIntent(intent.id, hash);
           verified = true;
           break;
         } catch (e) {

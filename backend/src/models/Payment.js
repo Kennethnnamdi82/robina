@@ -2,9 +2,11 @@ import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema(
   {
-    txHash: { type: String, required: true, unique: true, lowercase: true, index: true },
+    txHash: { type: String, required: true, unique: true, index: true },
     wallet: { type: String, required: true, lowercase: true, index: true },
     action: { type: String, enum: ['upgrade', 'instant_claim', 'auto_claim', 'game_card', 'game_bundle', 'multiplier'], required: true },
+    chainType: { type: String, enum: ['evm', 'solana'], default: 'evm', index: true },
+    chainId: { type: String, default: '4663', index: true },
     targetLevel: { type: String, default: null },
     targetMultiplier: { type: Number, default: null },
     amountUsdc: { type: Number, required: true, default: 0 },

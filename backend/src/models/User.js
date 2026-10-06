@@ -9,6 +9,15 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       index: true,
     },
+    walletAddress: { type: String, default: null },
+    authMethod: {
+      type: String,
+      enum: ["wallet_evm", "wallet_solana", "privy_google"],
+      default: "wallet_evm",
+    },
+    chainType: { type: String, enum: ["evm", "solana", "none"], default: "evm" },
+    privyUserId: { type: String, unique: true, sparse: true, index: true },
+    email: { type: String, lowercase: true, trim: true, default: null },
     role: {
       type: String,
       default: "user",

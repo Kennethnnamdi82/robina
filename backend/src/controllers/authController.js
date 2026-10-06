@@ -1,8 +1,12 @@
-import { SiweMessage, generateNonce } from "siwe";
-import { ethers } from "ethers";
+import { SiweMessage } from "siwe";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import nacl from "tweetnacl";
+import bs58 from "bs58";
+import { PrivyClient } from "@privy-io/node";
 import { User } from "../models/User.js";
+import { AuthNonce } from "../models/AuthNonce.js";
 import { RevokedToken } from "../models/RevokedToken.js";
 import { env } from "../config/env.js";
 import {
@@ -13,7 +17,6 @@ import {
 import { generateReferralCode } from "../utils/referral.js";
 import { logActivity, logLoginSession } from "../services/activityLogger.js";
 
-const NONCE_TTL_MS = 10 * 60 * 1000;
 const SIWE_MAX_AGE_MS = 15 * 60 * 1000;
 
 const verifyBody = z.object({
@@ -21,6 +24,22 @@ const verifyBody = z.object({
   signature: z.string().min(10),
   ref: z.string().optional(),
 });
+
+const nonceQuery = z.object({
+  wallet: z.string().optional(),
+  address: z.string().optional(),
+  chainType: z.enum(["evm", "solana"]).default("evm"),
+  chainId: z.string().regex(/^\d+$/).optional(),
+});
+const walletAuthBody = z.object({
+  message: z.string().min(10).max(10_000),
+  signature: z.string().min(10).max(1_000),
+  address: z.string().min(20).max(128),
+  chainType: z.enum(["evm", "solana"]),
+  chainId: z.string().max(80).optional(),
+  ref: z.string().max(64).optional(),
+});
+const googleAuthBody = z.object({ accessToken: z.string().min(20).max(16_384) });
 
 function safeOrigin(value) {
   try {
@@ -32,7 +51,7 @@ function safeOrigin(value) {
 
 export function publicUser(u) {
   return {
-    wallet: u.wallet,
+    wallet: u.walletAddress || u.wallet,
     bdBalance: u.bdBalance,
     level: u.level,
     cardMultiplier: Number(u.cardMultiplier || 1),
@@ -44,76 +63,196 @@ export function publicUser(u) {
     referralCount: u.referralCount,
     completedTasks: u.completedTasks || [],
     lastDailyTaskDate: u.lastDailyTaskDate,
+    email: u.email || null,
+    authMethod: u.authMethod || "wallet_evm",
+    chainType: u.chainType || "evm",
   };
 }
 
-export async function getNonce(req, res) {
-  const wallet = String(req.query.wallet || "").toLowerCase();
-  if (!/^0x[0-9a-f]{40}$/.test(wallet)) {
-    return res.status(400).json({ error: "invalid_wallet" });
+function normalizedAddress(address, chainType) {
+  const value = String(address || "").trim();
+  if (chainType === "evm") {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(value)) return null;
+    return value.toLowerCase();
   }
+  try {
+    if (bs58.decode(value).length !== 32) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
 
-  const nonce = generateNonce();
-  await User.findOneAndUpdate(
-    { wallet },
+function makeNonce() {
+  // 32 cryptographically random bytes, encoded without punctuation so it is
+  // accepted by the SIWE nonce grammar.
+  return crypto.randomBytes(32).toString("base64url");
+}
+
+async function resolveWalletUser(wallet, chainType) {
+  const walletIdentity = chainType === "solana"
+    ? `solana:${Buffer.from(bs58.decode(wallet)).toString("hex")}`
+    : wallet;
+  return User.findOneAndUpdate(
+    { wallet: walletIdentity },
     {
-      $set: { nonce, nonceIssuedAt: new Date() },
       $setOnInsert: {
+        wallet: walletIdentity,
+        walletAddress: chainType === "solana" ? wallet : null,
+        authMethod: chainType === "solana" ? "wallet_solana" : "wallet_evm",
+        chainType,
         referralCode: generateReferralCode(wallet),
         bdBalance: 0,
         level: "Beginner",
       },
     },
-    { upsert: true, new: true },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
   );
-  res.json({ nonce });
 }
 
-export async function verifySiwe(req, res) {
-  const parsed = verifyBody.safeParse(req.body);
+function siwsMessage({ address, nonce, issuedAt, expirationTime }) {
+  return `${env.siweDomain} wants you to sign in with your Solana account:\n${address}\n\nSign in to Robina.\n\nURI: ${env.siweUri}\nVersion: 1\nChain ID: solana:mainnet\nNonce: ${nonce}\nIssued At: ${issuedAt}\nExpiration Time: ${expirationTime}`;
+}
+
+function parseSiwsMessage(message) {
+  const fields = Object.fromEntries(
+    message.split("\n").map((line) => {
+      const separator = line.indexOf(": ");
+      return separator > 0 ? [line.slice(0, separator), line.slice(separator + 2)] : [];
+    }).filter((entry) => entry.length),
+  );
+  const lines = message.split("\n");
+  const address = lines[1];
+  const expectedPrefix = `${env.siweDomain} wants you to sign in with your Solana account:`;
+  if (lines[0] !== expectedPrefix || lines[3] !== "Sign in to Robina.") return null;
+  if (fields.URI !== env.siweUri || fields.Version !== "1" || fields["Chain ID"] !== "solana:mainnet") return null;
+  return { address, nonce: fields.Nonce, issuedAt: fields["Issued At"], expirationTime: fields["Expiration Time"] };
+}
+
+export async function getNonce(req, res) {
+  const parsed = nonceQuery.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_nonce_request" });
+  const chainType = parsed.data.chainType;
+  const wallet = normalizedAddress(parsed.data.address || parsed.data.wallet, chainType);
+  if (!wallet) {
+    return res.status(400).json({ error: "invalid_wallet" });
+  }
+  const nonce = makeNonce();
+  const expiresAt = new Date(Date.now() + env.authNonceTtlMs);
+  const chainId = chainType === "evm" ? String(parsed.data.chainId || env.chainId) : "solana:mainnet";
+  if (chainType === "evm" && !env.evmChains[chainId]) {
+    return res.status(400).json({ error: "unsupported_chain" });
+  }
+  await AuthNonce.create({
+    nonce,
+    address: wallet,
+    chainType,
+    chainId,
+    domain: env.siweDomain,
+    uri: env.siweUri,
+    expiresAt,
+  });
+  res.json({ nonce, chainType, chainId, expiresAt: expiresAt.toISOString() });
+}
+
+export async function walletLogin(req, res) {
+  const parsed = walletAuthBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "invalid_body" });
   }
-  const { message, signature, ref } = parsed.data;
+  const { message, signature, chainType, ref } = parsed.data;
+  const wallet = normalizedAddress(parsed.data.address, chainType);
+  if (!wallet) return res.status(400).json({ error: "invalid_wallet" });
 
-  let siwe;
+  let nonce;
   try {
-    siwe = new SiweMessage(message);
+    if (chainType === "evm") {
+      const siwe = new SiweMessage(message);
+      if (
+        siwe.domain !== env.siweDomain ||
+        siwe.uri !== env.siweUri ||
+        !env.evmChains[String(siwe.chainId)] ||
+        siwe.chainId !== Number(parsed.data.chainId || env.chainId) ||
+        normalizedAddress(siwe.address, "evm") !== wallet ||
+        !siwe.issuedAt || !siwe.expirationTime
+      ) return res.status(400).json({ error: "invalid_message" });
+      const issuedAt = new Date(siwe.issuedAt).getTime();
+      const expirationTime = new Date(siwe.expirationTime).getTime();
+      if (
+        !Number.isFinite(issuedAt) ||
+        !Number.isFinite(expirationTime) ||
+        issuedAt > Date.now() + 60_000 ||
+        issuedAt < Date.now() - SIWE_MAX_AGE_MS ||
+        expirationTime <= Date.now()
+      ) {
+        return res.status(400).json({ error: "message_expired" });
+      }
+      nonce = siwe.nonce;
+      const challenge = await AuthNonce.findOne({
+        nonce,
+        address: wallet,
+        chainType,
+        chainId: String(siwe.chainId),
+        domain: env.siweDomain,
+        uri: env.siweUri,
+        usedAt: null,
+      });
+      if (!challenge || challenge.expiresAt <= new Date()) return res.status(400).json({ error: "nonce_expired_or_used" });
+      const verified = await siwe.verify({ signature, nonce, domain: env.siweDomain, time: new Date().toISOString() });
+      if (!verified.success) return res.status(401).json({ error: "signature_invalid" });
+    } else {
+      const parsedMessage = parseSiwsMessage(message);
+      if (!parsedMessage || parsedMessage.address !== wallet || !parsedMessage.nonce || !parsedMessage.issuedAt || !parsedMessage.expirationTime) {
+        return res.status(400).json({ error: "invalid_message" });
+      }
+      const issuedAt = new Date(parsedMessage.issuedAt).getTime();
+      const expirationTime = new Date(parsedMessage.expirationTime).getTime();
+      if (
+        !Number.isFinite(issuedAt) ||
+        !Number.isFinite(expirationTime) ||
+        issuedAt > Date.now() + 60_000 ||
+        issuedAt < Date.now() - SIWE_MAX_AGE_MS ||
+        expirationTime <= Date.now()
+      ) {
+        return res.status(400).json({ error: "message_expired" });
+      }
+      nonce = parsedMessage.nonce;
+      const challenge = await AuthNonce.findOne({
+        nonce,
+        address: wallet,
+        chainType,
+        chainId: "solana:mainnet",
+        domain: env.siweDomain,
+        uri: env.siweUri,
+        usedAt: null,
+      });
+      if (!challenge || challenge.expiresAt <= new Date()) return res.status(400).json({ error: "nonce_expired_or_used" });
+      if (!nacl.sign.detached.verify(new TextEncoder().encode(message), bs58.decode(signature), bs58.decode(wallet))) {
+        return res.status(401).json({ error: "signature_invalid" });
+      }
+    }
   } catch {
-    return res.status(400).json({ error: "invalid_message" });
+    return res.status(401).json({ error: "signature_invalid" });
   }
 
-  // SIWE Validations... (Keeping your existing logic)
-  if (siwe.chainId !== env.chainId)
-    return res.status(400).json({ error: "wrong_chain" });
-  if (siwe.uri !== env.siweUri) {
-    return res.status(400).json({ error: "invalid_uri" });
-  }
+  // Atomic consumption is the replay barrier. A second concurrent request sees
+  // no matching unused challenge and cannot receive a second session.
+  const consumed = await AuthNonce.findOneAndUpdate(
+    { nonce, address: wallet, chainType, usedAt: null, expiresAt: { $gt: new Date() } },
+    { $set: { usedAt: new Date() } },
+    { new: true },
+  );
+  if (!consumed) return res.status(400).json({ error: "nonce_expired_or_used" });
 
-  const wallet = siwe.address.toLowerCase();
-  const user = await User.findOne({ wallet });
-  if (!user || user.nonce !== siwe.nonce)
-    return res.status(400).json({ error: "nonce_mismatch" });
+  const user = await resolveWalletUser(wallet, chainType);
   const isNewRegistration =
     user.createdAt && Date.now() - new Date(user.createdAt).getTime() <= SIWE_MAX_AGE_MS;
   let referredByWallet = null;
 
-  try {
-    const provider = new ethers.JsonRpcProvider(env.robinhoodRpcUrl);
-    const result = await siwe.verify(
-      { signature, nonce: user.nonce, domain: env.siweDomain },
-      { provider },
-    );
-    if (!result.success)
-      return res.status(401).json({ error: "signature_invalid" });
-  } catch (e) {
-    return res.status(401).json({ error: "signature_invalid" });
-  }
-
   // Handle Referrals
   if (ref && !user.referredBy) {
     const inviter = await User.findOne({ referralCode: ref });
-    if (inviter && inviter.wallet !== wallet) {
+    if (inviter && inviter.wallet !== user.wallet) {
       user.referredBy = inviter.wallet;
       referredByWallet = inviter.wallet;
       inviter.referralCount += 1;
@@ -121,10 +260,7 @@ export async function verifySiwe(req, res) {
     }
   }
 
-  user.nonce = null;
-  await user.save();
-
-  const token = signSession(wallet, Number(user.sessionVersion || 0));
+  const token = signSession(user.wallet, Number(user.sessionVersion || 0));
 
   // ✅ Setting cookies with updated SameSite/Secure flags happens inside setSessionCookie
   setSessionCookie(res, token);
@@ -158,15 +294,57 @@ export async function verifySiwe(req, res) {
     });
   }
 
-  res.json({ ok: true, user: publicUser(user), token });
+  res.json({ ok: true, user: publicUser(user) });
+}
+
+// Compatibility route used by the existing client. It is deliberately routed
+// through the same strict one-time nonce verifier as /auth/wallet.
+export async function verifySiwe(req, res) {
+  let siwe;
+  try {
+    siwe = new SiweMessage(req.body?.message || "");
+  } catch {
+    return res.status(400).json({ error: "invalid_message" });
+  }
+  req.body = { ...req.body, address: siwe.address, chainType: "evm", chainId: String(siwe.chainId) };
+  return walletLogin(req, res);
+}
+
+export async function googleLogin(req, res) {
+  const parsed = googleAuthBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  if (!env.privyAppId || !env.privyAppSecret) {
+    return res.status(503).json({ error: "privy_not_configured" });
+  }
+  try {
+    const client = new PrivyClient({ appId: env.privyAppId, appSecret: env.privyAppSecret, jwtVerificationKey: env.privyVerificationKey || undefined });
+    const verified = await client.utils().auth().verifyAccessToken(parsed.data.accessToken);
+    const wallet = `privy:${verified.user_id}`.toLowerCase();
+    const user = await User.findOneAndUpdate(
+      { privyUserId: verified.user_id },
+      {
+        $setOnInsert: {
+          wallet,
+          privyUserId: verified.user_id,
+          authMethod: "privy_google",
+          chainType: "none",
+          referralCode: generateReferralCode(wallet),
+          bdBalance: 0,
+          level: "Beginner",
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    const token = signSession(user.wallet, Number(user.sessionVersion || 0));
+    setSessionCookie(res, token);
+    return res.json({ ok: true, user: publicUser(user) });
+  } catch {
+    return res.status(401).json({ error: "privy_token_invalid" });
+  }
 }
 
 export async function logout(req, res) {
-  const authHeader = String(req.headers.authorization || "");
-  const bearerToken = authHeader.startsWith("Bearer ")
-    ? authHeader.slice(7).trim()
-    : null;
-  const token = req.cookies?.bd_session || bearerToken;
+  const token = req.cookies?.bd_session;
   if (token) {
     try {
       const decoded = jwt.verify(token, env.jwtSecret, {
@@ -195,5 +373,5 @@ export async function me(req, res) {
   const user = await User.findOne({ wallet: req.wallet });
   if (!user) return res.status(401).json({ error: "unauthenticated" });
 
-  res.json({ user: publicUser(user), token: req.authToken || null });
+  res.json({ user: publicUser(user) });
 }

@@ -1,12 +1,17 @@
+import { createAppKit } from "@reown/appkit/react";
+import { base } from "@reown/appkit/networks";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { defineChain, http } from "viem";
-import { createConfig } from "wagmi";
-import { injected } from "wagmi/connectors";
 
 export const ROBINHOOD_CHAIN_ID = 4663;
+export const BASE_CHAIN_ID = 8453;
 
 const robinhoodRpcUrl =
   import.meta.env.VITE_ROBINHOOD_RPC_URL?.trim() ||
   "https://rpc.mainnet.chain.robinhood.com";
+const baseRpcUrl =
+  import.meta.env.VITE_BASE_RPC_URL?.trim() ||
+  "https://mainnet.base.org";
 
 export const robinhoodChain = defineChain({
   id: ROBINHOOD_CHAIN_ID,
@@ -20,25 +25,46 @@ export const robinhoodChain = defineChain({
     },
   },
 });
+export const supportedEvmChains = [robinhoodChain, base] as const;
 
 export const USDC_DECIMALS = 6;
 
-export const wagmiConfig = createConfig({
-  chains: [robinhoodChain],
-  connectors: [
-    injected({
-      target: {
-        id: "robinhoodWallet",
-        name: "Robinhood Wallet",
-        provider: (window) => window?.ethereum,
-      },
-    }),
-  ],
+const reownProjectId = (
+  import.meta.env.VITE_REOWN_PROJECT_ID || import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || ""
+).trim();
+
+// AppKit owns the sole wagmi configuration. This avoids competing connector
+// stores while enabling injected wallets, Coinbase, WalletConnect and Solana.
+const wagmiAdapter = new WagmiAdapter({
+  projectId: reownProjectId,
+  networks: [...supportedEvmChains],
   transports: {
-    [robinhoodChain.id]: http(robinhoodRpcUrl),
+    [ROBINHOOD_CHAIN_ID]: http(robinhoodRpcUrl),
+    [BASE_CHAIN_ID]: http(baseRpcUrl),
   },
-  ssr: false,
 });
+const featuredWalletIds = (import.meta.env.VITE_REOWN_FEATURED_WALLET_IDS || "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
+
+export const appKit = createAppKit({
+  adapters: [wagmiAdapter],
+  networks: [...supportedEvmChains],
+  projectId: reownProjectId,
+  metadata: {
+    name: "Robina",
+    description: "Robina wallet authentication and checkout",
+    url: window.location.origin,
+    icons: [`${window.location.origin}/basedrop-logo.jpg`],
+  },
+  featuredWalletIds,
+  coinbasePreference: "eoaOnly",
+  features: { analytics: true, socials: false, email: false },
+});
+
+export const openWalletModal = () => appKit.open({ view: "Connect" });
+export const wagmiConfig = wagmiAdapter.wagmiConfig;
 
 export const erc20Abi = [
   {

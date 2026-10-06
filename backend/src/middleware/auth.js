@@ -5,7 +5,10 @@ import { User } from "../models/User.js";
 import { RevokedToken } from "../models/RevokedToken.js";
 
 export function signSession(wallet, sv = 0) {
-  return jwt.sign({ sub: wallet.toLowerCase(), sv }, env.jwtSecret, {
+  const subject = String(wallet).startsWith("solana:")
+    ? String(wallet)
+    : String(wallet).toLowerCase();
+  return jwt.sign({ sub: subject, sv }, env.jwtSecret, {
     expiresIn: "7d",
     issuer: "basedrop",
     audience: "basedrop-users",
@@ -16,24 +19,26 @@ export function signSession(wallet, sv = 0) {
 export function setSessionCookie(res, token) {
   res.cookie("bd_session", token, {
     httpOnly: true,
-    sameSite: "none", // Required for Render
-    secure: true, // Required for HTTPS
+    sameSite: env.cookieSameSite,
+    secure: env.cookieSecure,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
+    ...(env.cookieDomain ? { domain: env.cookieDomain } : {}),
   });
 }
 
 export function clearSessionCookie(res) {
-  res.clearCookie("bd_session", { path: "/", sameSite: "none", secure: true });
+  res.clearCookie("bd_session", {
+    path: "/",
+    sameSite: env.cookieSameSite,
+    secure: env.cookieSecure,
+    ...(env.cookieDomain ? { domain: env.cookieDomain } : {}),
+  });
 }
 
 export async function web3Middleware(req, res, next) {
   try {
-    const authHeader = String(req.headers.authorization || "");
-    const bearerToken = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7).trim()
-      : null;
-    const token = bearerToken || req.cookies?.bd_session;
+    const token = req.cookies?.bd_session;
     if (!token) return res.status(401).json({ error: "unauthenticated" });
     const decoded = jwt.verify(token, env.jwtSecret, {
       issuer: "basedrop",
@@ -43,8 +48,8 @@ export async function web3Middleware(req, res, next) {
       const revoked = await RevokedToken.exists({ jti: decoded.jti });
       if (revoked) return res.status(401).json({ error: "token_revoked" });
     }
-    req.authToken = token;
-    req.wallet = String(decoded.sub).toLowerCase();
+    const subject = String(decoded.sub);
+    req.wallet = subject.startsWith("solana:") ? subject : subject.toLowerCase();
     const user = await User.findOne({ wallet: req.wallet }).select(
       "accountStatus suspendedUntil",
     );

@@ -8,23 +8,24 @@ import {
 } from "viem";
 import { env } from "../config/env.js";
 
-const robinhoodChain = defineChain({
-  id: env.chainId,
-  name: "Robinhood Chain",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: [env.robinhoodRpcUrl] } },
-  blockExplorers: {
-    default: {
-      name: "Robinhood Chain Explorer",
-      url: "https://robinhoodchain.blockscout.com",
-    },
-  },
-});
+function clientForChain(chainId) {
+  const config = env.evmChains[String(chainId)];
+  if (!config) {
+    const error = new Error("unsupported_chain");
+    error.code = "unsupported_chain";
+    error.status = 400;
+    throw error;
+  }
+  const chain = defineChain({
+    id: config.chainId,
+    name: config.name,
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: { default: { http: [config.rpcUrl] } },
+  });
+  return { client: createPublicClient({ chain, transport: http(config.rpcUrl) }), config };
+}
 
-export const publicClient = createPublicClient({
-  chain: robinhoodChain,
-  transport: http(env.robinhoodRpcUrl),
-});
+export const publicClient = clientForChain(env.chainId).client;
 
 const erc20Abi = parseAbi([
   "event Transfer(address indexed from, address indexed to, uint256 value)",
@@ -50,9 +51,15 @@ function fromUsdcUnits(units) {
 }
 
 /**
- * Verify a USDC transfer on Robinhood Chain.
+ * Verify a USDC transfer on a configured EVM payment chain.
  */
-export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
+export async function verifyUsdcTransfer({
+  txHash,
+  expectedTo,
+  minAmount,
+  chainId = env.chainId,
+  exactAmount = false,
+}) {
   if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
     const e = new Error("invalid_tx_hash");
     e.code = "invalid_tx_hash";
@@ -60,10 +67,10 @@ export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
     throw e;
   }
 
+  const { client, config } = clientForChain(Number(chainId));
   let receipt;
   try {
-    // Adding a slight retry logic or delay handling for the RPC
-    receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+    receipt = await client.getTransactionReceipt({ hash: txHash });
   } catch (err) {
     const e = new Error("tx_not_found_yet");
     e.code = "confirmations_pending";
@@ -87,7 +94,7 @@ export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
 
   let tx;
   try {
-    tx = await publicClient.getTransaction({ hash: txHash });
+    tx = await client.getTransaction({ hash: txHash });
   } catch {
     const e = new Error("tx_data_unavailable");
     e.code = "confirmations_pending";
@@ -97,7 +104,7 @@ export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
 
   // Chain & Contract Verification
   const txChainId = Number(tx.chainId);
-  if (txChainId !== Number(env.chainId)) {
+  if (txChainId !== Number(chainId)) {
     const e = new Error("wrong_chain");
     e.code = "wrong_chain";
     e.status = 400;
@@ -110,7 +117,7 @@ export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
   // a valid USDC Transfer log from the USDC contract.
 
   // Confirmation Logic
-  let currentBlock = await publicClient.getBlockNumber();
+  let currentBlock = await client.getBlockNumber();
   const confirmations = Number(currentBlock - receipt.blockNumber + 1n);
 
   // Set env.minConfirmations to 1 in your .env for the fastest experience!
@@ -126,7 +133,7 @@ export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
   let found = null;
 
   for (const log of receipt.logs) {
-    if ((log.address || "").toLowerCase() !== env.usdcContract.toLowerCase())
+    if ((log.address || "").toLowerCase() !== config.usdcContract.toLowerCase())
       continue;
     if (!log.topics?.[0] || log.topics[0].toLowerCase() !== TRANSFER_TOPIC)
       continue;
@@ -157,9 +164,9 @@ export async function verifyUsdcTransfer({ txHash, expectedTo, minAmount }) {
   const amountUnits = BigInt(found.value);
   const minAmountUnits = toUsdcUnits(minAmount);
 
-  if (amountUnits < minAmountUnits) {
-    const e = new Error("amount_too_low");
-    e.code = "amount_too_low";
+  if (exactAmount ? amountUnits !== minAmountUnits : amountUnits < minAmountUnits) {
+    const e = new Error(exactAmount ? "amount_mismatch" : "amount_too_low");
+    e.code = exactAmount ? "amount_mismatch" : "amount_too_low";
     e.status = 400;
     e.details = {
       paid: fromUsdcUnits(amountUnits),

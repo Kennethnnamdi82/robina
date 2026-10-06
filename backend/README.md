@@ -1,14 +1,15 @@
 # BaseDrop Backend
 
-Express + MongoDB backend for BaseDrop, enforced for Robinhood Chain mainnet (`chainId=4663`) with on-chain USDC verification.
+Express + MongoDB backend for Robina. Cookie-based wallet sessions and USDC checkout support Robinhood Chain (`4663`), Base (`8453`), and Solana mainnet (Phantom/SPL USDC), with independent on-chain verification.
 
 ## Setup
 ```bash
 cd backend
 # Configure environment variables (at minimum:
-# MONGODB_URI, JWT_SECRET, TREASURY_WALLET, ROBINHOOD_RPC_URL,
-# ROBINHOOD_USDC_CONTRACT, SIWE_DOMAIN, SIWE_URI, CORS_ORIGIN,
-# and CHAIN_ID=4663).
+# MONGODB_URI, JWT_SECRET, TREASURY_WALLET, SOLANA_TREASURY_WALLET,
+# ROBINHOOD_RPC_URL, ROBINHOOD_USDC_CONTRACT, BASE_RPC_URL,
+# BASE_USDC_CONTRACT, SOLANA_RPC_URL, SIWE_DOMAIN, SIWE_URI,
+# CORS_ORIGIN, and CHAIN_ID=4663).
 npm install
 npm run dev
 ```
@@ -24,8 +25,18 @@ Health check:
 - `SIWE_DOMAIN` + `SIWE_URI`: expected SIWE origin values. Set these to the production frontend host/origin (for example, `your-app.vercel.app` and `https://your-app.vercel.app`).
 - `CORS_ORIGIN`: comma-separated exact frontend origins, including the production `SIWE_URI`.
 - `ROBINHOOD_RPC_URL`: Robinhood Chain mainnet RPC endpoint. Robinhood's public RPC is rate-limited; use a dedicated provider in production.
+- `BASE_RPC_URL`: Base mainnet RPC endpoint; use a dedicated provider for production traffic.
+- `BASE_USDC_CONTRACT`: USDC contract address on Base. The current template uses the canonical Base USDC address; verify it against official Base/Circle documentation before production.
+- `SOLANA_RPC_URL`: Solana mainnet RPC endpoint. Obtain a dedicated endpoint from a Solana RPC provider (for example, Helius or QuickNode); the public endpoint is rate-limited and is not recommended for production payments.
+- `SOLANA_TREASURY_WALLET`: Solana public key receiving SPL USDC payments. This must be a treasury-controlled wallet and is required in production.
+- `SOLANA_USDC_MINT`: Solana mainnet USDC mint. The template defaults to the canonical Circle mint; verify it with Circle/Solana documentation before deployment.
+- `COOKIE_SECURE=true`: required in production. Use HTTPS for the frontend and API. For genuinely cross-site deployment, configure `COOKIE_SAMESITE=none`; otherwise prefer `lax`.
+- `EVM_RPC_URLS`: optional comma-separated overrides in `chainId=https://rpc-url` form for additional configured EVM RPCs. A chain must also be explicitly configured in backend code before it can be accepted for payments.
 - `CHAIN_ID`: must be `4663` (Robinhood Chain mainnet).
 - `ROBINHOOD_USDC_CONTRACT`: USDC contract address on Robinhood Chain (defaults to `0x80e0e24718dbfcad49ecaa6f1e6c89a190586ca8`). The frontend's `VITE_ROBINHOOD_USDC_ADDRESS` should match it.
+
+Frontend-only Solana RPC setting:
+- `VITE_SOLANA_RPC_URL`: Solana mainnet endpoint used by the wallet to submit and confirm SPL USDC transfers. Configure a provider endpoint as well as `SOLANA_RPC_URL`; the frontend value is public and must not contain a private credential.
 
 Legacy aliases still supported:
 - `ADMIN_WALLET` (alias of `TREASURY_WALLET`)
@@ -81,7 +92,8 @@ Legacy aliases still supported:
 - Helmet enabled.
 - CORS allow-list + credentials.
 - Global + endpoint-specific rate limits.
-- Signed HttpOnly cookies for user/admin sessions.
+- Signed HttpOnly, Secure-in-production cookies for user/admin sessions; unsafe API requests are restricted to configured origins.
 - SIWE nonce, chain, domain, URI, and staleness validation.
 - Server-authoritative economy and payment verification.
-- `Payment.txHash` uniqueness prevents replay.
+- Shared chain/transaction claims and unique transaction indexes prevent replay across checkout, legacy payment, and game payment paths. Existing MongoDB deployments must inspect and migrate old payment indexes before deploying the new compound intent index. In particular, remove the old global `transactionHash_1` unique index only after confirming no conflicting data and scheduling the migration.
+- Never use real mainnet wallets or funds in automated tests; use mocked RPC/verification or a dedicated test environment.

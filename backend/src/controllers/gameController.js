@@ -10,6 +10,8 @@ import {
   effectiveCardMultiplier,
 } from "../config/cardMultipliers.js";
 import { verifyUsdcTransfer } from "../services/robinhoodChain.js";
+import { verifySolanaIntent } from "../services/paymentVerification.js";
+import { claimPaymentTransaction } from "../services/paymentClaims.js";
 import { logActivity } from "../services/activityLogger.js";
 import { settleReferralReward } from "../services/referrals.js";
 
@@ -406,9 +408,22 @@ function publicState(s, user = null) {
     cardPriceUsdc: cardPriceForWallet(s.wallet),
     openAllPriceUsdc: openAllPriceForWallet(s.wallet),
     cardMultiplier,
-    paymentTo: env.treasuryWallet,
-    usdcContract: env.usdcContract,
-    chainId: env.chainId,
+    paymentTo: user?.chainType === "solana" ? env.solanaTreasuryWallet : env.treasuryWallet,
+    usdcContract: user?.chainType === "solana" ? env.solanaUsdcMint : env.usdcContract,
+    chainId: user?.chainType === "solana" ? "solana:mainnet" : env.chainId,
+    paymentNetworks: user?.chainType === "solana"
+      ? [{
+          chainType: "solana",
+          chainId: "solana:mainnet",
+          usdcContract: env.solanaUsdcMint,
+          recipient: env.solanaTreasuryWallet,
+        }]
+      : Object.values(env.evmChains).map(({ chainId, usdcContract }) => ({
+          chainType: "evm",
+          chainId,
+          usdcContract,
+          recipient: env.treasuryWallet,
+        })),
     seasonStage: stage,
     seasonStageLabel: STAGE_LABELS[stage - 1],
     seasonTreasures: (s.seasonTreasures || [])
@@ -544,15 +559,23 @@ const revealSchema = z.object({
     .int()
     .min(0)
     .max(CARDS_PER_ROUND - 1),
-  txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  txHash: z.string().min(32).max(128),
+  chainType: z.enum(["evm", "solana"]).default("evm"),
+  chainId: z.number().int().positive().optional(),
 });
 
 const openAllSchema = z.object({
-  txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  txHash: z.string().min(32).max(128),
+  chainType: z.enum(["evm", "solana"]).default("evm"),
+  chainId: z.number().int().positive().optional(),
 });
 
-async function acquireGamePayment({ txHash, wallet, action }) {
-  const normalizedHash = txHash.toLowerCase();
+async function acquireGamePayment({ txHash, wallet, action, chainType, chainId }) {
+  const normalizedHash = chainType === "evm" ? txHash.toLowerCase() : txHash;
+  const normalizedChainId = chainType === "solana" ? "solana:mainnet" : String(chainId);
+  if (await PaymentIntent.exists({ chainId: normalizedChainId, transactionHash: normalizedHash })) {
+    return { error: { status: 409, payload: { error: "tx_already_used" } } };
+  }
   let payment = await Payment.findOne({ txHash: normalizedHash });
   if (payment) {
     if (payment.wallet !== wallet || payment.action !== action) {
@@ -588,6 +611,8 @@ async function acquireGamePayment({ txHash, wallet, action }) {
       txHash: normalizedHash,
       wallet,
       action,
+      chainType,
+      chainId: String(chainId),
       amountUsdc: 0,
       status: "pending",
     });
@@ -600,15 +625,53 @@ async function acquireGamePayment({ txHash, wallet, action }) {
   }
 }
 
-async function verifyGamePayment({ payment, txHash, wallet, minAmount }) {
+async function verifyGamePayment({
+  payment,
+  txHash,
+  wallet,
+  minAmount,
+  chainId,
+  chainType,
+  senderAddress,
+}) {
   try {
-    const verified = await verifyUsdcTransfer({
-      txHash,
-      expectedTo: env.treasuryWallet,
-      minAmount,
+    let verified;
+    if (chainType === "solana") {
+      if (!env.solanaTreasuryWallet || !senderAddress) {
+        throw Object.assign(new Error("solana_payment_configuration_invalid"), { status: 503 });
+      }
+      verified = await verifySolanaIntent({
+        chainType: "solana",
+        chainId: "solana:mainnet",
+        assetType: "spl",
+        assetAddress: env.solanaUsdcMint,
+        amountAtomic: BigInt(Math.round(Number(minAmount) * 1_000_000)).toString(),
+        senderAddress,
+        recipient: env.solanaTreasuryWallet,
+        wallet,
+      }, txHash);
+      verified.amount = Number(minAmount);
+      verified.blockNumber = verified.slot;
+    } else {
+      verified = await verifyUsdcTransfer({
+        txHash,
+        expectedTo: env.treasuryWallet,
+        minAmount,
+        chainId,
+        exactAmount: true,
+      });
+      if (verified.from.toLowerCase() !== wallet.toLowerCase()) {
+        throw Object.assign(new Error("sender_mismatch"), { status: 400 });
+      }
+    }
+    const claimed = await claimPaymentTransaction({
+      chainId,
+      transactionHash: chainType === "evm" ? txHash.toLowerCase() : txHash,
+      wallet,
+      paymentId: payment._id,
     });
-    if (verified.from.toLowerCase() !== wallet.toLowerCase()) {
-      throw Object.assign(new Error("sender_mismatch"), { status: 400 });
+    if (!claimed) {
+      return { error: { status: 409, payload: { error: "tx_already_used" } } };
     }
     return { verified };
   } catch (e) {
@@ -787,11 +850,19 @@ export async function revealCard(req, res) {
       .json({ error: "invalid_body", details: parsed.error.flatten() });
   }
 
-  const { cardIndex, txHash } = parsed.data;
-  const normalizedTx = txHash.toLowerCase();
-
+  const { cardIndex, txHash, chainType } = parsed.data;
   const user = await User.findOne({ wallet: req.wallet });
   if (!user) return res.status(404).json({ error: "user_not_found" });
+  if (user.chainType !== chainType) return res.status(400).json({ error: "payment_wallet_type_mismatch" });
+  if (chainType === "evm" && !/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+    return res.status(400).json({ error: "invalid_transaction_hash" });
+  }
+  if (chainType === "solana" && !/^[1-9A-HJ-NP-Za-km-z]{80,100}$/.test(txHash)) {
+    return res.status(400).json({ error: "invalid_transaction_signature" });
+  }
+  const chainId = chainType === "solana" ? "solana:mainnet" : String(parsed.data.chainId || env.chainId);
+  if (chainType === "evm" && !env.evmChains[chainId]) return res.status(400).json({ error: "unsupported_chain" });
+  const normalizedTx = chainType === "evm" ? txHash.toLowerCase() : txHash;
 
   const session = await getOrCreate(req.wallet);
   if (session.revealedCards.some((c) => c.cardIndex === cardIndex)) {
@@ -802,6 +873,8 @@ export async function revealCard(req, res) {
     txHash: normalizedTx,
     wallet: req.wallet,
     action: "game_card",
+    chainType,
+    chainId,
   });
   if (paymentState.error)
     return res
@@ -814,6 +887,9 @@ export async function revealCard(req, res) {
     txHash: normalizedTx,
     wallet: req.wallet,
     minAmount: cardPriceForWallet(req.wallet),
+    chainType,
+    chainId,
+    senderAddress: user.walletAddress,
   });
   if (verifyState.error)
     return res.status(verifyState.error.status).json(verifyState.error.payload);
@@ -950,9 +1026,19 @@ export async function openAllCards(req, res) {
       .json({ error: "invalid_body", details: parsed.error.flatten() });
   }
 
-  const txHash = parsed.data.txHash.toLowerCase();
+  const { txHash: submittedHash, chainType } = parsed.data;
   const user = await User.findOne({ wallet: req.wallet });
   if (!user) return res.status(404).json({ error: "user_not_found" });
+  if (user.chainType !== chainType) return res.status(400).json({ error: "payment_wallet_type_mismatch" });
+  if (chainType === "evm" && !/^0x[0-9a-fA-F]{64}$/.test(submittedHash)) {
+    return res.status(400).json({ error: "invalid_transaction_hash" });
+  }
+  if (chainType === "solana" && !/^[1-9A-HJ-NP-Za-km-z]{80,100}$/.test(submittedHash)) {
+    return res.status(400).json({ error: "invalid_transaction_signature" });
+  }
+  const chainId = chainType === "solana" ? "solana:mainnet" : String(parsed.data.chainId || env.chainId);
+  if (chainType === "evm" && !env.evmChains[chainId]) return res.status(400).json({ error: "unsupported_chain" });
+  const txHash = chainType === "evm" ? submittedHash.toLowerCase() : submittedHash;
 
   const session = await getOrCreate(req.wallet);
   if (session.revealedCards.length > 0) {
@@ -963,6 +1049,8 @@ export async function openAllCards(req, res) {
     txHash,
     wallet: req.wallet,
     action: "game_bundle",
+    chainType,
+    chainId,
   });
   if (paymentState.error)
     return res
@@ -975,6 +1063,9 @@ export async function openAllCards(req, res) {
     txHash,
     wallet: req.wallet,
     minAmount: openAllPriceForWallet(req.wallet),
+    chainType,
+    chainId,
+    senderAddress: user.walletAddress,
   });
   if (verifyState.error)
     return res.status(verifyState.error.status).json(verifyState.error.payload);

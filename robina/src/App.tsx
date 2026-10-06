@@ -13,6 +13,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { GameProvider } from "@/context/GameContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Web3Provider } from "./providers/Web3Provider";
+import { PrivyProvider } from "@privy-io/react-auth";
 
 import SnapshotEventBanner from "@/components/SnapshotEventBanner";
 import BottomNav from "@/components/BottomNav";
@@ -35,6 +36,7 @@ import AdminRankingPage from "@/pages/admin/AdminRankingPage";
 import AdminActivityPage from "@/pages/admin/AdminActivity";
 
 const queryClient = new QueryClient();
+const privyAppId = import.meta.env.VITE_PRIVY_APP_ID?.trim();
 
 function ReferralCapture() {
   const { code } = useParams();
@@ -131,20 +133,22 @@ function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <Web3Provider>
-      <TooltipProvider>
-        <Sonner position="top-center" theme="dark" richColors closeButton />
-        <BrowserRouter>
-          <AuthProvider>
-            <GameProvider>
-              <div className="min-h-screen bg-background">
-                <AppRoutes />
-              </div>
-            </GameProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </Web3Provider>
+    <PrivyProvider appId={privyAppId || "unconfigured"} config={{ loginMethods: ["google"] }}>
+      <Web3Provider>
+        <TooltipProvider>
+          <Sonner position="top-center" theme="dark" richColors closeButton />
+          <BrowserRouter>
+            <AuthProvider>
+              <GameProvider>
+                <div className="min-h-screen bg-background">
+                  <AppRoutes />
+                </div>
+              </GameProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </Web3Provider>
+    </PrivyProvider>
   </QueryClientProvider>
 );
 

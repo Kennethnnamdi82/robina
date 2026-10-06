@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
-import { sendUsdcOnRobinhood, waitForUsdcTx } from '@/services/usdc';
+import { sendSolanaUsdc, sendUsdcOnEvm, waitForUsdcTx } from '@/services/usdc';
 import { paymentsApi, type PaymentAction, type ApiError } from '@/services/api';
 import { HAS_BACKEND } from '@/lib/backend';
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   open: boolean;
@@ -33,7 +34,12 @@ export default function USDCPaymentModal({
   const [errorMsg, setErrorMsg] = useState('');
   const [displayAmount, setDisplayAmount] = useState(amount);
   const cancelledRef = useRef(false);
-  const { isConnected } = useAccount();
+  const { isConnected, chainId } = useAccount();
+  const {
+    authChainType,
+    baseUser,
+    connectSolanaWallet,
+  } = useAuth();
 
   useEffect(() => {
     setDisplayAmount(amount);
@@ -50,13 +56,18 @@ export default function USDCPaymentModal({
       let to: `0x${string}` | undefined = recipient;
       let quotedAmount = amount;
       let quotedUsdcContract: `0x${string}` | undefined;
+      let paymentIntentId: string | undefined;
+      let paymentIntent: Awaited<ReturnType<typeof paymentsApi.createIntent>>["intent"] | null = null;
 
       if (action) {
         try {
-          const quote = await paymentsApi.quote(action);
-          to = quote.to as `0x${string}`;
-          quotedAmount = quote.amountUsdc;
-          quotedUsdcContract = quote.usdcContract as `0x${string}`;
+          const chainType = authChainType === "solana" ? "solana" : "evm";
+          const { intent } = await paymentsApi.createIntent(action, undefined, chainId, chainType);
+          paymentIntent = intent;
+          paymentIntentId = intent.id;
+          to = intent.recipient as `0x${string}`;
+          quotedAmount = Number(intent.amount);
+          quotedUsdcContract = intent.asset.address as `0x${string}`;
           setDisplayAmount(quotedAmount);
         } catch (e) {
           const code = String((e as Error)?.message || "");
@@ -71,6 +82,53 @@ export default function USDCPaymentModal({
         }
       }
 
+      if (paymentIntent?.chainType === "solana") {
+        const { wallet, account } = await connectSolanaWallet();
+        if (account.address !== baseUser?.wallet) {
+          throw new Error("Reconnect the same Phantom Solana wallet you used to sign in.");
+        }
+        const signature = await sendSolanaUsdc(
+          wallet,
+          account,
+          paymentIntent.recipient,
+          paymentIntent.asset.address || "",
+          paymentIntent.amountAtomic,
+        );
+        toast.message("Transaction submitted", {
+          description: `${signature.slice(0, 10)}...`,
+        });
+        let verified = false;
+        let lastErr: ApiError | null = null;
+        for (let attempt = 1; attempt <= VERIFY_MAX_ATTEMPTS; attempt += 1) {
+          if (cancelledRef.current) return;
+          try {
+            await paymentsApi.verifyIntent(paymentIntent.id, signature);
+            verified = true;
+            break;
+          } catch (e) {
+            const err = e as ApiError;
+            lastErr = err;
+            const code = String(err.message || "");
+            const retryable =
+              code === "confirmations_pending" ||
+              code === "verification_in_progress" ||
+              code === "transaction_not_found" ||
+              code === "tx_not_found_yet";
+            if (!retryable || attempt === VERIFY_MAX_ATTEMPTS) break;
+            await new Promise((resolve) => setTimeout(resolve, VERIFY_RETRY_MS));
+          }
+        }
+        if (!verified) throw lastErr || new Error("payment_verification_failed");
+        setStatus("done");
+        await onConfirm(signature);
+        toast.success("Payment successful");
+        setTimeout(() => {
+          setStatus("confirm");
+          onClose();
+        }, 1400);
+        return;
+      }
+
       if (!quotedUsdcContract || !/^0x[0-9a-fA-F]{40}$/.test(quotedUsdcContract)) {
         throw new Error("Payment token address unavailable from the backend");
       }
@@ -81,12 +139,13 @@ export default function USDCPaymentModal({
         throw new Error('Connect your Robinhood Wallet first');
       }
 
-      const hash = await sendUsdcOnRobinhood(to, quotedAmount, quotedUsdcContract);
+      const paymentChainId = Number(paymentIntent?.chainId || chainId || 4663);
+      const hash = await sendUsdcOnEvm(to, quotedAmount, quotedUsdcContract, paymentChainId);
       toast.message('Transaction submitted', {
         description: `${hash.slice(0, 10)}...`,
       });
 
-      await waitForUsdcTx(hash);
+      await waitForUsdcTx(hash, paymentChainId);
       if (cancelledRef.current) return;
 
       if (HAS_BACKEND && action) {
@@ -95,7 +154,8 @@ export default function USDCPaymentModal({
         for (let attempt = 1; attempt <= VERIFY_MAX_ATTEMPTS; attempt += 1) {
           if (cancelledRef.current) return;
           try {
-            await paymentsApi.verify(hash, action);
+            if (!paymentIntentId) throw new Error("Payment intent unavailable");
+            await paymentsApi.verifyIntent(paymentIntentId, hash);
             verified = true;
             break;
           } catch (e) {
@@ -176,9 +236,11 @@ export default function USDCPaymentModal({
 
         <div className="glass-card rounded-xl p-4 space-y-2">
           <p className="text-xs text-muted-foreground">
-            Payment is sent from your connected Robinhood Wallet and verified on-chain.
+          Payment is sent from your connected wallet and independently verified on-chain.
           </p>
-          <p className="text-[10px] text-muted-foreground">Network: Robinhood Chain</p>
+          <p className="text-[10px] text-muted-foreground">
+          Network: {authChainType === "solana" ? "Solana Mainnet (Phantom)" : chainId === 8453 ? "Base" : "Robinhood Chain"}
+          </p>
         </div>
 
         {status === 'done' ? (

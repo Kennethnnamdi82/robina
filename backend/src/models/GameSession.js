@@ -15,7 +15,7 @@ const revealedCardSchema = new mongoose.Schema(
     cardIndex: { type: Number, required: true, min: 0, max: 7 },
     result: { type: String, enum: ['treasure', 'empty'], required: true },
     bdPointsEarned: { type: Number, required: true, min: 1, max: 500 },
-    txHash: { type: String, required: true, lowercase: true },
+    txHash: { type: String, required: true },
     revealedAt: { type: Date, default: () => new Date() },
   },
   { _id: false }

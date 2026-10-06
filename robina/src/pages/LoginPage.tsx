@@ -1,15 +1,16 @@
 import { useAuth } from "@/context/AuthContext";
-import { Droplet, ArrowRight, Loader2, Wallet } from "lucide-react";
+import { Droplet, ArrowRight, Loader2, Wallet, Chrome } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, openWalletModal } from "@/lib/wagmi";
 
 export default function LoginPage() {
-  const { signInWithRobinhood, isConnecting } = useAuth();
+  const { signInWithRobinhood, signInWithSolana, signInWithGoogle, isConnecting } = useAuth();
   const navigate = useNavigate();
 
-  async function handleSignIn() {
+  async function handleSignIn(chainId: number) {
     try {
-      await signInWithRobinhood();
+      await signInWithRobinhood(chainId);
 
       toast.success("Welcome to BaseDrop!");
 
@@ -28,6 +29,25 @@ export default function LoginPage() {
       if (!/user rejected|denied/i.test(msg)) {
         toast.error(msg);
       }
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      toast.error((e as Error).message || "Google sign-in could not start");
+    }
+  }
+
+  async function handleSolanaSignIn() {
+    try {
+      await signInWithSolana();
+      toast.success("Welcome to BaseDrop!");
+      setTimeout(() => navigate("/", { replace: true }), 150);
+    } catch (e) {
+      const message = (e as Error).message || "Solana sign-in failed";
+      if (!/user rejected|denied/i.test(message)) toast.error(message);
     }
   }
 
@@ -54,7 +74,14 @@ export default function LoginPage() {
         </div>
 
         <button
-          onClick={handleSignIn}
+          onClick={openWalletModal}
+          className="w-full py-3 rounded-2xl border border-border bg-card text-foreground font-semibold text-sm transition-all active:scale-95 flex items-center justify-center gap-3"
+        >
+          <Wallet className="w-5 h-5" />
+          Choose wallet
+        </button>
+        <button
+          onClick={() => handleSignIn(ROBINHOOD_CHAIN_ID)}
           disabled={isConnecting}
           className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-bold text-sm transition-all active:scale-95 neon-glow flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
         >
@@ -66,13 +93,35 @@ export default function LoginPage() {
           ) : (
             <>
               <Wallet className="w-5 h-5" />
-              Connect Robinhood Wallet
+              Sign in with Robinhood Chain
               <ArrowRight className="w-4 h-4" />
-            </>
+          </>
           )}
+      </button>
+      <button
+          onClick={() => handleSignIn(BASE_CHAIN_ID)}
+          disabled={isConnecting}
+          className="w-full py-4 rounded-2xl border border-border bg-card text-foreground font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+          <Wallet className="w-5 h-5" />
+          Sign in with Base
+        </button>
+        <button
+          onClick={handleSolanaSignIn}
+          className="w-full py-4 rounded-2xl border border-border bg-card text-foreground font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-3"
+        >
+          <Wallet className="w-5 h-5" />
+          Sign in with Phantom (Solana)
+        </button>
+        <button
+          onClick={handleGoogleSignIn}
+          className="w-full py-4 rounded-2xl border border-border bg-card text-foreground font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-3"
+        >
+          <Chrome className="w-5 h-5" />
+          Continue with Google
         </button>
         <p className="text-xs text-muted-foreground text-center">
-          Open this page in Robinhood Wallet to connect and sign in.
+          MetaMask, Coinbase Wallet, Robinhood Wallet, and Phantom EVM work on Robinhood Chain or Base. Phantom’s Solana wallet uses the separate Solana sign-in button.
         </p>
       </div>
     </div>
