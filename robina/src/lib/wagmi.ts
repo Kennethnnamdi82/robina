@@ -67,6 +67,7 @@ export const appKit = createAppKit({
 // predictable even when AppKit has remembered a previously connected wallet.
 export const openWalletModal = () =>
   appKit.open({ view: "AllWallets", namespace: "eip155" });
+export const closeWalletModal = () => appKit.close();
 export const wagmiConfig = wagmiAdapter.wagmiConfig;
 
 export const erc20Abi = [

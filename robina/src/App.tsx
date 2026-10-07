@@ -38,6 +38,23 @@ import AdminActivityPage from "@/pages/admin/AdminActivity";
 const queryClient = new QueryClient();
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID?.trim();
 
+function SessionRestoreScreen() {
+  return (
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#05070d] px-5 text-slate-100">
+      <div className="pointer-events-none absolute left-1/2 top-[-16rem] h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-violet-500/15 blur-[130px]" />
+      <div className="relative flex flex-col items-center gap-4">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl border border-cyan-200/15 bg-cyan-300/10 shadow-[0_0_32px_rgba(103,232,249,0.12)]">
+          <span className="h-5 w-5 rotate-45 animate-pulse rounded-[5px] border-2 border-cyan-100" />
+        </span>
+        <div className="text-center">
+          <p className="text-sm font-semibold tracking-[-0.02em] text-white">Welcome to Robina</p>
+          <p className="mt-1 text-xs text-slate-500">Restoring your secure session...</p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function ReferralCapture() {
   const { code } = useParams();
   if (code && /^[a-zA-Z0-9_-]{4,64}$/.test(code)) {
@@ -61,9 +78,11 @@ function ReferralQueryCapture() {
 }
 
 function AppRoutes() {
-  const { isLoggedIn, isAdmin } = useAuth();
+  const { isLoggedIn, isAdmin, isAuthLoading } = useAuth();
   const location = useLocation();
   const showSnapshotBanner = !location.pathname.startsWith("/admin");
+
+  if (isAuthLoading) return <SessionRestoreScreen />;
 
   return (
     <>

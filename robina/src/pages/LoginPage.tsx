@@ -3,7 +3,7 @@ import { useAccount } from "wagmi";
 import { Check, ChevronRight, Loader2, ShieldCheck, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { openWalletModal } from "@/lib/wagmi";
+import { closeWalletModal, openWalletModal } from "@/lib/wagmi";
 
 function GoogleIcon() {
   return (
@@ -73,6 +73,9 @@ export default function LoginPage() {
     signingConnectedWallet.current = true;
     void (async () => {
       setLocalError(null);
+      // AppKit switches to its account-management screen after connecting.
+      // Close it immediately and continue with the login signature instead.
+      void closeWalletModal();
       try {
         await signInWithWallet(address, chainId);
       } catch (cause) {
