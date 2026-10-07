@@ -63,7 +63,10 @@ export const appKit = createAppKit({
   features: { analytics: true, socials: false, email: false },
 });
 
-export const openWalletModal = () => appKit.open({ view: "Connect" });
+// Always start from the wallet directory. This keeps the login button
+// predictable even when AppKit has remembered a previously connected wallet.
+export const openWalletModal = () =>
+  appKit.open({ view: "AllWallets", namespace: "eip155" });
 export const wagmiConfig = wagmiAdapter.wagmiConfig;
 
 export const erc20Abi = [

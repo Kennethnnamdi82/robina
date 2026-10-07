@@ -24,18 +24,6 @@ function RobinaMark() {
   );
 }
 
-function PhantomMark() {
-  return (
-    <span className="grid h-9 w-9 place-items-center rounded-full bg-[#ab9ff2]" aria-hidden="true">
-      <span className="flex gap-0.5">
-        <i className="h-3 w-1 rotate-[28deg] rounded-full bg-[#22203f]" />
-        <i className="h-3 w-1 rotate-[28deg] rounded-full bg-[#22203f]" />
-        <i className="h-3 w-1 rotate-[28deg] rounded-full bg-[#22203f]" />
-      </span>
-    </span>
-  );
-}
-
 function friendlyAuthError(cause: unknown) {
   const message = cause instanceof Error ? cause.message : "";
   const messages: Record<string, string> = {
@@ -66,9 +54,7 @@ export default function LoginPage() {
     isSigningIn,
     activeLoginMethod,
     signInWithGoogle,
-    signInWithSolana,
     signInWithWallet,
-    solanaWallet,
   } = useAuth();
   const { address, chainId, isConnected } = useAccount();
   const navigate = useNavigate();
@@ -106,29 +92,11 @@ export default function LoginPage() {
     }
   }
 
-  async function handleSolanaSignIn() {
-    setLocalError(null);
-    try {
-      await signInWithSolana();
-    } catch (cause) {
-      setLocalError(friendlyAuthError(cause));
-    }
-  }
-
   async function handleEvmSignIn() {
     setLocalError(null);
-    if (isConnected && address && chainId) {
-      try {
-        await signInWithWallet(address, chainId);
-      } catch (cause) {
-        setLocalError(friendlyAuthError(cause));
-      }
-      return;
-    }
-
     try {
       pendingEvmAuthentication.current = true;
-      openWalletModal();
+      await openWalletModal();
     } catch (cause) {
       pendingEvmAuthentication.current = false;
       setLocalError(friendlyAuthError(cause));
@@ -139,7 +107,6 @@ export default function LoginPage() {
   const busy = isSigningIn && activeLoginMethod !== null;
   const googlePending = busy && activeLoginMethod === "google";
   const walletPending = busy && activeLoginMethod === "wallet";
-  const solanaPending = busy && activeLoginMethod === "solana";
 
   return (
     <main
@@ -188,34 +155,20 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <p className="mb-3 text-center text-xs font-medium text-slate-400">Sign in with a wallet</p>
-            <div className="grid grid-cols-2 gap-3">
+            <p className="mb-3 text-center text-xs font-medium text-slate-400">Or continue with your wallet</p>
+            <div>
               <button
                 type="button"
                 onClick={() => void handleEvmSignIn()}
                 disabled={busy}
-                className="group min-h-[118px] rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-left text-slate-100 transition hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.08] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="group flex min-h-[92px] w-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.045] p-4 text-left text-slate-100 transition hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.08] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span className="flex items-center justify-between">
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-cyan-300/10 text-cyan-200"><Wallet className="h-[18px] w-[18px]" /></span>
-                  {walletPending ? <Loader2 className="h-4 w-4 animate-spin text-cyan-200" /> : <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" />}
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-200/10"><Wallet className="h-5 w-5" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">{isConnected ? "Choose another wallet" : "Connect a wallet"}</span>
+                  <span className="mt-1 block text-[11px] leading-4 text-slate-500">{walletPending ? "Waiting for signature..." : "MetaMask, Coinbase Wallet, WalletConnect, and more"}</span>
                 </span>
-                <span className="mt-4 block text-sm font-semibold">{isConnected ? "Connected wallet" : "EVM wallet"}</span>
-                <span className="mt-1 block text-[11px] leading-4 text-slate-500">{walletPending ? "Waiting for signature..." : "MetaMask and more"}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void handleSolanaSignIn()}
-                disabled={busy}
-                className="group min-h-[118px] rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-left text-slate-100 transition hover:-translate-y-0.5 hover:border-violet-300/35 hover:bg-violet-300/[0.08] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span className="flex items-center justify-between">
-                  <PhantomMark />
-                  {solanaPending ? <Loader2 className="h-4 w-4 animate-spin text-violet-200" /> : <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-violet-200" />}
-                </span>
-                <span className="mt-4 block text-sm font-semibold">Phantom</span>
-                <span className="mt-1 block text-[11px] leading-4 text-slate-500">{solanaPending ? "Waiting for signature..." : solanaWallet ? "Solana wallet" : "Connect Solana"}</span>
+                {walletPending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-cyan-200" /> : <ChevronRight className="h-5 w-5 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" />}
               </button>
             </div>
           </div>

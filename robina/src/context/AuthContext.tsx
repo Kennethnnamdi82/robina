@@ -6,11 +6,10 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   type ReactNode,
 } from "react";
 import { useAccount, useDisconnect } from "wagmi";
-import { useLogin, usePrivy } from "@privy-io/react-auth";
+import { useLoginWithOAuth, usePrivy } from "@privy-io/react-auth";
 import { getWallets } from "@wallet-standard/app";
 import type { WalletAccount } from "@wallet-standard/base";
 import bs58 from "bs58";
@@ -33,6 +32,7 @@ interface BaseUser {
 }
 
 type LoginMethod = "google" | "wallet" | "solana" | null;
+const GOOGLE_OAUTH_PENDING_KEY = "robina_google_oauth_pending";
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -68,7 +68,7 @@ function shortName(wallet: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { authenticated: privyAuthenticated, getAccessToken, logout: privyLogout } = usePrivy();
+  const { getAccessToken, logout: privyLogout } = usePrivy();
   const { address, chainId, isConnected } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const [signedIn, setSignedIn] = useState(false);
@@ -81,7 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [activeLoginMethod, setActiveLoginMethod] = useState<LoginMethod>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const googleLoginInitiated = useRef(false);
 
   const resetAuthState = useCallback(() => {
     setSignedIn(false);
@@ -160,9 +159,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [resetAuthState]);
 
   const completeGoogleLogin = useCallback(async () => {
-    // Ignore any stale SDK completion event. A Google login must be initiated
-    // by the user on this page before it can put the UI into a pending state.
-    if (!googleLoginInitiated.current) return;
+    // Google OAuth may reload the page. sessionStorage survives that redirect,
+    // unlike component state, while still ignoring unrelated SDK events.
+    if (sessionStorage.getItem(GOOGLE_OAUTH_PENDING_KEY) !== "1") return;
+    sessionStorage.removeItem(GOOGLE_OAUTH_PENDING_KEY);
 
     setIsSigningIn(true);
     setActiveLoginMethod("google");
@@ -199,18 +199,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       setAuthError(messages[code] || "Google sign-in could not be completed. Please try again.");
     } finally {
-      googleLoginInitiated.current = false;
       setIsSigningIn(false);
       setActiveLoginMethod(null);
     }
   }, [getAccessToken, privyLogout]);
 
-  const { login: openPrivyLogin } = useLogin({
+  const { initOAuth } = useLoginWithOAuth({
     onComplete: () => {
       void completeGoogleLogin();
     },
     onError: () => {
-      googleLoginInitiated.current = false;
+      sessionStorage.removeItem(GOOGLE_OAUTH_PENDING_KEY);
       setIsSigningIn(false);
       setActiveLoginMethod(null);
       setAuthError("Google sign-in was cancelled. You can try again whenever you're ready.");
@@ -377,22 +376,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!import.meta.env.VITE_PRIVY_APP_ID?.trim()) {
       throw new Error("privy_not_configured");
     }
-    // Only show a pending state after an explicit user action. Privy can emit
-    // stale completion events during initialization, so they are gated above.
-    googleLoginInitiated.current = true;
+    // This sends the user directly to Google's OAuth page instead of first
+    // opening a Privy method-picker. The marker survives the OAuth redirect.
+    sessionStorage.setItem(GOOGLE_OAUTH_PENDING_KEY, "1");
     setIsSigningIn(true);
     setActiveLoginMethod("google");
     setAuthError(null);
     try {
-      if (privyAuthenticated) await privyLogout();
-      openPrivyLogin({ loginMethods: ["google"] });
+      await initOAuth({ provider: "google" });
     } catch (cause) {
-      googleLoginInitiated.current = false;
+      sessionStorage.removeItem(GOOGLE_OAUTH_PENDING_KEY);
       setIsSigningIn(false);
       setActiveLoginMethod(null);
       throw cause;
     }
-  }, [openPrivyLogin, privyAuthenticated, privyLogout]);
+  }, [initOAuth]);
 
   const signOut = useCallback(async () => {
     if (HAS_BACKEND) {
