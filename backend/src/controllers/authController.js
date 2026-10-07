@@ -353,7 +353,9 @@ export async function googleLogin(req, res) {
 
   let privyUser;
   try {
-    privyUser = await client.users._get(verified.user_id);
+    // `users` is a service accessor in the current Privy Node SDK.
+    // Calling it first is required before using the underlying user resource.
+    privyUser = await client.users()._get(verified.user_id);
   } catch (error) {
     return res.status(error?.status === 404 ? 401 : 503).json({
       error: error?.status === 404 ? "privy_token_invalid" : "privy_unavailable",

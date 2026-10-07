@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import { useAccount, useDisconnect } from "wagmi";
@@ -31,6 +32,8 @@ interface BaseUser {
   completedTasks?: string[];
 }
 
+type LoginMethod = "google" | "wallet" | "solana" | null;
+
 interface AuthContextType {
   isLoggedIn: boolean;
   baseUser: BaseUser | null;
@@ -38,6 +41,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isConnecting: boolean;
   isSigningIn: boolean;
+  activeLoginMethod: LoginMethod;
   authError: string | null;
   isAuthLoading: boolean;
   signInWithWallet: (walletAddress?: `0x${string}`, chainId?: number) => Promise<void>;
@@ -75,7 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(HAS_BACKEND);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [activeLoginMethod, setActiveLoginMethod] = useState<LoginMethod>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const googleLoginInitiated = useRef(false);
 
   const resetAuthState = useCallback(() => {
     setSignedIn(false);
@@ -154,7 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [resetAuthState]);
 
   const completeGoogleLogin = useCallback(async () => {
+    // Ignore any stale SDK completion event. A Google login must be initiated
+    // by the user on this page before it can put the UI into a pending state.
+    if (!googleLoginInitiated.current) return;
+
     setIsSigningIn(true);
+    setActiveLoginMethod("google");
     setAuthError(null);
     try {
       const accessToken = await getAccessTokenAfterLogin(getAccessToken);
@@ -188,7 +199,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       setAuthError(messages[code] || "Google sign-in could not be completed. Please try again.");
     } finally {
+      googleLoginInitiated.current = false;
       setIsSigningIn(false);
+      setActiveLoginMethod(null);
     }
   }, [getAccessToken, privyLogout]);
 
@@ -197,7 +210,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void completeGoogleLogin();
     },
     onError: () => {
+      googleLoginInitiated.current = false;
       setIsSigningIn(false);
+      setActiveLoginMethod(null);
       setAuthError("Google sign-in was cancelled. You can try again whenever you're ready.");
     },
   });
@@ -230,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     connectedChainId?: number,
   ) => {
     setIsSigningIn(true);
+    setActiveLoginMethod("wallet");
     setAuthError(null);
     try {
       if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
@@ -268,6 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw cause;
     } finally {
       setIsSigningIn(false);
+      setActiveLoginMethod(null);
     }
   }, [address, chainId, isConnected]);
 
@@ -284,6 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithSolana = useCallback(async () => {
     setIsSigningIn(true);
+    setActiveLoginMethod("solana");
     setAuthError(null);
     try {
       if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
@@ -333,6 +351,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw cause;
     } finally {
       setIsSigningIn(false);
+      setActiveLoginMethod(null);
     }
   }, [connectSolanaWallet]);
 
@@ -358,15 +377,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!import.meta.env.VITE_PRIVY_APP_ID?.trim()) {
       throw new Error("privy_not_configured");
     }
-    // Keep the action locked while Privy owns the OAuth popup/modal. This
-    // prevents duplicate sign-in attempts and makes the pending state honest.
+    // Only show a pending state after an explicit user action. Privy can emit
+    // stale completion events during initialization, so they are gated above.
+    googleLoginInitiated.current = true;
     setIsSigningIn(true);
+    setActiveLoginMethod("google");
     setAuthError(null);
     try {
       if (privyAuthenticated) await privyLogout();
       openPrivyLogin({ loginMethods: ["google"] });
     } catch (cause) {
+      googleLoginInitiated.current = false;
       setIsSigningIn(false);
+      setActiveLoginMethod(null);
       throw cause;
     }
   }, [openPrivyLogin, privyAuthenticated, privyLogout]);
@@ -412,6 +435,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isConnecting: isSigningIn,
         isSigningIn,
+        activeLoginMethod,
         isAuthLoading,
         signInWithWallet,
         signInWithSolana,

@@ -64,6 +64,7 @@ export default function LoginPage() {
     authError,
     isLoggedIn,
     isSigningIn,
+    activeLoginMethod,
     signInWithGoogle,
     signInWithSolana,
     signInWithWallet,
@@ -135,16 +136,21 @@ export default function LoginPage() {
   }
 
   const error = localError || authError;
-  const busy = isSigningIn;
+  const busy = isSigningIn && activeLoginMethod !== null;
+  const googlePending = busy && activeLoginMethod === "google";
+  const walletPending = busy && activeLoginMethod === "wallet";
+  const solanaPending = busy && activeLoginMethod === "solana";
 
   return (
     <main
       className="relative grid min-h-screen place-items-center overflow-hidden px-5 py-10"
-      style={{ background: "#0a1822", color: "#f8fafc" }}
+      style={{ background: "#05070d", color: "#f8fafc" }}
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute left-1/2 top-0 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-cyan-400/15 blur-[110px]" />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[radial-gradient(ellipse_at_bottom,rgba(46,133,168,0.22),transparent_68%)]" />
+        <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-violet-500/15 blur-[130px]" />
+        <div className="absolute -left-32 bottom-[-16rem] h-[34rem] w-[34rem] rounded-full bg-cyan-400/10 blur-[130px]" />
+        <div className="absolute right-[-15rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-fuchsia-500/10 blur-[130px]" />
+        <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:28px_28px]" />
       </div>
 
       <section className="relative w-full max-w-[390px]">
@@ -154,12 +160,13 @@ export default function LoginPage() {
         </div>
 
         <div
-          className="rounded-2xl p-5 shadow-[0_24px_70px_rgba(0,0,0,0.32)] sm:p-6"
-          style={{ backgroundColor: "#f9fbfc", color: "#233746" }}
+          className="rounded-3xl border border-white/10 p-5 shadow-[0_32px_90px_rgba(0,0,0,0.58)] backdrop-blur-xl sm:p-6"
+          style={{ background: "linear-gradient(145deg, rgba(20, 26, 40, 0.96), rgba(8, 11, 19, 0.94))", color: "#f8fafc" }}
         >
           <header className="text-center">
-            <h1 className="text-2xl font-semibold tracking-[-0.04em]" style={{ color: "#132635" }}>Sign in to Robina</h1>
-            <p className="mt-2 text-sm leading-5" style={{ color: "#64748b" }}>Choose how you would like to continue.</p>
+            <span className="inline-flex rounded-full border border-cyan-300/15 bg-cyan-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100">Welcome back</span>
+            <h1 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">Sign in to Robina</h1>
+            <p className="mt-2 text-sm leading-5 text-slate-400">Choose a secure way to continue.</p>
           </header>
 
           <div className="mt-6">
@@ -167,51 +174,48 @@ export default function LoginPage() {
               type="button"
               onClick={() => void handleGoogleSignIn()}
               disabled={busy}
-              className="mx-auto flex h-12 w-full max-w-[280px] items-center justify-center gap-2.5 rounded-lg px-4 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ backgroundColor: "#ffffff", border: "1px solid #cbd5e1", color: "#263746" }}
+              className="mx-auto flex h-12 w-full max-w-[280px] items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white px-4 text-sm font-semibold text-slate-800 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-[#101722] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSigningIn ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
-              Sign in with Google
+              {googlePending ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              {googlePending ? "Connecting to Google..." : "Continue with Google"}
             </button>
           </div>
 
           <div className="my-6 flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1" style={{ backgroundColor: "#dbe3ea" }} />
-            <span className="text-[10px] font-semibold tracking-[0.14em]" style={{ color: "#94a3b8" }}>OR</span>
-            <span className="h-px flex-1" style={{ backgroundColor: "#dbe3ea" }} />
+            <span className="h-px flex-1 bg-white/10" />
+            <span className="text-[10px] font-semibold tracking-[0.14em] text-slate-500">OR</span>
+            <span className="h-px flex-1 bg-white/10" />
           </div>
 
           <div>
-            <p className="mb-3 text-center text-xs font-medium" style={{ color: "#64748b" }}>Sign in with a wallet</p>
+            <p className="mb-3 text-center text-xs font-medium text-slate-400">Sign in with a wallet</p>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => void handleEvmSignIn()}
                 disabled={busy}
-                className="group min-h-[118px] rounded-xl p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ backgroundColor: "#ffffff", border: "1px solid #cbd5e1", color: "#233746" }}
+                className="group min-h-[118px] rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-left text-slate-100 transition hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.08] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="flex items-center justify-between">
-                  <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ backgroundColor: "#e7f7fa", color: "#1f8ba1" }}><Wallet className="h-[18px] w-[18px]" /></span>
-                  {isSigningIn ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-cyan-700" />}
+                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-cyan-300/10 text-cyan-200"><Wallet className="h-[18px] w-[18px]" /></span>
+                  {walletPending ? <Loader2 className="h-4 w-4 animate-spin text-cyan-200" /> : <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" />}
                 </span>
                 <span className="mt-4 block text-sm font-semibold">{isConnected ? "Connected wallet" : "EVM wallet"}</span>
-                <span className="mt-1 block text-[11px] leading-4" style={{ color: "#64748b" }}>MetaMask and more</span>
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">{walletPending ? "Waiting for signature..." : "MetaMask and more"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => void handleSolanaSignIn()}
                 disabled={busy}
-                className="group min-h-[118px] rounded-xl p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ backgroundColor: "#ffffff", border: "1px solid #cbd5e1", color: "#233746" }}
+                className="group min-h-[118px] rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-left text-slate-100 transition hover:-translate-y-0.5 hover:border-violet-300/35 hover:bg-violet-300/[0.08] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="flex items-center justify-between">
                   <PhantomMark />
-                  {isSigningIn ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-violet-700" />}
+                  {solanaPending ? <Loader2 className="h-4 w-4 animate-spin text-violet-200" /> : <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-violet-200" />}
                 </span>
                 <span className="mt-4 block text-sm font-semibold">Phantom</span>
-                <span className="mt-1 block text-[11px] leading-4" style={{ color: "#64748b" }}>{solanaWallet ? "Solana wallet" : "Connect Solana"}</span>
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">{solanaPending ? "Waiting for signature..." : solanaWallet ? "Solana wallet" : "Connect Solana"}</span>
               </button>
             </div>
           </div>
@@ -222,14 +226,14 @@ export default function LoginPage() {
             </p>
           )}
 
-          <p className="mt-6 flex items-start gap-2 pt-4 text-[11px] leading-5" style={{ borderTop: "1px solid #dbe3ea", color: "#475569" }}>
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#319db2]" />
+          <p className="mt-6 flex items-start gap-2 border-t border-white/10 pt-4 text-[11px] leading-5 text-slate-400">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200" />
             Robina never asks for your recovery phrase, password, or private keys.
           </p>
         </div>
 
-        <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-[11px] text-slate-300">
-          <Check className="h-3.5 w-3.5 text-cyan-200" /> Secure, non-custodial sign-in
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-[11px] text-slate-500">
+          <Check className="h-3.5 w-3.5 text-cyan-300" /> Secure, non-custodial sign-in
         </p>
       </section>
     </main>
