@@ -238,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if ((!connectedWalletAddress && !isConnected) || !wallet || !network || !Number.isSafeInteger(network) || network <= 0) {
         throw new Error("Connect an EVM wallet on a valid network before signing in.");
       }
-      const { nonce, domain, uri } = await authApi.nonce(wallet.toLowerCase(), {
+      const { nonce, domain, uri, expiresAt } = await authApi.nonce(wallet.toLowerCase(), {
         chainType: "evm",
         chainId: network,
       });
@@ -248,6 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         network,
         domain,
         uri,
+        expiresAt,
       );
       const referralCode = localStorage.getItem("basedrop_ref") || undefined;
       const result = await authApi.verify(message, signature, referralCode);
@@ -357,10 +358,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!import.meta.env.VITE_PRIVY_APP_ID?.trim()) {
       throw new Error("privy_not_configured");
     }
-    setIsSigningIn(false);
+    // Keep the action locked while Privy owns the OAuth popup/modal. This
+    // prevents duplicate sign-in attempts and makes the pending state honest.
+    setIsSigningIn(true);
     setAuthError(null);
-    if (privyAuthenticated) await privyLogout();
-    openPrivyLogin({ loginMethods: ["google"] });
+    try {
+      if (privyAuthenticated) await privyLogout();
+      openPrivyLogin({ loginMethods: ["google"] });
+    } catch (cause) {
+      setIsSigningIn(false);
+      throw cause;
+    }
   }, [openPrivyLogin, privyAuthenticated, privyLogout]);
 
   const signOut = useCallback(async () => {

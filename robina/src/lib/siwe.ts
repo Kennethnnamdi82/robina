@@ -9,6 +9,7 @@ export async function buildAndSignSiwe(
   chainId: number,
   domain: string,
   uri: string,
+  expirationTime: string,
 ) {
   // Use the official library to ensure perfect EIP-4361 formatting
   const siweMessage = new SiweMessage({
@@ -18,7 +19,11 @@ export async function buildAndSignSiwe(
     uri,
     version: "1",
     chainId,
-    nonce: nonce,
+    nonce,
+    // The server issues and persists this exact expiry alongside the nonce.
+    // Signing it binds the signature to the one-time challenge and satisfies
+    // the EIP-4361 freshness checks performed before the nonce is consumed.
+    expirationTime,
   });
 
   const prepared = siweMessage.prepareMessage();

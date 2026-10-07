@@ -105,7 +105,11 @@ export async function sendSolanaUsdc(
     ),
   );
   const transactionBytes = getTransactionEncoder().encode(compileTransaction(message));
-  const [sent] = await wallet.features["solana:signAndSendTransaction"].signAndSendTransaction({
+  const transactionSigner = wallet.features["solana:signAndSendTransaction"];
+  if (!transactionSigner) {
+    throw new Error("Update Phantom to approve Solana USDC payments in this browser.");
+  }
+  const [sent] = await transactionSigner.signAndSendTransaction({
     account,
     transaction: transactionBytes,
     chain: "solana:mainnet",

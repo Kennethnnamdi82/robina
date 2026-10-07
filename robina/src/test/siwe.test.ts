@@ -22,6 +22,7 @@ describe("buildAndSignSiwe", () => {
       8453,
       "auth.example.com",
       "https://auth.example.com",
+      "2030-01-01T00:00:00.000Z",
     );
 
     expect(signMessage).toHaveBeenCalledWith(
@@ -32,5 +33,6 @@ describe("buildAndSignSiwe", () => {
       }),
     );
     expect(signMessage.mock.calls[0][1].message).toContain("URI: https://auth.example.com");
+    expect(signMessage.mock.calls[0][1].message).toContain("Expiration Time: 2030-01-01T00:00:00.000Z");
   });
 });

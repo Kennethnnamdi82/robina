@@ -18,7 +18,7 @@ describe("getAccessTokenAfterLogin", () => {
     const getAccessToken = vi.fn().mockResolvedValue(null);
     const wait = vi.fn().mockResolvedValue(undefined);
 
-    await expect(getAccessTokenAfterLogin(getAccessToken, wait)).resolves.toBeNull();
+    await expect(getAccessTokenAfterLogin(getAccessToken, wait, 3)).resolves.toBeNull();
     expect(getAccessToken).toHaveBeenCalledTimes(3);
     expect(wait).toHaveBeenCalledTimes(2);
   });

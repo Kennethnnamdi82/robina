@@ -89,7 +89,7 @@ export function useAuthCheckout() {
     setError(null);
     try {
       if (!chainId) throw new Error("Connect a supported EVM wallet first.");
-      await auth.signInWithWallet(chainId);
+      await auth.signInWithWallet(undefined, chainId);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Wallet sign-in failed";
       setError(message);
