@@ -7,13 +7,15 @@ export async function buildAndSignSiwe(
   address: `0x${string}`,
   nonce: string,
   chainId: number,
+  domain: string,
+  uri: string,
 ) {
   // Use the official library to ensure perfect EIP-4361 formatting
   const siweMessage = new SiweMessage({
-    domain: window.location.host,
+    domain,
     address: getAddress(address), // Critical for signature math
     statement: "Sign in to Robina.",
-    uri: window.location.origin,
+    uri,
     version: "1",
     chainId,
     nonce: nonce,

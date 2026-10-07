@@ -22,7 +22,7 @@ Health check:
 - `ADMIN_LOGIN_WALLET`: optional wallet allowed for wallet-based admin access.
 - `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`: credentials for `/api/admin/login`.
 - `JWT_SECRET`: session signing secret (must be strong).
-- `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, and `PRIVY_VERIFICATION_KEY`: matching Privy app credentials. Find the ID/secret in Privy Dashboard app settings and the JWT verification key in the app's JWT verification settings. The backend requires all three to verify Google login; keep the secret and verification key server-side.
+- `PRIVY_APP_ID` and `PRIVY_APP_SECRET`: matching Privy app credentials. Find them in Privy Dashboard app settings. The backend verifies access tokens against Privy's published app JWKS, so a manually copied JWT verification key is not required.
 - `SIWE_DOMAIN` + `SIWE_URI`: expected SIWE origin values. Set these to the production frontend host/origin (for example, `your-app.vercel.app` and `https://your-app.vercel.app`).
 - `CORS_ORIGIN`: comma-separated exact frontend origins, including the production `SIWE_URI`.
 - `ROBINHOOD_RPC_URL`: Robinhood Chain mainnet RPC endpoint. Robinhood's public RPC is rate-limited; use a dedicated provider in production.

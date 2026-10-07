@@ -25,7 +25,6 @@ const required = [
   'TREASURY_WALLET',
   'PRIVY_APP_ID',
   'PRIVY_APP_SECRET',
-  'PRIVY_VERIFICATION_KEY',
 ];
 
 for (const key of required) {
@@ -175,7 +174,6 @@ export const env = {
   minConfirmations: parseInt(process.env.MIN_CONFIRMATIONS || (isProduction ? '3' : '1'), 10),
   privyAppId: process.env.PRIVY_APP_ID || process.env.VITE_PRIVY_APP_ID || null,
   privyAppSecret: process.env.PRIVY_APP_SECRET || null,
-  privyVerificationKey: process.env.PRIVY_VERIFICATION_KEY || null,
   authNonceTtlMs: 5 * 60 * 1000,
   paymentIntentTtlMs: parseInt(process.env.PAYMENT_INTENT_TTL_MS || '900000', 10),
   solanaRpcUrl,

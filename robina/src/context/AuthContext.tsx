@@ -20,7 +20,6 @@ import {
 } from "@/services/api";
 import { buildAndSignSiwe } from "@/lib/siwe";
 import { getAccessTokenAfterLogin } from "@/lib/privyAuth";
-import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID } from "@/lib/wagmi";
 import { HAS_BACKEND } from "@/lib/backend";
 import { getPhantomWallet, type PhantomWallet } from "@/lib/phantomWallet";
 
@@ -41,7 +40,7 @@ interface AuthContextType {
   isSigningIn: boolean;
   authError: string | null;
   isAuthLoading: boolean;
-  signInWithWallet: (chainId: number) => Promise<void>;
+  signInWithWallet: (walletAddress?: `0x${string}`, chainId?: number) => Promise<void>;
   signInWithSolana: () => Promise<void>;
   solanaAddress: string | null;
   solanaWallet: PhantomWallet | null;
@@ -226,24 +225,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : null;
   }, [signedWallet, isAdmin, signedIn]);
 
-  const signInWithWallet = useCallback(async (preferredChainId: number) => {
+  const signInWithWallet = useCallback(async (
+    connectedWalletAddress?: `0x${string}`,
+    connectedChainId?: number,
+  ) => {
     setIsSigningIn(true);
     setAuthError(null);
     try {
       if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
-      if (!isConnected || !address) throw new Error("Connect a wallet before signing in.");
-      if (![ROBINHOOD_CHAIN_ID, BASE_CHAIN_ID].includes(preferredChainId)) {
-        throw new Error("Switch to a supported EVM network, then try again.");
+      const wallet = connectedWalletAddress || address;
+      const network = connectedChainId || chainId;
+      if ((!connectedWalletAddress && !isConnected) || !wallet || !network || !Number.isSafeInteger(network) || network <= 0) {
+        throw new Error("Connect an EVM wallet on a valid network before signing in.");
       }
-      if (chainId !== preferredChainId) throw new Error("Your wallet network changed. Please choose your wallet again.");
-      const { nonce } = await authApi.nonce(address.toLowerCase(), {
+      const { nonce, domain, uri } = await authApi.nonce(wallet.toLowerCase(), {
         chainType: "evm",
-        chainId: preferredChainId,
+        chainId: network,
       });
       const { message, signature } = await buildAndSignSiwe(
-        address,
+        wallet,
         nonce,
-        preferredChainId,
+        network,
+        domain,
+        uri,
       );
       const referralCode = localStorage.getItem("basedrop_ref") || undefined;
       const result = await authApi.verify(message, signature, referralCode);
@@ -257,7 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const messages: Record<string, string> = {
         nonce_expired_or_used: "This sign-in request expired. Please choose your wallet and try again.",
         signature_invalid: "The wallet signature could not be verified. Please try again.",
-        unsupported_chain: "Switch to a supported EVM network, then try again.",
+        invalid_message: "Wallet sign-in details did not match this site. Please reload and try again.",
       };
       if (messages[code]) setAuthError(messages[code]);
       throw cause;
@@ -284,15 +288,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
       const { wallet, account } = await connectSolanaWallet();
       const solanaAddress = account.address;
-      const { nonce, expiresAt } = await authApi.nonce(solanaAddress, { chainType: "solana" });
+      const { nonce, expiresAt, domain, uri } = await authApi.nonce(solanaAddress, { chainType: "solana" });
       const issuedAt = new Date().toISOString();
       const message = [
-        `${window.location.host} wants you to sign in with your Solana account:`,
+        `${domain} wants you to sign in with your Solana account:`,
         solanaAddress,
         "",
         "Sign in to Robina.",
         "",
-        `URI: ${window.location.origin}`,
+        `URI: ${uri}`,
         "Version: 1",
         "Chain ID: solana:mainnet",
         `Nonce: ${nonce}`,

@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 import { ArrowLeft, ArrowRight, Chrome, Droplet, Loader2, ShieldCheck, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { appKit, openWalletModal } from "@/lib/wagmi";
 
 function friendlyAuthError(cause: unknown) {
   const message = cause instanceof Error ? cause.message : "";
+  const apiErrorMessages: Record<string, string> = {
+    privy_token_invalid: "Google could not verify the Privy session. Please sign in again; if it repeats, the deployed Privy app configuration needs attention.",
+    privy_unavailable: "Google verification is temporarily unavailable. Please try again shortly.",
+    privy_not_configured: "Google sign-in is not configured on this server.",
+    google_account_required: "Choose a Google account to continue.",
+    nonce_expired_or_used: "This wallet sign-in expired. Please start again.",
+    invalid_message: "Wallet sign-in details did not match this site. Check the deployed app's authentication domain.",
+    message_expired: "This wallet sign-in expired. Please start again.",
+    signature_invalid: "The wallet signature was not accepted. Please sign the new request.",
+    invalid_chain_id: "The connected wallet reported an invalid network. Reconnect and try again.",
+    invalid_wallet: "The connected wallet address could not be verified.",
+    untrusted_origin: "This site is not authorized for sign-in. Use the official app URL.",
+    invalid_body: "The sign-in request was incomplete. Please try again.",
+  };
+  if (apiErrorMessages[message]) return apiErrorMessages[message];
   if (/user rejected|denied|cancelled|canceled/i.test(message)) {
     return "Request cancelled. You can try again whenever you're ready.";
   }
@@ -15,6 +29,15 @@ function friendlyAuthError(cause: unknown) {
   }
   if (/provider not found|wallet not found/i.test(message)) {
     return "No compatible wallet was found. Install or unlock a supported wallet, then try again.";
+  }
+  if (/install or enable the phantom/i.test(message)) {
+    return "Phantom Solana was not detected. Open Robina in the Phantom browser or enable the Phantom extension.";
+  }
+  if (/http_5\d\d|status\s*5\d\d/i.test(message)) {
+    return "The sign-in service is temporarily unavailable. Please try again shortly.";
+  }
+  if (/http_401|status\s*401/i.test(message)) {
+    return "The sign-in could not be verified. Start a fresh sign-in and try again.";
   }
   if (message === "privy_not_configured") {
     return "Google sign-in is not configured for this environment.";
@@ -33,39 +56,18 @@ export default function LoginPage() {
     solanaWallet,
   } = useAuth();
   const { chainId, isConnected } = useAccount();
+  const { connectors, connectAsync, isPending: isConnectingWallet } = useConnect();
   const navigate = useNavigate();
   const [walletPickerOpen, setWalletPickerOpen] = useState(false);
-  const [waitingForEvmWallet, setWaitingForEvmWallet] = useState(false);
+  const [connectingWalletId, setConnectingWalletId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoggedIn) navigate("/", { replace: true });
   }, [isLoggedIn, navigate]);
 
-  useEffect(() => {
-    if (!waitingForEvmWallet || !isConnected || !chainId) return;
-    setWaitingForEvmWallet(false);
-    setLocalError(null);
-    void signInWithWallet(chainId).catch((cause: unknown) => {
-      setLocalError(friendlyAuthError(cause));
-    });
-  }, [chainId, isConnected, signInWithWallet, waitingForEvmWallet]);
-
-  useEffect(() => {
-    if (!waitingForEvmWallet) return;
-    let modalWasOpened = appKit.isOpen();
-    const unsubscribe = appKit.subscribeState(({ open }) => {
-      if (open) {
-        modalWasOpened = true;
-      } else if (modalWasOpened && !isConnected) {
-        setWaitingForEvmWallet(false);
-      }
-    });
-    return unsubscribe;
-  }, [isConnected, waitingForEvmWallet]);
-
   async function handleGoogleSignIn() {
-    setWaitingForEvmWallet(false);
+    setConnectingWalletId(null);
     setLocalError(null);
     try {
       await signInWithGoogle();
@@ -75,7 +77,7 @@ export default function LoginPage() {
   }
 
   async function handleSolanaSignIn() {
-    setWaitingForEvmWallet(false);
+    setConnectingWalletId(null);
     setLocalError(null);
     try {
       await signInWithSolana();
@@ -84,26 +86,46 @@ export default function LoginPage() {
     }
   }
 
-  function handleEvmWallet() {
+  async function handleEvmWallet(connectorId: string) {
     setLocalError(null);
-    if (isConnected && chainId) {
-      setWaitingForEvmWallet(false);
-      void signInWithWallet(chainId).catch((cause: unknown) => {
-        setLocalError(friendlyAuthError(cause));
-      });
+    const connector = connectors.find((candidate) => candidate.uid === connectorId);
+    if (!connector) {
+      setLocalError("That wallet option is no longer available. Choose a wallet again.");
       return;
     }
-    setWaitingForEvmWallet(true);
+    setConnectingWalletId(connector.uid);
     try {
-      openWalletModal();
-    } catch {
-      setWaitingForEvmWallet(false);
-      setLocalError("The wallet selector could not be opened. Please try again.");
+      const connected = await connectAsync({ connector });
+      const walletAddress = connected.accounts[0];
+      if (!walletAddress) throw new Error("wallet_not_found");
+      await signInWithWallet(walletAddress, connected.chainId);
+    } catch (cause) {
+      setLocalError(friendlyAuthError(cause));
+    } finally {
+      setConnectingWalletId(null);
+    }
+  }
+
+  async function handleConnectedEvmWallet() {
+    setLocalError(null);
+    if (isConnected && chainId) {
+      try {
+        await signInWithWallet(undefined, chainId);
+      } catch (cause) {
+        setLocalError(friendlyAuthError(cause));
+      }
     }
   }
 
   const error = localError || authError;
-  const busy = isSigningIn;
+  const busy = isSigningIn || isConnectingWallet;
+  const availableConnectors = connectors.filter((connector) =>
+    !/base|robinhood/i.test(connector.name),
+  );
+  const connectorLabel = (name: string) => {
+    if (/injected/i.test(name)) return "Browser wallet";
+    return name;
+  };
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07090d] px-5 py-12 text-white">
@@ -163,23 +185,57 @@ export default function LoginPage() {
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Back to sign-in options
               </button>
-              <button
-                type="button"
-                onClick={handleEvmWallet}
-                disabled={busy}
-                className="flex min-h-[58px] w-full items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.02] px-4 text-left transition-colors hover:border-white/20 hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.055] text-white/75">
-                  <Wallet className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-white">EVM wallet</span>
-                  <span className="mt-0.5 block text-xs text-white/45">
-                    MetaMask, Coinbase, Phantom and more
+              {isConnected ? (
+                <button
+                  type="button"
+                  onClick={() => void handleConnectedEvmWallet()}
+                  disabled={busy}
+                  className="flex min-h-[58px] w-full items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.02] px-4 text-left transition-colors hover:border-white/20 hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.055] text-white/75">
+                      <Wallet className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-white">Continue with connected wallet</span>
+                      <span className="mt-0.5 block text-xs text-white/45">
+                        Sign a one-time authentication message
+                      </span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-white/35" />
+                </button>
+              ) : (
+                <div className="flex items-center gap-3 px-1 pb-1 pt-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.055] text-white/65">
+                    <Wallet className="h-4 w-4" />
                   </span>
-                </span>
-                <ArrowRight className="h-4 w-4 text-white/35" />
-              </button>
+                  <span>
+                    <span className="block text-sm font-medium text-white">EVM wallets</span>
+                    <span className="mt-0.5 block text-xs text-white/45">Choose a wallet to continue</span>
+                  </span>
+                </div>
+              )}
+
+              {!isConnected && availableConnectors.map((connector) => (
+                <button
+                  key={connector.uid}
+                  type="button"
+                  onClick={() => void handleEvmWallet(connector.uid)}
+                  disabled={busy || !connector.name}
+                  className="flex min-h-[50px] w-full items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.02] px-4 text-left transition-colors hover:border-white/20 hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.055] text-white/70">
+                    {connectingWalletId === connector.uid
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Wallet className="h-4 w-4" />}
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm font-medium text-white">
+                    {connectorLabel(connector.name)}
+                  </span>
+                  {connectingWalletId === connector.uid
+                    ? <span className="text-xs text-white/40">Connecting…</span>
+                    : <ArrowRight className="h-4 w-4 text-white/35" />}
+                </button>
+              ))}
 
               <button
                 type="button"

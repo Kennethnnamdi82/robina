@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import { PrivyClient } from "@privy-io/node";
+import { InvalidAuthTokenError, PrivyClient } from "@privy-io/node";
 import { User } from "../models/User.js";
 import { AuthNonce } from "../models/AuthNonce.js";
 import { RevokedToken } from "../models/RevokedToken.js";
@@ -141,11 +141,15 @@ export async function getNonce(req, res) {
   if (!wallet) {
     return res.status(400).json({ error: "invalid_wallet" });
   }
+  const requestedChainId = parsed.data.chainId ? Number(parsed.data.chainId) : env.chainId;
+  if (chainType === "evm" && (!Number.isSafeInteger(requestedChainId) || requestedChainId <= 0)) {
+    return res.status(400).json({ error: "invalid_chain_id" });
+  }
   const nonce = makeNonce();
   const expiresAt = new Date(Date.now() + env.authNonceTtlMs);
-  const chainId = chainType === "evm" ? String(parsed.data.chainId || env.chainId) : "solana:mainnet";
-  if (chainType === "evm" && !env.evmChains[chainId]) {
-    return res.status(400).json({ error: "unsupported_chain" });
+  const chainId = chainType === "evm" ? String(requestedChainId) : "solana:mainnet";
+  if (req.get("origin") && safeOrigin(req.get("origin")) !== safeOrigin(env.siweUri)) {
+    return res.status(403).json({ error: "untrusted_origin" });
   }
   await AuthNonce.create({
     nonce,
@@ -156,7 +160,14 @@ export async function getNonce(req, res) {
     uri: env.siweUri,
     expiresAt,
   });
-  res.json({ nonce, chainType, chainId, expiresAt: expiresAt.toISOString() });
+  res.json({
+    nonce,
+    chainType,
+    chainId,
+    domain: env.siweDomain,
+    uri: env.siweUri,
+    expiresAt: expiresAt.toISOString(),
+  });
 }
 
 export async function walletLogin(req, res) {
@@ -172,10 +183,12 @@ export async function walletLogin(req, res) {
   try {
     if (chainType === "evm") {
       const siwe = new SiweMessage(message);
+      const siweChainId = Number(siwe.chainId);
       if (
         siwe.domain !== env.siweDomain ||
         siwe.uri !== env.siweUri ||
-        !env.evmChains[String(siwe.chainId)] ||
+        !Number.isSafeInteger(siweChainId) ||
+        siweChainId <= 0 ||
         siwe.chainId !== Number(parsed.data.chainId || env.chainId) ||
         normalizedAddress(siwe.address, "evm") !== wallet ||
         !siwe.issuedAt || !siwe.expirationTime
@@ -317,16 +330,22 @@ export async function verifySiwe(req, res) {
 export async function googleLogin(req, res) {
   const parsed = googleAuthBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
-  if (!env.privyAppId || !env.privyAppSecret || !env.privyVerificationKey) {
+  if (!env.privyAppId || !env.privyAppSecret) {
     return res.status(503).json({ error: "privy_not_configured" });
   }
 
-  const client = new PrivyClient({ appId: env.privyAppId, appSecret: env.privyAppSecret, jwtVerificationKey: env.privyVerificationKey || undefined });
+  const client = new PrivyClient({ appId: env.privyAppId, appSecret: env.privyAppSecret });
   let verified;
   try {
     verified = await client.utils().auth().verifyAccessToken(parsed.data.accessToken);
-  } catch {
-    return res.status(401).json({ error: "privy_token_invalid" });
+  } catch (error) {
+    if (error instanceof InvalidAuthTokenError) {
+      return res.status(401).json({ error: "privy_token_invalid" });
+    }
+    console.error("[auth] Privy access-token verification unavailable", {
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
+    return res.status(503).json({ error: "privy_unavailable" });
   }
   if (verified.app_id !== env.privyAppId) {
     return res.status(401).json({ error: "privy_token_invalid" });

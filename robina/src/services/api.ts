@@ -182,7 +182,7 @@ export const authApi = {
       chainType: options.chainType,
     });
     if (options.chainType === "evm") params.set("chainId", String(options.chainId));
-    return api.get<{ nonce: string; chainId: string; expiresAt: string }>(
+    return api.get<{ nonce: string; chainId: string; domain: string; uri: string; expiresAt: string }>(
       `/api/auth/nonce?${params.toString()}`,
     );
   },
