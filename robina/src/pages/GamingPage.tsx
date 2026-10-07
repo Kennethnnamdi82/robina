@@ -22,7 +22,7 @@ const REVEAL_MAX_ATTEMPTS = 18;
 const REVEAL_RETRY_MS = 4000;
 const OPEN_ALL_RESULT_DISPLAY_MS = 3200;
 const AUTH_ERRORS = new Set(["unauthenticated", "invalid_token", "token_revoked"]);
-const DARK_GAME_CARD_CLASS = "border border-white/10 bg-[#171a22]/95 shadow-card";
+const DARK_GAME_CARD_CLASS = "border border-border bg-card/95 shadow-card";
 const MULTIPLIER_OPTIONS = Array.from(
   { length: MAX_CARD_MULTIPLIER - MIN_CARD_MULTIPLIER + 1 },
   (_, i) => MIN_CARD_MULTIPLIER + i,
@@ -481,9 +481,10 @@ export default function GamingPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 px-4 pt-6 max-w-lg mx-auto">
+    <div className="user-experience min-h-screen pb-24 px-4 pt-6 max-w-lg mx-auto">
       <header className="text-center mb-5">
-        <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
+        <p className="lime-kicker mb-1">Open, collect, progress</p>
+        <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
           Base Drop
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Open cards, find treasures, earn BD Points</p>
@@ -704,9 +705,9 @@ const CardTile = memo(function CardTile({
       className={`relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300 active:scale-95 disabled:cursor-not-allowed ${
         isRevealed
           ? isTreasure
-            ? 'bg-[#171a22]/95 border-2 border-accent neon-glow'
-            : 'bg-[#171a22]/95 border border-white/10 opacity-70'
-          : 'bg-[#171a22]/95 border border-primary/40 hover:scale-[1.03]'
+            ? 'bg-card/95 border-2 border-accent neon-glow'
+            : 'bg-card/95 border border-border opacity-70'
+          : 'bg-card/95 border border-primary/40 hover:scale-[1.03]'
       }`}
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">

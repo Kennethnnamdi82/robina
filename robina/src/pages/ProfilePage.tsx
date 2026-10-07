@@ -199,8 +199,11 @@ export default function ProfilePage() {
 
   return (
     <>
-      <div className="px-4 pt-6 pb-24 max-w-lg mx-auto space-y-5 animate-fade-in">
-        <h1 className="text-xl font-bold">Profile</h1>
+      <div className="user-experience min-h-screen px-4 pt-6 pb-24 max-w-lg mx-auto space-y-5 animate-fade-in">
+        <div>
+          <p className="lime-kicker">Your account</p>
+          <h1 className="mt-1 text-3xl font-bold">Profile</h1>
+        </div>
 
         {/* Profile Card */}
         <div className="glass-card rounded-2xl p-5 space-y-4">

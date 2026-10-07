@@ -24,7 +24,7 @@ export default function LevelUpOverlay({ level, visible, onDone }: Props) {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-md animate-fade-in">
+    <div className="user-experience fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-md animate-fade-in">
       <div className="text-center space-y-4 animate-scale-in">
         <div className="w-20 h-20 mx-auto rounded-full gradient-primary flex items-center justify-center animate-pulse-glow">
           <Rocket className="w-10 h-10 text-primary-foreground" />

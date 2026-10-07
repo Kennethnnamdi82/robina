@@ -23,7 +23,7 @@ export default function SeasonLiveBanner() {
 
   return (
     <div
-      className="relative overflow-hidden rounded-xl border border-primary/35 bg-background/80 px-3 py-3 shadow-sm backdrop-blur transition-all duration-500 hover:border-primary/55 hover:shadow-md animate-fade-in"
+      className="user-experience relative overflow-hidden rounded-xl border border-primary/35 bg-background/80 px-3 py-3 shadow-sm backdrop-blur transition-all duration-500 hover:border-primary/55 hover:shadow-md animate-fade-in"
       aria-live="polite"
     >
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/15 via-accent/10 to-primary/15" />

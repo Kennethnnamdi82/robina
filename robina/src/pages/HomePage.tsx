@@ -25,9 +25,9 @@ import LevelUpOverlay from "@/components/LevelUpOverlay";
 import USDCPaymentModal from "@/components/USDCPaymentModal";
 
 const HOME_PANEL_CLASS =
-  "relative isolate overflow-hidden rounded-2xl border border-[#2a2f3b] bg-[#171a22] shadow-card";
+  "relative isolate overflow-hidden rounded-2xl border border-border bg-card shadow-card";
 const HOME_SUB_PANEL_CLASS =
-  "rounded-xl border border-[#2a2f3b] bg-[#222630]";
+  "rounded-xl border border-border bg-secondary/55";
 
 export default function HomePage() {
   const {
@@ -86,14 +86,12 @@ export default function HomePage() {
   const levelKey = user.level.toLowerCase().replace(/\s+/g, "-");
 
   return (
-    <div className="min-h-screen bg-[#0b0d14]">
+    <div className="user-experience min-h-screen">
       <div className="px-4 pt-5 pb-24 max-w-lg mx-auto space-y-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-accent">
-              Season Dashboard
-            </p>
-            <h1 className="text-2xl font-black leading-tight">BaseDrop</h1>
+            <p className="lime-kicker">Season Dashboard</p>
+            <h1 className="mt-1 text-3xl font-black leading-tight tracking-tight">BaseDrop</h1>
             <p className="text-xs text-muted-foreground">
               {shortenWallet(user.wallet)}
             </p>
@@ -106,7 +104,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        <section className={`${HOME_PANEL_CLASS} p-5`}>
+        <section className={`${HOME_PANEL_CLASS} p-5 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-primary/80 before:to-transparent`}>
+          <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -157,7 +156,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="my-5 h-px bg-[#2a2f3b]" />
+          <div className="my-5 h-px bg-border" />
 
           <div className="relative">
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -194,7 +193,7 @@ export default function HomePage() {
               className={`w-full py-4 rounded-xl font-black text-lg transition-all duration-300 shadow-lg ${
                 canClaim
                   ? "bg-primary text-primary-foreground active:scale-95"
-                  : "border border-[#2a2f3b] bg-[#222630] text-white/45 cursor-not-allowed"
+                  : "border border-border bg-secondary/60 text-white/45 cursor-not-allowed"
               }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -206,7 +205,7 @@ export default function HomePage() {
             {!canClaim && !loading && (
               <button
                 onClick={() => setShowInstantPayment(true)}
-                className="mt-3 w-full py-3 rounded-xl border border-[#2a2f3b] bg-[#222630] text-white text-xs font-bold hover:bg-[#2b303b] transition-all active:scale-95 uppercase tracking-wide"
+                className="mt-3 w-full py-3 rounded-xl border border-border bg-secondary/60 text-white text-xs font-bold hover:border-primary/40 hover:bg-primary/10 transition-all active:scale-95 uppercase tracking-wide"
               >
                 <div className="flex items-center justify-center gap-2">
                   <Zap className="w-3.5 h-3.5 fill-accent text-accent" />
@@ -224,7 +223,7 @@ export default function HomePage() {
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#2a2f3b] bg-[#222630]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary/60">
                   <ArrowUp className="w-5 h-5 text-accent" />
                 </div>
                 <div className="min-w-0">
@@ -238,7 +237,7 @@ export default function HomePage() {
               </div>
               <ChevronRight className="w-4 h-4 shrink-0 text-white/55" />
             </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#2b303b]">
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
               <div
                 className="h-full rounded-full gradient-primary transition-all duration-500"
                 style={{ width: `${levelProgress}%` }}
@@ -257,12 +256,12 @@ export default function HomePage() {
 
         <button
           onClick={() => navigate("/auto-claim")}
-          className={`${HOME_PANEL_CLASS} w-full p-4 transition-all hover:border-white/20 active:scale-[0.98]`}
+          className={`${HOME_PANEL_CLASS} w-full p-4 transition-all hover:border-primary/35 active:scale-[0.98]`}
         >
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-[#2a2f3b] transition-colors ${isAutoClaimActive ? "bg-green-500/15" : "bg-[#222630]"}`}
+                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-border transition-colors ${isAutoClaimActive ? "bg-green-500/15" : "bg-secondary/60"}`}
               >
                 <Zap
                   className={`w-5 h-5 ${isAutoClaimActive ? "text-green-400" : "text-muted-foreground"}`}
@@ -283,12 +282,12 @@ export default function HomePage() {
 
         <button
           onClick={() => navigate("/gaming")}
-          className={`${HOME_PANEL_CLASS} w-full p-4 transition-all hover:border-white/20 active:scale-[0.98]`}
+          className={`${HOME_PANEL_CLASS} w-full p-4 transition-all hover:border-primary/35 active:scale-[0.98]`}
         >
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-[#2a2f3b] transition-colors ${hasCardMultiplier ? "bg-green-500/15" : "bg-[#222630]"}`}
+                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-border transition-colors ${hasCardMultiplier ? "bg-green-500/15" : "bg-secondary/60"}`}
               >
                 <BadgePercent
                   className={`w-5 h-5 ${hasCardMultiplier ? "text-green-400" : "text-muted-foreground"}`}

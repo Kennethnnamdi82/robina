@@ -54,9 +54,10 @@ export default function RankPage() {
   const empty = !loading && !leaderboardLoading && leaderboard.length === 0;
 
   return (
-    <div className="px-4 pt-6 pb-24 max-w-lg mx-auto space-y-5 animate-fade-in">
+    <div className="user-experience min-h-screen px-4 pt-6 pb-24 max-w-lg mx-auto space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-xl font-bold">Rank</h1>
+        <p className="lime-kicker">Season standings</p>
+        <h1 className="mt-1 text-3xl font-bold">Leaderboard</h1>
         <p className="text-xs text-muted-foreground">
           Ranked by BD balance. Top 30 show Season 2 payout.
         </p>
@@ -70,7 +71,7 @@ export default function RankPage() {
           </p>
         </div>
       ) : (
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#171a22]/95 p-4 shadow-card">
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card/95 p-4 shadow-card">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/12 via-white/5 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
           <div className="relative z-10 grid grid-cols-2 gap-4">

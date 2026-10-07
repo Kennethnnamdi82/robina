@@ -319,11 +319,12 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-24 max-w-2xl mx-auto space-y-6 animate-fade-in">
-      <div className="glass-card rounded-3xl p-6 space-y-2 relative overflow-hidden">
+    <div className="user-experience min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto space-y-6 animate-fade-in">
+      <div className="glass-card rounded-3xl p-6 space-y-2 relative overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-primary before:to-transparent">
         <div className="absolute inset-0 gradient-primary opacity-10 pointer-events-none" />
         <div className="relative z-10 space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+          <p className="lime-kicker">Earn more</p>
+          <h1 className="text-3xl font-bold tracking-tight">Missions</h1>
           <p className="text-sm text-muted-foreground">
             Complete admin-published tasks to earn BD points.
           </p>

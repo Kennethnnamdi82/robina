@@ -15,8 +15,8 @@ export default function BottomNav() {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-border/50 safe-area-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
+    <nav className="user-experience fixed bottom-0 left-0 right-0 z-50 border-t border-border/70 bg-[hsl(var(--background)/0.92)] shadow-[0_-12px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl safe-area-bottom">
+      <div className="flex h-[4.5rem] max-w-lg items-center justify-around mx-auto px-1">
         {NAV_ITEMS.map(({ path, icon: Icon, label }) => {
           const active = location.pathname === path;
           return (
@@ -29,8 +29,10 @@ export default function BottomNav() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Icon className={`w-5 h-5 ${active ? 'drop-shadow-[0_0_8px_hsl(250,80%,60%)]' : ''}`} />
-              <span className="text-[9px] font-medium">{label}</span>
+              <span className={`grid h-8 w-8 place-items-center rounded-xl ${active ? 'bg-primary/15' : ''}`}>
+                <Icon className={`w-[18px] h-[18px] ${active ? 'drop-shadow-[0_0_8px_hsl(76,100%,62%)]' : ''}`} />
+              </span>
+              <span className="text-[9px] font-semibold tracking-tight">{label}</span>
             </button>
           );
         })}

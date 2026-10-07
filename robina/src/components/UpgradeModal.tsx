@@ -58,7 +58,7 @@ export default function UpgradeModal({ open, onClose }: Props) {
 
   if (!nextLevel) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="user-experience fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
         <div className="w-full max-w-lg glass-card rounded-3xl p-6 animate-scale-in space-y-4" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Max Level</h2>
@@ -74,7 +74,7 @@ export default function UpgradeModal({ open, onClose }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="user-experience fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
         <div className="w-full max-w-lg glass-card rounded-3xl p-6 animate-scale-in space-y-5" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Upgrade Level</h2>

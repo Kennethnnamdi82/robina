@@ -213,7 +213,7 @@ export default function USDCPaymentModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm animate-fade-in"
+      className="user-experience fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm animate-fade-in"
       onClick={handleCancel}
     >
       <div

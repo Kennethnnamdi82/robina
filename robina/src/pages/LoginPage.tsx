@@ -18,8 +18,8 @@ function GoogleIcon() {
 
 function RobinaMark() {
   return (
-    <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#172b3a] ring-1 ring-white/10" aria-hidden="true">
-      <span className="h-4 w-4 rotate-45 rounded-[4px] border-2 border-cyan-200" />
+    <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_26px_rgba(194,255,56,0.18)]" aria-hidden="true">
+      <span className="h-4 w-4 rotate-45 rounded-[4px] border-2 border-current" />
     </span>
   );
 }
@@ -113,13 +113,12 @@ export default function LoginPage() {
 
   return (
     <main
-      className="relative grid min-h-screen place-items-center overflow-hidden px-5 py-10"
-      style={{ background: "#05070d", color: "#f8fafc" }}
+      className="user-experience relative grid min-h-screen place-items-center overflow-hidden bg-background px-5 py-10 text-foreground"
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-violet-500/15 blur-[130px]" />
-        <div className="absolute -left-32 bottom-[-16rem] h-[34rem] w-[34rem] rounded-full bg-cyan-400/10 blur-[130px]" />
-        <div className="absolute right-[-15rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-fuchsia-500/10 blur-[130px]" />
+        <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[130px]" />
+        <div className="absolute -left-32 bottom-[-16rem] h-[34rem] w-[34rem] rounded-full bg-primary/5 blur-[130px]" />
+        <div className="absolute right-[-15rem] top-1/3 h-[28rem] w-[28rem] rounded-full bg-lime-300/5 blur-[130px]" />
         <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:28px_28px]" />
       </div>
 
@@ -130,11 +129,10 @@ export default function LoginPage() {
         </div>
 
         <div
-          className="rounded-3xl border border-white/10 p-5 shadow-[0_32px_90px_rgba(0,0,0,0.58)] backdrop-blur-xl sm:p-6"
-          style={{ background: "linear-gradient(145deg, rgba(20, 26, 40, 0.96), rgba(8, 11, 19, 0.94))", color: "#f8fafc" }}
+          className="rounded-3xl border border-border/90 bg-card/95 p-5 shadow-[0_32px_90px_rgba(0,0,0,0.58)] backdrop-blur-xl sm:p-6"
         >
           <header className="text-center">
-            <span className="inline-flex rounded-full border border-cyan-300/15 bg-cyan-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100">Welcome back</span>
+            <span className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Welcome back</span>
             <h1 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">Sign in to Robina</h1>
             <p className="mt-2 text-sm leading-5 text-slate-400">Choose a secure way to continue.</p>
           </header>
@@ -144,7 +142,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => void handleGoogleSignIn()}
               disabled={busy}
-              className="mx-auto flex h-12 w-full max-w-[280px] items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white px-4 text-sm font-semibold text-slate-800 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-[#101722] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mx-auto flex h-12 w-full max-w-[280px] items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white px-4 text-sm font-semibold text-slate-800 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-lime-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
             >
               {googlePending ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
               {googlePending ? "Connecting to Google..." : "Continue with Google"}
@@ -164,14 +162,14 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => void handleEvmSignIn()}
                 disabled={busy}
-                className="group flex min-h-[92px] w-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.045] p-4 text-left text-slate-100 transition hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.08] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="group flex min-h-[92px] w-full items-center gap-4 rounded-2xl border border-border bg-white/[0.035] p-4 text-left text-slate-100 transition hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary/[0.06] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-200/10"><Wallet className="h-5 w-5" /></span>
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15"><Wallet className="h-5 w-5" /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{isConnected ? "Choose another wallet" : "Connect a wallet"}</span>
                   <span className="mt-1 block text-[11px] leading-4 text-slate-500">{walletPending ? "Waiting for signature..." : "MetaMask, Coinbase Wallet, WalletConnect, and more"}</span>
                 </span>
-                {walletPending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-cyan-200" /> : <ChevronRight className="h-5 w-5 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" />}
+                {walletPending ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" /> : <ChevronRight className="h-5 w-5 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-primary" />}
               </button>
             </div>
           </div>
@@ -183,13 +181,13 @@ export default function LoginPage() {
           )}
 
           <p className="mt-6 flex items-start gap-2 border-t border-white/10 pt-4 text-[11px] leading-5 text-slate-400">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200" />
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             Robina never asks for your recovery phrase, password, or private keys.
           </p>
         </div>
 
         <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-[11px] text-slate-500">
-          <Check className="h-3.5 w-3.5 text-cyan-300" /> Secure, non-custodial sign-in
+          <Check className="h-3.5 w-3.5 text-primary" /> Secure, non-custodial sign-in
         </p>
       </section>
     </main>

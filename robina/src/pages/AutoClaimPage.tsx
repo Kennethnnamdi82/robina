@@ -16,9 +16,10 @@ export default function AutoClaimPage() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-24 max-w-lg mx-auto space-y-5 animate-fade-in">
+    <div className="user-experience min-h-screen px-4 pt-6 pb-24 max-w-lg mx-auto space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-xl font-bold">Auto Claim</h1>
+        <p className="lime-kicker">Set it & forget it</p>
+        <h1 className="mt-1 text-3xl font-bold">Auto Claim</h1>
         <p className="text-xs text-muted-foreground mt-1">Automatically claim BD every 6 hours</p>
       </div>
 

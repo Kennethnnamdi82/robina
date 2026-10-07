@@ -38,7 +38,7 @@ export default function SnapshotEventBanner() {
 
   return (
     <div
-      className="relative z-30 border-b border-primary/25 bg-[linear-gradient(90deg,#07060b,#17112a_45%,#07060b)] px-3 py-1.5 text-white shadow-md shadow-black/20"
+      className="user-experience relative z-30 border-b border-primary/25 bg-[linear-gradient(90deg,#10120d,#1a2110_45%,#10120d)] px-3 py-1.5 text-white shadow-md shadow-black/20"
       aria-live="polite"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 @config "../tailwind.config.ts";
@@ -54,6 +54,79 @@
     --level-legendary: 50 100% 50%;
     --level-top-legendary: 0 0% 95%;
   }
+}
+
+/*
+ * Customer experience theme. This is deliberately scoped so the management
+ * console retains its existing appearance while the player-facing app gets a
+ * complete visual identity.
+ */
+.user-experience {
+  --background: 120 4% 6%;
+  --foreground: 60 8% 94%;
+  --card: 120 3% 10%;
+  --card-foreground: 60 8% 94%;
+  --popover: 120 3% 10%;
+  --popover-foreground: 60 8% 94%;
+  --primary: 76 100% 62%;
+  --primary-foreground: 120 6% 8%;
+  --secondary: 90 4% 15%;
+  --secondary-foreground: 60 8% 90%;
+  --muted: 90 3% 15%;
+  --muted-foreground: 80 5% 59%;
+  --accent: 76 100% 62%;
+  --accent-foreground: 120 6% 8%;
+  --border: 80 7% 22%;
+  --input: 80 7% 22%;
+  --ring: 76 100% 62%;
+  --gradient-primary: linear-gradient(135deg, hsl(76 100% 65%), hsl(85 90% 52%));
+  --gradient-primary-hover: linear-gradient(135deg, hsl(76 100% 72%), hsl(85 90% 59%));
+  --gradient-card: linear-gradient(145deg, hsl(120 3% 12%), hsl(120 4% 7%));
+  --neon-glow: 0 0 20px hsl(76 100% 62% / 0.28), 0 0 50px hsl(76 100% 62% / 0.12);
+  --neon-glow-accent: 0 0 20px hsl(76 100% 62% / 0.24), 0 0 40px hsl(76 100% 62% / 0.1);
+  --shadow-card: 0 18px 45px hsl(0 0% 0% / 0.28);
+  font-family: 'DM Sans', sans-serif;
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(circle at 100% 0%, hsl(76 100% 62% / 0.08), transparent 25rem),
+    radial-gradient(circle at 0% 70%, hsl(76 100% 62% / 0.045), transparent 25rem),
+    linear-gradient(135deg, transparent 0 49.85%, hsl(76 100% 62% / 0.08) 50%, transparent 50.15%);
+  background-size: auto, auto, 280px 280px;
+}
+
+.user-experience h1,
+.user-experience h2,
+.user-experience h3,
+.user-experience .font-black {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.user-experience .glass-card {
+  background: linear-gradient(145deg, hsl(120 3% 12% / 0.94), hsl(120 4% 8% / 0.94));
+  border-color: hsl(80 7% 25% / 0.9);
+  box-shadow: var(--shadow-card);
+}
+
+.user-experience .gradient-primary { background: var(--gradient-primary); }
+.user-experience .neon-glow { box-shadow: var(--neon-glow); }
+.user-experience .neon-glow-accent { box-shadow: var(--neon-glow-accent); }
+
+.user-experience .lime-kicker {
+  color: hsl(var(--primary));
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.user-experience .lime-orb {
+  background: radial-gradient(circle at 30% 30%, #ecff96, #c2ff38 35%, #45620a 68%, #182000 70%);
+  box-shadow: inset -14px -16px 25px rgb(0 0 0 / 0.42), 0 0 60px rgb(194 255 56 / 0.2);
+}
+
+.user-experience .lime-outline {
+  border: 1px solid hsl(var(--primary) / 0.5);
+  color: hsl(var(--primary));
 }
 
 @layer base {
