@@ -19,6 +19,7 @@ import {
   type ApiError,
 } from "@/services/api";
 import { buildAndSignSiwe } from "@/lib/siwe";
+import { getAccessTokenAfterLogin } from "@/lib/privyAuth";
 import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID } from "@/lib/wagmi";
 import { HAS_BACKEND } from "@/lib/backend";
 import { getPhantomWallet, type PhantomWallet } from "@/lib/phantomWallet";
@@ -64,7 +65,7 @@ function shortName(wallet: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { getAccessToken, logout: privyLogout } = usePrivy();
+  const { authenticated: privyAuthenticated, getAccessToken, logout: privyLogout } = usePrivy();
   const { address, chainId, isConnected } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const [signedIn, setSignedIn] = useState(false);
@@ -157,8 +158,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsSigningIn(true);
     setAuthError(null);
     try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error("privy_token_invalid");
+      const accessToken = await getAccessTokenAfterLogin(getAccessToken);
+      if (!accessToken) {
+        await privyLogout();
+        throw new Error("privy_access_token_missing");
+      }
       const referralCode = localStorage.getItem("basedrop_ref") || undefined;
       const result = await authApi.google(accessToken, referralCode);
       localStorage.removeItem("basedrop_ref");
@@ -168,8 +172,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSignedIn(true);
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "";
+      if (code === "privy_token_invalid") {
+        try {
+          await privyLogout();
+        } catch {
+          setAuthError("Google sign-in failed and the previous session could not be cleared. Reload the page and try again.");
+          return;
+        }
+      }
       const messages: Record<string, string> = {
-        privy_token_invalid: "Google sign-in could not be verified. Please try again.",
+        privy_access_token_missing: "Google sign-in was interrupted before verification. Please try again.",
+        privy_token_invalid: "Google could not verify this sign-in session. Please start a fresh sign-in. If this keeps happening, contact support.",
         google_account_required: "Continue with a Google account to sign in.",
         privy_not_configured: "Google sign-in is temporarily unavailable.",
         privy_unavailable: "Google sign-in is temporarily unavailable. Please try again shortly.",
@@ -178,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSigningIn(false);
     }
-  }, [getAccessToken]);
+  }, [getAccessToken, privyLogout]);
 
   const { login: openPrivyLogin } = useLogin({
     onComplete: () => {
@@ -186,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: () => {
       setIsSigningIn(false);
-      setAuthError("Google sign-in was cancelled or could not be completed.");
+      setAuthError("Google sign-in was cancelled. You can try again whenever you're ready.");
     },
   });
 
@@ -340,9 +353,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!import.meta.env.VITE_PRIVY_APP_ID?.trim()) {
       throw new Error("privy_not_configured");
     }
+    setIsSigningIn(false);
     setAuthError(null);
+    if (privyAuthenticated) await privyLogout();
     openPrivyLogin({ loginMethods: ["google"] });
-  }, [openPrivyLogin]);
+  }, [openPrivyLogin, privyAuthenticated, privyLogout]);
 
   const signOut = useCallback(async () => {
     if (HAS_BACKEND) {

@@ -317,7 +317,7 @@ export async function verifySiwe(req, res) {
 export async function googleLogin(req, res) {
   const parsed = googleAuthBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
-  if (!env.privyAppId || !env.privyAppSecret) {
+  if (!env.privyAppId || !env.privyAppSecret || !env.privyVerificationKey) {
     return res.status(503).json({ error: "privy_not_configured" });
   }
 
