@@ -8,6 +8,7 @@ import { PrivyClient } from "@privy-io/node";
 import { User } from "../models/User.js";
 import { AuthNonce } from "../models/AuthNonce.js";
 import { RevokedToken } from "../models/RevokedToken.js";
+import { getVerifiedGoogleAccount } from "../services/authIdentity.js";
 import { env } from "../config/env.js";
 import {
   signSession,
@@ -39,7 +40,10 @@ const walletAuthBody = z.object({
   chainId: z.string().max(80).optional(),
   ref: z.string().max(64).optional(),
 });
-const googleAuthBody = z.object({ accessToken: z.string().min(20).max(16_384) });
+const googleAuthBody = z.object({
+  accessToken: z.string().min(20).max(16_384),
+  ref: z.string().max(64).optional(),
+});
 
 function safeOrigin(value) {
   try {
@@ -316,18 +320,46 @@ export async function googleLogin(req, res) {
   if (!env.privyAppId || !env.privyAppSecret) {
     return res.status(503).json({ error: "privy_not_configured" });
   }
+
+  const client = new PrivyClient({ appId: env.privyAppId, appSecret: env.privyAppSecret, jwtVerificationKey: env.privyVerificationKey || undefined });
+  let verified;
   try {
-    const client = new PrivyClient({ appId: env.privyAppId, appSecret: env.privyAppSecret, jwtVerificationKey: env.privyVerificationKey || undefined });
-    const verified = await client.utils().auth().verifyAccessToken(parsed.data.accessToken);
-    const wallet = `privy:${verified.user_id}`.toLowerCase();
-    const user = await User.findOneAndUpdate(
+    verified = await client.utils().auth().verifyAccessToken(parsed.data.accessToken);
+  } catch {
+    return res.status(401).json({ error: "privy_token_invalid" });
+  }
+  if (verified.app_id !== env.privyAppId) {
+    return res.status(401).json({ error: "privy_token_invalid" });
+  }
+
+  let privyUser;
+  try {
+    privyUser = await client.users._get(verified.user_id);
+  } catch (error) {
+    return res.status(error?.status === 404 ? 401 : 503).json({
+      error: error?.status === 404 ? "privy_token_invalid" : "privy_unavailable",
+    });
+  }
+
+  const googleAccount = getVerifiedGoogleAccount(privyUser);
+  if (!googleAccount) {
+    return res.status(403).json({ error: "google_account_required" });
+  }
+
+  const wallet = `privy:${verified.user_id}`.toLowerCase();
+  let user;
+  try {
+    user = await User.findOneAndUpdate(
       { privyUserId: verified.user_id },
       {
+        $set: {
+          email: googleAccount.email,
+          authMethod: "privy_google",
+          chainType: "none",
+        },
         $setOnInsert: {
           wallet,
           privyUserId: verified.user_id,
-          authMethod: "privy_google",
-          chainType: "none",
           referralCode: generateReferralCode(wallet),
           bdBalance: 0,
           level: "Beginner",
@@ -335,12 +367,40 @@ export async function googleLogin(req, res) {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
-    const token = signSession(user.wallet, Number(user.sessionVersion || 0));
-    setSessionCookie(res, token);
-    return res.json({ ok: true, user: publicUser(user) });
-  } catch {
-    return res.status(401).json({ error: "privy_token_invalid" });
+  } catch (error) {
+    if (error?.code !== 11000) throw error;
+    user = await User.findOne({
+      $or: [{ privyUserId: verified.user_id }, { wallet }],
+    });
+    if (!user) throw error;
+    if (user.privyUserId && user.privyUserId !== verified.user_id) throw error;
+    user.email = googleAccount.email;
+    user.authMethod = "privy_google";
+    user.chainType = "none";
+    user.privyUserId = verified.user_id;
+    await user.save();
   }
+
+  if (parsed.data.ref && !user.referredBy) {
+    const inviter = await User.findOne({ referralCode: parsed.data.ref });
+    if (inviter && inviter.wallet !== user.wallet) {
+      user.referredBy = inviter.wallet;
+      inviter.referralCount += 1;
+      await Promise.all([user.save(), inviter.save()]);
+    }
+  }
+
+  const token = signSession(user.wallet, Number(user.sessionVersion || 0));
+  setSessionCookie(res, token);
+  void logLoginSession(req, user.wallet, { registration: false });
+  void logActivity({
+    wallet: user.wallet,
+    activityType: "user_login",
+    activityDetails: "User signed in with Google",
+    module: "auth",
+    status: "success",
+  });
+  return res.json({ ok: true, user: publicUser(user) });
 }
 
 export async function logout(req, res) {

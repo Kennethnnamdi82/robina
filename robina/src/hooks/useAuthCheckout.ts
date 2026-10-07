@@ -88,13 +88,14 @@ export function useAuthCheckout() {
   const loginWithWallet = useCallback(async () => {
     setError(null);
     try {
-      await auth.signInWithRobinhood();
+      if (!chainId) throw new Error("Connect a supported EVM wallet first.");
+      await auth.signInWithWallet(chainId);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Wallet sign-in failed";
       setError(message);
       throw cause;
     }
-  }, [auth]);
+  }, [auth, chainId]);
 
   const loginWithGoogle = useCallback(async () => {
     setError(null);
@@ -109,9 +110,19 @@ export function useAuthCheckout() {
 
   return useMemo(() => ({
     isAuthenticated: auth.isLoggedIn,
-    authMethod: auth.authChainType === "solana" ? "wallet_solana" : address ? "wallet_evm" : "unknown",
+    authMethod: !auth.isLoggedIn
+      ? "unknown"
+      : auth.authChainType === "solana"
+        ? "wallet_solana"
+        : auth.authChainType === "evm"
+          ? "wallet_evm"
+          : "unknown",
     email: null as string | null,
-    walletAddress: auth.authChainType === "solana" ? auth.solanaAddress || null : address || auth.baseUser?.wallet || null,
+    walletAddress: !auth.isLoggedIn
+      ? null
+      : auth.authChainType === "solana"
+        ? auth.solanaAddress || auth.baseUser?.wallet || null
+        : address || auth.baseUser?.wallet || null,
     chainType: auth.authChainType,
     chainId: chainId || null,
     backendSession: auth.isLoggedIn,

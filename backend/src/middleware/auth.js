@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { env } from "../config/env.js";
 import { User } from "../models/User.js";
 import { RevokedToken } from "../models/RevokedToken.js";
+import { isSessionVersionCurrent } from "../services/sessionVersion.js";
 
 export function signSession(wallet, sv = 0) {
   const subject = String(wallet).startsWith("solana:")
@@ -51,8 +52,11 @@ export async function web3Middleware(req, res, next) {
     const subject = String(decoded.sub);
     req.wallet = subject.startsWith("solana:") ? subject : subject.toLowerCase();
     const user = await User.findOne({ wallet: req.wallet }).select(
-      "accountStatus suspendedUntil",
+      "accountStatus suspendedUntil sessionVersion",
     );
+    if (!user || !isSessionVersionCurrent(decoded.sv, user.sessionVersion)) {
+      return res.status(401).json({ error: "invalid_token" });
+    }
     if (user?.accountStatus === "suspended") {
       const until =
         user.suspendedUntil && new Date(user.suspendedUntil).getTime() > Date.now()

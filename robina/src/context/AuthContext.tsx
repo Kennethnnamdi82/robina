@@ -8,19 +8,18 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAccount, useDisconnect } from "wagmi";
+import { useLogin, usePrivy } from "@privy-io/react-auth";
 import { getWallets } from "@wallet-standard/app";
 import type { WalletAccount } from "@wallet-standard/base";
 import bs58 from "bs58";
-import { getChainId, switchChain } from "wagmi/actions";
 import {
   adminApi,
   authApi,
   type ApiError,
 } from "@/services/api";
 import { buildAndSignSiwe } from "@/lib/siwe";
-import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, wagmiConfig, openWalletModal } from "@/lib/wagmi";
+import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID } from "@/lib/wagmi";
 import { HAS_BACKEND } from "@/lib/backend";
 import { getPhantomWallet, type PhantomWallet } from "@/lib/phantomWallet";
 
@@ -38,8 +37,10 @@ interface AuthContextType {
   authChainType: "evm" | "solana" | "none";
   isAdmin: boolean;
   isConnecting: boolean;
+  isSigningIn: boolean;
+  authError: string | null;
   isAuthLoading: boolean;
-  signInWithRobinhood: (preferredChainId?: number) => Promise<void>;
+  signInWithWallet: (chainId: number) => Promise<void>;
   signInWithSolana: () => Promise<void>;
   solanaAddress: string | null;
   solanaWallet: PhantomWallet | null;
@@ -63,9 +64,8 @@ function shortName(wallet: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { authenticated: privyAuthenticated, getAccessToken, login: openPrivyLogin, logout: privyLogout } = usePrivy();
-  const { address, connector: activeConnector } = useAccount();
-  const { connectAsync, connectors, isPending: isConnecting } = useConnect();
+  const { getAccessToken, logout: privyLogout } = usePrivy();
+  const { address, chainId, isConnected } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const [signedIn, setSignedIn] = useState(false);
   const [signedWallet, setSignedWallet] = useState<string | null>(null);
@@ -74,13 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authChainType, setAuthChainType] = useState<"evm" | "solana" | "none">("none");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(HAS_BACKEND);
-  const [googleLoginRequested, setGoogleLoginRequested] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const resetAuthState = useCallback(() => {
     setSignedIn(false);
     setSignedWallet(null);
     setAuthChainType("none");
     setIsAdmin(false);
+    setAuthError(null);
   }, []);
 
   useEffect(() => {
@@ -151,26 +153,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [resetAuthState]);
 
-  useEffect(() => {
-    if (!googleLoginRequested || !privyAuthenticated || !HAS_BACKEND) return;
-    let cancelled = false;
-    const completeGoogleLogin = async () => {
-      try {
-        const accessToken = await getAccessToken();
-        if (!accessToken) throw new Error("Google authentication token was unavailable");
-        const result = await authApi.google(accessToken);
-        if (cancelled) return;
-        setSignedWallet(result.user.wallet);
-        setAuthChainType(result.user.chainType || "none");
-        setSignedIn(true);
-        setIsAdmin(false);
-      } finally {
-        if (!cancelled) setGoogleLoginRequested(false);
-      }
-    };
-    void completeGoogleLogin();
-    return () => { cancelled = true; };
-  }, [getAccessToken, googleLoginRequested, privyAuthenticated]);
+  const completeGoogleLogin = useCallback(async () => {
+    setIsSigningIn(true);
+    setAuthError(null);
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error("privy_token_invalid");
+      const referralCode = localStorage.getItem("basedrop_ref") || undefined;
+      const result = await authApi.google(accessToken, referralCode);
+      localStorage.removeItem("basedrop_ref");
+      setSignedWallet(result.user.wallet);
+      setAuthChainType(result.user.chainType || "none");
+      setIsAdmin(false);
+      setSignedIn(true);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "";
+      const messages: Record<string, string> = {
+        privy_token_invalid: "Google sign-in could not be verified. Please try again.",
+        google_account_required: "Continue with a Google account to sign in.",
+        privy_not_configured: "Google sign-in is temporarily unavailable.",
+        privy_unavailable: "Google sign-in is temporarily unavailable. Please try again shortly.",
+      };
+      setAuthError(messages[code] || "Google sign-in could not be completed. Please try again.");
+    } finally {
+      setIsSigningIn(false);
+    }
+  }, [getAccessToken]);
+
+  const { login: openPrivyLogin } = useLogin({
+    onComplete: () => {
+      void completeGoogleLogin();
+    },
+    onError: () => {
+      setIsSigningIn(false);
+      setAuthError("Google sign-in was cancelled or could not be completed.");
+    },
+  });
 
   const baseUser: BaseUser | null = useMemo(() => {
     if (isAdmin)
@@ -182,7 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completedTasks: [],
       };
 
-    const wallet = signedWallet || address;
+    if (!signedIn || !signedWallet) return null;
+    const wallet = signedWallet;
     return wallet
       ? {
           name: shortName(wallet),
@@ -192,64 +211,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           wallet,
         }
       : null;
-  }, [address, signedWallet, isAdmin]);
+  }, [signedWallet, isAdmin, signedIn]);
 
-  const signInWithRobinhood = useCallback(async (preferredChainId = ROBINHOOD_CHAIN_ID) => {
-    if (![ROBINHOOD_CHAIN_ID, BASE_CHAIN_ID].includes(preferredChainId)) {
-      throw new Error("Choose Robinhood Chain or Base to sign in.");
-    }
-    const walletConnector = activeConnector || connectors.find((connector) =>
-      /robinhood|injected|coinbase|metamask|phantom|walletconnect/i.test(`${connector.id} ${connector.name}`),
-    );
-
-    if (!walletConnector) {
-      openWalletModal();
-      throw new Error("Connect MetaMask, Coinbase Wallet, Phantom, or Robinhood Wallet, then sign in.");
-    }
-
-    let wallet = address;
-    if (address) {
-      if (getChainId(wagmiConfig) !== preferredChainId) {
-        await switchChain(wagmiConfig, { chainId: preferredChainId });
+  const signInWithWallet = useCallback(async (preferredChainId: number) => {
+    setIsSigningIn(true);
+    setAuthError(null);
+    try {
+      if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
+      if (!isConnected || !address) throw new Error("Connect a wallet before signing in.");
+      if (![ROBINHOOD_CHAIN_ID, BASE_CHAIN_ID].includes(preferredChainId)) {
+        throw new Error("Switch to a supported EVM network, then try again.");
       }
-    } else {
-      wallet = (
-        await connectAsync({
-          connector: walletConnector,
-          chainId: preferredChainId,
-        }).catch((error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          if (/provider not found/i.test(message)) {
-            throw new Error(
-              "Wallet provider not found. Open this website in your wallet's browser or install the wallet extension, then try again.",
-            );
-          }
-          throw error;
-        })
-      ).accounts[0];
-    }
-    if (!wallet) throw new Error("No account returned");
-
-    if (HAS_BACKEND) {
-      const { nonce } = await authApi.nonce(wallet.toLowerCase(), {
+      if (chainId !== preferredChainId) throw new Error("Your wallet network changed. Please choose your wallet again.");
+      const { nonce } = await authApi.nonce(address.toLowerCase(), {
         chainType: "evm",
         chainId: preferredChainId,
       });
       const { message, signature } = await buildAndSignSiwe(
-        wallet as `0x${string}`,
+        address,
         nonce,
         preferredChainId,
       );
       const referralCode = localStorage.getItem("basedrop_ref") || undefined;
       const result = await authApi.verify(message, signature, referralCode);
       localStorage.removeItem("basedrop_ref");
+      setIsAdmin(false);
+      setSignedWallet(result.user.wallet);
+      setAuthChainType("evm");
+      setSignedIn(true);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "";
+      const messages: Record<string, string> = {
+        nonce_expired_or_used: "This sign-in request expired. Please choose your wallet and try again.",
+        signature_invalid: "The wallet signature could not be verified. Please try again.",
+        unsupported_chain: "Switch to a supported EVM network, then try again.",
+      };
+      if (messages[code]) setAuthError(messages[code]);
+      throw cause;
+    } finally {
+      setIsSigningIn(false);
     }
-
-    setIsAdmin(false);
-    setSignedWallet(wallet.toLowerCase());
-    setAuthChainType("evm");
-    setSignedIn(true);
-  }, [address, activeConnector, connectAsync, connectors]);
+  }, [address, chainId, isConnected]);
 
   const connectSolanaWallet = useCallback(async () => {
     const wallet = solanaWallet || getPhantomWallet();
@@ -263,43 +265,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [solanaWallet]);
 
   const signInWithSolana = useCallback(async () => {
-    if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
-    const { wallet, account } = await connectSolanaWallet();
-    const address = account.address;
-
-    const { nonce, expiresAt } = await authApi.nonce(address, { chainType: "solana" });
-    const issuedAt = new Date().toISOString();
-    const message = [
-      `${window.location.host} wants you to sign in with your Solana account:`,
-      address,
-      "",
-      "Sign in to Robina.",
-      "",
-      `URI: ${window.location.origin}`,
-      "Version: 1",
-      "Chain ID: solana:mainnet",
-      `Nonce: ${nonce}`,
-      `Issued At: ${issuedAt}`,
-      `Expiration Time: ${expiresAt}`,
-    ].join("\n");
-    const [signedMessage] = await wallet.features["solana:signMessage"].signMessage({
-      account,
-      message: new TextEncoder().encode(message),
-    });
-    if (!signedMessage?.signature) throw new Error("Phantom did not return a message signature.");
-    const ref = localStorage.getItem("basedrop_ref") || undefined;
-    const result = await authApi.wallet({
-      message,
-      signature: bs58.encode(signedMessage.signature),
-      address,
-      chainType: "solana",
-      ref,
-    });
-    localStorage.removeItem("basedrop_ref");
-    setIsAdmin(false);
-    setSignedWallet(result.user.wallet);
-    setAuthChainType("solana");
-    setSignedIn(true);
+    setIsSigningIn(true);
+    setAuthError(null);
+    try {
+      if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
+      const { wallet, account } = await connectSolanaWallet();
+      const solanaAddress = account.address;
+      const { nonce, expiresAt } = await authApi.nonce(solanaAddress, { chainType: "solana" });
+      const issuedAt = new Date().toISOString();
+      const message = [
+        `${window.location.host} wants you to sign in with your Solana account:`,
+        solanaAddress,
+        "",
+        "Sign in to Robina.",
+        "",
+        `URI: ${window.location.origin}`,
+        "Version: 1",
+        "Chain ID: solana:mainnet",
+        `Nonce: ${nonce}`,
+        `Issued At: ${issuedAt}`,
+        `Expiration Time: ${expiresAt}`,
+      ].join("\n");
+      const [signedMessage] = await wallet.features["solana:signMessage"].signMessage({
+        account,
+        message: new TextEncoder().encode(message),
+      });
+      if (!signedMessage?.signature) throw new Error("signature_invalid");
+      const ref = localStorage.getItem("basedrop_ref") || undefined;
+      const result = await authApi.wallet({
+        message,
+        signature: bs58.encode(signedMessage.signature),
+        address: solanaAddress,
+        chainType: "solana",
+        ref,
+      });
+      localStorage.removeItem("basedrop_ref");
+      setIsAdmin(false);
+      setSignedWallet(result.user.wallet);
+      setAuthChainType("solana");
+      setSignedIn(true);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "";
+      const messages: Record<string, string> = {
+        nonce_expired_or_used: "This sign-in request expired. Please try again.",
+        signature_invalid: "The wallet signature could not be verified. Please try again.",
+        invalid_wallet: "The connected wallet could not be verified.",
+      };
+      if (messages[code]) setAuthError(messages[code]);
+      throw cause;
+    } finally {
+      setIsSigningIn(false);
+    }
   }, [connectSolanaWallet]);
 
   const signInAsAdmin = useCallback(async (email: string, password: string) => {
@@ -321,21 +337,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
-    setGoogleLoginRequested(true);
+    if (!import.meta.env.VITE_PRIVY_APP_ID?.trim()) {
+      throw new Error("privy_not_configured");
+    }
+    setAuthError(null);
     openPrivyLogin({ loginMethods: ["google"] });
   }, [openPrivyLogin]);
 
   const signOut = useCallback(async () => {
     if (HAS_BACKEND) {
-      try {
-        if (isAdmin) {
-          await adminApi.logout();
-        } else {
-          await authApi.logout();
-        }
-      } catch {
-        /* noop */
-      }
+      if (isAdmin) await adminApi.logout();
+      else await authApi.logout();
     }
     try {
       await disconnectAsync();
@@ -365,14 +377,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoggedIn: signedIn,
         baseUser,
         authChainType,
+        authError,
         solanaAddress: solanaWalletAccount?.address || null,
         solanaWallet,
         solanaWalletAccount,
         connectSolanaWallet,
         isAdmin,
-        isConnecting,
+        isConnecting: isSigningIn,
+        isSigningIn,
         isAuthLoading,
-        signInWithRobinhood,
+        signInWithWallet,
         signInWithSolana,
         signInWithGoogle,
         signInAsAdmin,

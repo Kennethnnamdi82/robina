@@ -61,21 +61,9 @@ function ReferralQueryCapture() {
 }
 
 function AppRoutes() {
-  const { isLoggedIn, isAdmin, isAuthLoading } = useAuth();
+  const { isLoggedIn, isAdmin } = useAuth();
   const location = useLocation();
   const showSnapshotBanner = !location.pathname.startsWith("/admin");
-
-  // 1. CRITICAL: Wait for the session check to finish
-  if (isAuthLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] text-white">
-        <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-sm font-medium animate-pulse text-muted-foreground">
-          Securing connection to Robinhood Chain...
-        </p>
-      </div>
-    );
-  }
 
   return (
     <>

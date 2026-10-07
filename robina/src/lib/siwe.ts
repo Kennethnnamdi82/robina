@@ -12,7 +12,7 @@ export async function buildAndSignSiwe(
   const siweMessage = new SiweMessage({
     domain: window.location.host,
     address: getAddress(address), // Critical for signature math
-    statement: "Sign in to robina with your Robinhood Wallet.",
+    statement: "Sign in to Robina.",
     uri: window.location.origin,
     version: "1",
     chainId,

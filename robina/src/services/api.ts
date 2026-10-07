@@ -200,8 +200,8 @@ export const authApi = {
     chainId?: string;
     ref?: string;
   }) => api.post<{ ok: true; user: ApiUser }>(`/api/auth/wallet`, body),
-  google: (accessToken: string) =>
-    api.post<{ ok: true; user: ApiUser }>(`/api/auth/google`, { accessToken }),
+  google: (accessToken: string, ref?: string) =>
+    api.post<{ ok: true; user: ApiUser }>(`/api/auth/google`, { accessToken, ref }),
   me: () => api.get<{ user: ApiUser }>(`/api/auth/me`),
   logout: () => api.post(`/api/auth/logout`),
 };

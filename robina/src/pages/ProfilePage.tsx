@@ -189,8 +189,12 @@ export default function ProfilePage() {
   }
 
   async function handleLogout() {
-    await signOut();
-    toast.success("Logged out");
+    try {
+      await signOut();
+      toast.success("Logged out");
+    } catch {
+      toast.error("Could not end your session. Check your connection and try again.");
+    }
   }
 
   return (
