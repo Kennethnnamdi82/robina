@@ -23,6 +23,7 @@ import RankPage from "@/pages/LeaderboardPage";
 import AutoClaimPage from "@/pages/AutoClaimPage";
 import ProfilePage from "@/pages/ProfilePage";
 import GamingPage from "@/pages/GamingPage";
+import MarketplacePage from "@/pages/MarketplacePage";
 import LoginPage from "@/pages/LoginPage";
 import AdminLoginPage from "@/pages/AdminLoginPage";
 import NotFound from "@/pages/NotFound";
@@ -121,6 +122,7 @@ function AppRoutes() {
             <Route path="/rank" element={<RankPage />} />
             <Route path="/auto-claim" element={<AutoClaimPage />} />
             <Route path="/gaming" element={<GamingPage />} />
+            <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </>

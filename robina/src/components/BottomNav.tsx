@@ -1,12 +1,10 @@
-import { Home, ListChecks, Trophy, User, Zap, Gamepad2 } from 'lucide-react';
+import { Home, Store, User, Gamepad2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const NAV_ITEMS = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/tasks', icon: ListChecks, label: 'Tasks' },
   { path: '/gaming', icon: Gamepad2, label: 'Gaming' },
-  { path: '/rank', icon: Trophy, label: 'Rank' },
-  { path: '/auto-claim', icon: Zap, label: 'Auto Claim' },
+  { path: '/marketplace', icon: Store, label: 'Marketplace' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 

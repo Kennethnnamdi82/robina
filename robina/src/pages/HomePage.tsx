@@ -14,8 +14,9 @@ import {
   Clock,
   Sparkles,
   Coins,
-  ChevronRight,
   BadgePercent,
+  ListChecks,
+  Trophy,
 } from "lucide-react";
 import LevelIcon from "@/components/LevelIcon";
 import { useState } from "react";
@@ -57,9 +58,6 @@ export default function HomePage() {
   const isAutoClaimActive =
     user.autoClaimActive && user.autoClaimExpiry > Date.now();
   const hasCardMultiplier = Number(user.cardMultiplier || 1) >= 2;
-  const cardMultiplierLabel = hasCardMultiplier
-    ? `${user.cardMultiplier}x active on BD cards`
-    : "Boost BD card rewards";
 
   async function handleClaim() {
     try {
@@ -217,94 +215,73 @@ export default function HomePage() {
         </section>
 
         <section className={`${HOME_PANEL_CLASS} p-4`}>
-          <button
-            onClick={() => setShowUpgrade(true)}
-            className="relative w-full text-left"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary/60">
-                  <ArrowUp className="w-5 h-5 text-accent" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-white">Level Progress</p>
-                  <p className="truncate text-xs text-white/60">
-                    {nextLevel
-                      ? `Next: ${nextLevel.name} gives +${nextLevel.claimReward} BD per claim`
-                      : "You have reached the highest level"}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 shrink-0 text-white/55" />
+          <div className="relative mb-4 flex items-end justify-between">
+            <div>
+              <p className="lime-kicker">Services</p>
+              <h2 className="mt-1 text-lg font-bold text-white">Quick actions</h2>
             </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full gradient-primary transition-all duration-500"
-                style={{ width: `${levelProgress}%` }}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-white/55">
-              <span>{levelProgress}% of next level</span>
-              {nextLevel ? (
-                <span>{nextLevel.bdRequired.toLocaleString()} BD target</span>
-              ) : (
-                <span>Max level</span>
-              )}
-            </div>
-          </button>
+            <p className="text-[10px] font-semibold text-white/45">ONE-TAP ACCESS</p>
+          </div>
+
+          <div className="relative grid grid-cols-3 gap-x-2 gap-y-4">
+            {[
+              {
+                label: "Level up",
+                detail: `${levelProgress}% progress`,
+                icon: ArrowUp,
+                active: true,
+                onClick: () => setShowUpgrade(true),
+              },
+              {
+                label: "Auto mining",
+                detail: isAutoClaimActive ? "Active" : "Start earning",
+                icon: Zap,
+                active: isAutoClaimActive,
+                onClick: () => navigate("/auto-claim"),
+              },
+              {
+                label: "Multiplier",
+                detail: hasCardMultiplier ? `${user.cardMultiplier}x active` : "Boost cards",
+                icon: BadgePercent,
+                active: hasCardMultiplier,
+                onClick: () => navigate("/gaming"),
+              },
+              {
+                label: "Tasks",
+                detail: "Earn BD",
+                icon: ListChecks,
+                active: false,
+                onClick: () => navigate("/tasks"),
+              },
+              {
+                label: "Auto claim",
+                detail: "Every 6 hours",
+                icon: Sparkles,
+                active: isAutoClaimActive,
+                onClick: () => navigate("/auto-claim"),
+              },
+              {
+                label: "Rank",
+                detail: "Season board",
+                icon: Trophy,
+                active: false,
+                onClick: () => navigate("/rank"),
+              },
+            ].map(({ label, detail, icon: Icon, active, onClick }) => (
+              <button
+                key={label}
+                onClick={onClick}
+                className="group flex min-h-[104px] flex-col items-center rounded-2xl border border-transparent px-1.5 py-3 text-center transition-all duration-200 hover:border-primary/25 hover:bg-primary/[0.06] active:scale-95"
+              >
+                <span className={`grid h-11 w-11 place-items-center rounded-2xl border transition-all ${active ? "border-primary/35 bg-primary/15 text-primary shadow-[0_0_22px_rgba(194,255,56,0.12)]" : "border-border bg-secondary/60 text-white/80 group-hover:border-primary/30 group-hover:text-primary"}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="mt-2 text-[11px] font-bold leading-none text-white">{label}</span>
+                <span className={`mt-1 truncate text-[9px] leading-none ${active ? "text-primary/80" : "text-white/45"}`}>{detail}</span>
+              </button>
+            ))}
+          </div>
         </section>
-
-        <button
-          onClick={() => navigate("/auto-claim")}
-          className={`${HOME_PANEL_CLASS} w-full p-4 transition-all hover:border-primary/35 active:scale-[0.98]`}
-        >
-          <div className="relative flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-border transition-colors ${isAutoClaimActive ? "bg-green-500/15" : "bg-secondary/60"}`}
-              >
-                <Zap
-                  className={`w-5 h-5 ${isAutoClaimActive ? "text-green-400" : "text-muted-foreground"}`}
-                />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-white">Auto-Mining</p>
-                <p
-                  className={`text-xs ${isAutoClaimActive ? "text-green-400" : "text-white/60"}`}
-                >
-                  {isAutoClaimActive ? "Active and earning every cycle" : "Turn on passive claims"}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-white/55" />
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate("/gaming")}
-          className={`${HOME_PANEL_CLASS} w-full p-4 transition-all hover:border-primary/35 active:scale-[0.98]`}
-        >
-          <div className="relative flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl border border-border transition-colors ${hasCardMultiplier ? "bg-green-500/15" : "bg-secondary/60"}`}
-              >
-                <BadgePercent
-                  className={`w-5 h-5 ${hasCardMultiplier ? "text-green-400" : "text-muted-foreground"}`}
-                />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-white">Card Multiplier</p>
-                <p
-                  className={`text-xs ${hasCardMultiplier ? "text-green-400" : "text-white/60"}`}
-                >
-                  {cardMultiplierLabel}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-white/55" />
-          </div>
-        </button>
       </div>
 
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
