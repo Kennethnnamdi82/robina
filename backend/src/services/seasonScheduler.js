@@ -1,12 +1,6 @@
-import { syncSeasonStates } from "./seasonLifecycle.js";
-
-async function activateDueSeasons() {
-  await syncSeasonStates();
-}
+import { syncSeasonStates } from './seasonLifecycle.js';
+import { startPeriodicWorker } from './periodicWorker.js';
 
 export function startSeasonScheduler() {
-  activateDueSeasons().catch(() => {});
-  setInterval(() => {
-    activateDueSeasons().catch(() => {});
-  }, 60 * 1000);
+  return startPeriodicWorker(syncSeasonStates, 60000, error => console.error('[seasons]', error));
 }

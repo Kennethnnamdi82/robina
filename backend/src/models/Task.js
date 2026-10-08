@@ -4,7 +4,7 @@ const taskSchema = new mongoose.Schema(
   {
     wallet: { type: String, required: true, lowercase: true, index: true },
     taskId: { type: String, required: true },
-    taskKey: { type: String, default: null, index: true },
+    taskKey: { type: String, default: null },
     status: { type: String, enum: ['pending', 'complete', 'rejected'], default: 'pending' },
     reward: { type: Number, default: 0 },
     proof: { type: String, default: '' },

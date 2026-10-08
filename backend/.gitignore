@@ -6,3 +6,4 @@ coverage
 *.log
 .env.example
 .npm-cache
+/audit-*.json

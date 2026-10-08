@@ -11,10 +11,13 @@
     "smoke": "node scripts/smoke-check.mjs",
     "migrate:task-expiry": "node scripts/migrate-task-expiry.mjs",
     "migrate:task-expiry:apply": "node scripts/migrate-task-expiry.mjs --apply",
-    "verify:wallet": "node scripts/real-wallet-signoff.mjs"
+    "verify:wallet": "node scripts/real-wallet-signoff.mjs",
+    "preflight:production": "node scripts/production-preflight.mjs",
+    "migrate:legacy-wallet-index": "node scripts/migrate-legacy-wallet-index.mjs",
+    "readiness:production": "node scripts/production-readiness.mjs"
   },
   "engines": {
-    "node": ">=18.17"
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "@privy-io/node": "^0.35.0",

@@ -5,7 +5,8 @@ export function notFound(req, res) {
 }
 
 export function errorHandler(err, req, res, _next) {
-  console.error('[error]', err);
+  if (res.headersSent) return _next(err);
+  if (!err.status || err.status >= 500) console.error('[error]', err);
   const status = err.status || 500;
   const payload = { error: err.code || 'server_error' };
   if (status < 500 && err.expose) payload.message = err.message;

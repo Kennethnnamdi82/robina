@@ -47,7 +47,7 @@ const jwtSecret = String(process.env.JWT_SECRET || (isProduction ? '' : 'dev-onl
 if (isProduction && jwtSecret.length < 32) {
   throw new Error('[env] JWT_SECRET must be at least 32 characters in production');
 }
-if (isProduction && /dev-only|change-me/i.test(jwtSecret)) {
+if (isProduction && /dev-only|change[-_ ]?(me|this)|replace[-_ ]?(me|this)/i.test(jwtSecret)) {
   throw new Error('[env] JWT_SECRET must not use a development placeholder in production');
 }
 
@@ -86,6 +86,9 @@ if (
 ) {
   throw new Error('[env] SIWE_DOMAIN and SIWE_URI must match the frontend origin');
 }
+if (isProduction && corsOrigins.some(origin => {
+  try { const parsed = new URL(origin); return parsed.protocol !== 'https:' || parsed.origin !== origin; } catch { return true; }
+})) throw new Error('[env] CORS_ORIGIN must contain HTTPS origins in production');
 if (isProduction && !corsOrigins.includes(siweUri)) {
   throw new Error('[env] CORS_ORIGIN must include the SIWE_URI frontend origin');
 }
@@ -142,6 +145,7 @@ const adminAuthWallet = (
   treasuryWallet
 ).toLowerCase();
 
+if (isProduction && /^0x0{40}$/i.test(treasuryWallet)) throw new Error('[env] TREASURY_WALLET must not be the zero address');
 if (!walletRegex.test(treasuryWallet)) {
   throw new Error('[env] TREASURY_WALLET (or ADMIN_WALLET alias) must be a valid 0x wallet');
 }

@@ -108,6 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
+    const controller = new AbortController();
+    const sessionDeadline = Date.now() + 4000;
+    const sessionOptions = () => ({ signal: controller.signal, timeoutMs: Math.max(1, sessionDeadline - Date.now()), retries: 0 });
 
     const hydrateSession = async () => {
       const onAdminRoute = window.location.pathname
@@ -117,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (onAdminRoute) {
           try {
-            await adminApi.me();
+            await adminApi.me(sessionOptions());
             if (!cancelled) {
               setSignedIn(true);
               setIsAdmin(true);
@@ -125,8 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setAuthChainType("none");
             }
             return;
-          } catch {
-            const { user } = await authApi.me();
+          } catch (error) {
+            if ((error as ApiError).status !== 401) throw error;
+            const { user } = await authApi.me(sessionOptions());
             if (!cancelled) {
               setSignedWallet(user.wallet);
               setAuthChainType(user.chainType || "none");
@@ -137,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { user } = await authApi.me();
+        const { user } = await authApi.me(sessionOptions());
         if (!cancelled) {
           setSignedWallet(user.wallet);
           setAuthChainType(user.chainType || "none");
@@ -154,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     hydrateSession();
     return () => {
-      cancelled = true;
+      cancelled = true; controller.abort();
     };
   }, [resetAuthState]);
 

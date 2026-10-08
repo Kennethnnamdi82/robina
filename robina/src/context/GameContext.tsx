@@ -177,6 +177,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [levelJustChanged, setLevelJustChanged] = useState<string | null>(null);
   const [loading, setLoading] = useState(HAS_BACKEND);
   const lastWallet = useRef<string | null>(null);
+  const liveWallet = useRef<string | null>(null);
+  const refreshVersion = useRef(0);
+  const authenticatedWallet = isLoggedIn && !isAdmin ? baseUser?.wallet || null : null;
+  if (liveWallet.current !== authenticatedWallet) { liveWallet.current = authenticatedWallet; refreshVersion.current++; }
   const clearLevelChange = useCallback(() => setLevelJustChanged(null), []);
 
   useEffect(() => {
@@ -190,25 +194,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const refreshUser = useCallback(async () => {
-    if (!HAS_BACKEND) return;
+    const wallet = liveWallet.current;
+    if (!HAS_BACKEND || !wallet) return;
+    const version = ++refreshVersion.current;
+    // Mining status can refresh in the background without holding the profile screen.
+    const mining = miningApi.status().then(status => status, () => null);
     try {
-      const [meResult, miningResult] = await Promise.allSettled([
-        authApi.me(),
-        miningApi.status(),
-      ]);
-      if (meResult.status !== "fulfilled") {
-        throw meResult.reason;
-      }
-
-      let mapped = fromApiUser(meResult.value.user);
-      if (miningResult.status === "fulfilled") {
-        mapped = applyMiningStatusToUser(mapped, miningResult.value);
-      }
-
+      const { user: apiUser } = await authApi.me();
+      if (liveWallet.current !== wallet || refreshVersion.current !== version) return;
+      if (apiUser.wallet?.toLowerCase() !== wallet.toLowerCase()) return;
+      const mapped = fromApiUser(apiUser);
       setUser(mapped);
       writeCachedUser(mapped);
-    } catch (e) {
-      console.error("Refresh User Error:", e);
+      void mining.then(status => {
+        if (status && liveWallet.current === wallet && refreshVersion.current === version) {
+          setUser(previous => applyMiningStatusToUser(previous, status));
+        }
+      });
+    } catch (error) {
+      console.error("Refresh User Error:", error);
     }
   }, []);
 
@@ -247,9 +251,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (lastWallet.current === baseUser.wallet) return;
     lastWallet.current = baseUser.wallet;
     setLoading(true);
-    Promise.all([refreshUser(), refreshLeaderboard()]).finally(() =>
-      setLoading(false),
-    );
+    const wallet = baseUser.wallet;
+    refreshUser().finally(() => { if (liveWallet.current === wallet) setLoading(false); });
+    void refreshLeaderboard();
   }, [isLoggedIn, baseUser?.wallet, isAdmin, refreshUser, refreshLeaderboard]);
 
   useEffect(() => {
@@ -272,12 +276,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (HAS_BACKEND) {
       try {
         const r = await miningApi.claim();
+        refreshVersion.current++;
         setUser((prev) => ({
           ...prev,
           bd: r.bdBalance,
           lastClaimTime: new Date(r.lastClaimTime).getTime(),
         }));
-        await refreshLeaderboard();
+        void refreshLeaderboard();
         return true;
       } catch {
         return false;
@@ -320,13 +325,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!next || user.bd < next.bdRequired) return false;
     try {
       const r = await paymentsApi.upgradeWithBd();
+      refreshVersion.current++;
       setUser((prev) => ({
         ...prev,
         bd: r.user.bdBalance,
         level: r.user.level as Level,
       }));
       setLevelJustChanged(next.name);
-      await refreshLeaderboard();
+      void refreshLeaderboard();
       return true;
     } catch {
       return false;

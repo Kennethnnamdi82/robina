@@ -111,7 +111,7 @@ export async function sendSolanaUsdc(
   }
   const [sent] = await transactionSigner.signAndSendTransaction({
     account,
-    transaction: transactionBytes,
+    transaction: new Uint8Array(transactionBytes),
     chain: "solana:mainnet",
     options: { preflightCommitment: "confirmed", commitment: "finalized" },
   });
@@ -165,7 +165,7 @@ export async function sendUsdcOnEvm(
   const value = parseUnits(amountUsdc.toString(), USDC_DECIMALS);
 
   try {
-    // 3. ✅ THE SIMULATION STEP
+    // 3. âœ… THE SIMULATION STEP
     // This pre-runs the transaction on the Robinhood Chain RPC.
     // If you have $0 USDC or 0 ETH for gas, this throws an error IMMEDIATELY.
     const { request } = await simulateContract(wagmiConfig, {

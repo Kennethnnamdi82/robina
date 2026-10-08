@@ -48,7 +48,10 @@ const featuredWalletIds = (import.meta.env.VITE_REOWN_FEATURED_WALLET_IDS || "")
   .map((id) => id.trim())
   .filter(Boolean);
 
-export const appKit = createAppKit({
+let appKit: ReturnType<typeof createAppKit> | undefined;
+function ensureAppKit() {
+  if (!reownProjectId) throw new Error("Wallet connection is not configured.");
+  return appKit ??= createAppKit({
   adapters: [wagmiAdapter],
   networks: [...supportedEvmChains],
   projectId: reownProjectId,
@@ -60,14 +63,15 @@ export const appKit = createAppKit({
   },
   featuredWalletIds,
   coinbasePreference: "eoaOnly",
-  features: { analytics: true, socials: false, email: false },
+  features: { analytics: false, socials: false, email: false },
 });
+}
 
 // Always start from the wallet directory. This keeps the login button
 // predictable even when AppKit has remembered a previously connected wallet.
 export const openWalletModal = () =>
-  appKit.open({ view: "AllWallets", namespace: "eip155" });
-export const closeWalletModal = () => appKit.close();
+  ensureAppKit().open({ view: "AllWallets", namespace: "eip155" });
+export const closeWalletModal = () => appKit?.close();
 export const wagmiConfig = wagmiAdapter.wagmiConfig;
 
 export const erc20Abi = [

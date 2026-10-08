@@ -31,9 +31,9 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="min-h-screen flex items-center justify-center px-6 bg-background text-foreground">
           <div className="max-w-md w-full glass-card rounded-2xl p-6 space-y-3 text-center">
-            <h1 className="text-xl font-bold">BaseDrop failed to load</h1>
+            <h1 className="text-xl font-bold">Robina could not start</h1>
             <p className="text-sm text-muted-foreground break-words">
-              {this.state.message}
+              {import.meta.env.DEV ? this.state.message : "Reload the application to restore your session."}
             </p>
             <button
               className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold"

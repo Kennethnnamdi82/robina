@@ -1,3 +1,4 @@
+import bs58 from "bs58";
 import { getWallets } from "@wallet-standard/app";
 import type { Wallet, WalletAccount } from "@wallet-standard/base";
 
@@ -42,16 +43,10 @@ type LegacyPhantomProvider = {
 };
 
 function legacyAccount(address: string): WalletAccount {
-  // Wallet-standard consumers in this application only read `address` and
-  // `chains` during authentication. The legacy adapter intentionally keeps
-  // the shape minimal and is used only when Phantom has not registered the
-  // wallet-standard API yet.
-  return {
-    address,
-    chains: ["solana:mainnet"],
-  } as WalletAccount;
+  const publicKey = bs58.decode(address);
+  if (publicKey.length !== 32) throw new Error('Phantom returned an invalid Solana public key.');
+  return { address, publicKey, chains: ['solana:mainnet'], features: ['solana:signMessage'] };
 }
-
 function getLegacyPhantomWallet(): PhantomWallet | null {
   if (typeof window === "undefined") return null;
   const provider = (window as Window & {
@@ -68,7 +63,8 @@ function getLegacyPhantomWallet(): PhantomWallet | null {
   return {
     version: "1.0.0",
     name: "Phantom",
-    icon: "",
+    icon: "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27/%3E",
+    get accounts() { return provider.publicKey ? [legacyAccount(provider.publicKey.toBase58())] : []; },
     chains: ["solana:mainnet"],
     features: {
       "standard:connect": {

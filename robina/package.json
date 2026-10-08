@@ -7,11 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "dist-check": "npm run lint && npm run build",
+    "dist-check": "npm run typecheck && npm run lint && npm test && npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "test:e2e": "playwright test --config playwright.rugfire.config.ts",
+    "test:production": "playwright test --config playwright.production.config.ts",
+    "verify:release": "npm run dist-check && npm run test:e2e && npm run test:production && npm --prefix ../backend test && npm --prefix ../backend run smoke && npm --prefix ../backend run preflight:production && npm audit --omit=dev && npm --prefix ../backend audit --omit=dev"
   },
   "dependencies": {
     "@coinbase/wallet-sdk": "^4.0.0",
@@ -52,6 +56,7 @@
     "@reown/appkit": "^1.8.24",
     "@reown/appkit-adapter-wagmi": "^1.8.24",
     "@solana/kit": "^5.5.1",
+    "@stripe/stripe-js": "^10.0.0",
     "@tanstack/query-core": "^5.56.0",
     "@tanstack/react-query": "^5.100.9",
     "@types/three": "^0.186.0",
@@ -128,5 +133,8 @@
     "viem": "$viem",
     "ws": "^8.22.0",
     "uuid": "^11.1.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

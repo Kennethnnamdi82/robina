@@ -1,3 +1,4 @@
+import { startPeriodicWorker } from './periodicWorker.js';
 import { User } from '../models/User.js';
 import { CLAIM_COOLDOWN_MS, getLevel } from '../config/levels.js';
 
@@ -36,6 +37,5 @@ export async function runAutoClaimOnce() {
 }
 
 export function startAutoClaimWorker() {
-  runAutoClaimOnce().catch((err) => console.error('[auto-claim]', err));
-  setInterval(() => runAutoClaimOnce().catch((err) => console.error('[auto-claim]', err)), RUN_EVERY_MS);
+  return startPeriodicWorker(runAutoClaimOnce, RUN_EVERY_MS, error => console.error('[auto-claim]', error));
 }

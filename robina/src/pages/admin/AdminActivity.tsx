@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
 import {
   Activity,
@@ -203,7 +203,7 @@ export default function AdminActivityPage() {
   const [period, setPeriod] = useState<Period>("today");
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -228,11 +228,11 @@ export default function AdminActivityPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    load();
-  }, []);
+    void load();
+  }, [load]);
 
   const filteredPayments = useMemo(() => {
     const days = period === "today" ? 1 : period === "week" ? 7 : 30;
@@ -524,7 +524,7 @@ export default function AdminActivityPage() {
                       <div className="min-w-0">
                         <p className="truncate font-mono text-xs font-bold">{shortenWallet(row.wallet)}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          Rank #{row.rank} · {row.level}
+                          Rank #{row.rank} Â· {row.level}
                         </p>
                       </div>
                       <p className="text-sm font-black text-emerald-400">{money(spent)}</p>

@@ -1,130 +1,48 @@
-import express from "express";
-import helmet from "helmet";
-import cors from "cors";
-import morgan from "morgan";
-import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
-import axios from "axios";
+import mongoose from 'mongoose';
+import { env } from './config/env.js';
+import { connectMongo } from './db/mongo.js';
+import { createApp } from './app.js';
+import { startAutoClaimWorker } from './services/autoClaimWorker.js';
+import { startSeasonScheduler } from './services/seasonScheduler.js';
 
-import { env } from "./config/env.js";
-import { connectMongo } from "./db/mongo.js";
-import authRoutes from "./routes/auth.js";
-import adminAuthRoutes from "./routes/adminAuth.js";
-import miningRoutes from "./routes/mining.js";
-import paymentRoutes from "./routes/payments.js";
-import taskRoutes from "./routes/tasks.js";
-import adminRoutes from "./routes/admin.js";
-import leaderboardRoutes from "./routes/leaderboard.js";
-import gameRoutes from "./routes/game.js";
-import { notFound, errorHandler } from "./middleware/error.js";
-import { startAutoClaimWorker } from "./services/autoClaimWorker.js";
-import { startSeasonScheduler } from "./services/seasonScheduler.js";
+let server;
+let stopping = false;
+let stopWorkers = [];
+const app = createApp(() => !stopping && mongoose.connection.readyState === 1);
 
-const app = express();
-
-app.disable("x-powered-by");
-
-// ✅ REQUIRED FOR RENDER
-app.set("trust proxy", 1);
-
-app.get("/ping", (req, res) => {
-  res.status(200).send("pong");
-});
-
-const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-app.use((req, res, next) => {
-  if (!unsafeMethods.has(req.method)) return next();
-
-  const origin = req.get("origin");
-  if (origin && !env.corsOrigins.includes(origin)) {
-    return res.status(403).json({ error: "untrusted_origin" });
-  }
-  if (!origin && req.get("sec-fetch-site") === "cross-site") {
-    return res.status(403).json({ error: "untrusted_origin" });
-  }
-
-  next();
-});
-
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      if (env.corsOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error(`CORS blocked: ${origin}`));
-    },
-    credentials: true,
-  }),
-);
-
-app.use(
-  helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: env.nodeEnv === "production" ? undefined : false,
-  }),
-);
-
-app.use(express.json({ limit: "64kb" }));
-
-// Security Scrubbing
-app.use((req, res, next) => {
-  const scrub = (value) => {
-    if (!value || typeof value !== "object") return;
-    for (const key of Object.keys(value)) {
-      if (key.startsWith("$") || key.includes(".")) {
-        delete value[key];
-      } else {
-        scrub(value[key]);
-      }
-    }
-  };
-  scrub(req.body);
-  scrub(req.query);
-  scrub(req.params);
-  next();
-});
-
-app.use(cookieParser());
-
-app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
-
-// Routes
-app.get("/health", (_req, res) => res.json({ ok: true, chainId: env.chainId }));
-
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminAuthRoutes);
-app.use("/api/mining", miningRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/tasks", taskRoutes);
-app.use("/api/leaderboard", leaderboardRoutes);
-app.use("/api/game", gameRoutes);
-app.use("/api/admin", adminRoutes);
-
-app.use(notFound);
-app.use(errorHandler);
-
-const start = async () => {
-  await connectMongo();
+async function shutdown(signal, exitCode = 0) {
+  if (stopping) return;
+  stopping = true;
+  console.log('[backend] draining ' + signal);
+  const deadline = setTimeout(() => process.exit(1), 15000);
+  deadline.unref();
   try {
-    const { User } = await import("./models/User.js");
-    await User.collection.dropIndex("walletAddress_1");
-  } catch (err) {}
+    await Promise.all([
+      ...stopWorkers.map(stop => stop()),
+      server ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve())) : Promise.resolve(),
+    ]);
+    await mongoose.disconnect();
+    clearTimeout(deadline);
+    process.exit(exitCode);
+  } catch (error) {
+    console.error('[shutdown]', error);
+    process.exit(1);
+  }
+}
+process.once('SIGTERM', () => void shutdown('SIGTERM'));
+process.once('SIGINT', () => void shutdown('SIGINT'));
 
-  app.listen(env.port, () => {
-    console.log(`[backend] port=${env.port}`);
-    // Self-ping to keep Render awake
-    const BACKEND_URL = "https://basedrop-game-app-6.onrender.com";
-    setInterval(async () => {
-      try {
-        await axios.get(`${BACKEND_URL}/ping`);
-      } catch (e) {}
-    }, 300000);
-  });
-  startAutoClaimWorker();
-  startSeasonScheduler();
-};
-
-start().catch((err) => {
-  console.error("[fatal]", err);
+async function start() {
+  await connectMongo();
+  server = app.listen(env.port, () => console.log('[backend] port=' + env.port));
+  // Bound idle/request sockets and leave slow external services to their own deadlines.
+  server.requestTimeout = 15000;
+  server.headersTimeout = 10000;
+  server.keepAliveTimeout = 5000;
+  server.on('error', error => { console.error('[listen]', error); void shutdown('listen error', 1); });
+  stopWorkers = [startAutoClaimWorker(), startSeasonScheduler()];
+}
+start().catch(error => {
+  console.error('[startup]', error.message);
   process.exit(1);
 });

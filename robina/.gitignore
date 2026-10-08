@@ -1,0 +1,6 @@
+/test-results/
+/playwright-report/
+/rugfire-build.log
+/typecheck-rugfire.log
+/audit-*.log
+/audit-*.json

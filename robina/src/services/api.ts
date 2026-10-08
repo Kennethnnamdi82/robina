@@ -1,77 +1,12 @@
-import { API_BASE_URL } from "@/lib/backend";
-
-const BASE_URL = API_BASE_URL;
-
-export type ApiError = Error & { status?: number; details?: unknown };
-
-/**
- * Enhanced request helper with Render-specific retry logic
- */
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-  retries = 2,
-): Promise<T> {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const fullUrl = `${BASE_URL}${normalizedPath}`;
-
-  try {
-    const res = await fetch(fullUrl, {
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(init.headers || {}),
-      },
-      ...init,
-    });
-
-    const text = await res.text();
-    let data: unknown = {};
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { error: "invalid_json_response", raw: text.slice(0, 300) };
-      }
-    }
-
-    if (!res.ok) {
-      const payload =
-        data && typeof data === "object"
-          ? (data as Record<string, unknown>)
-          : {};
-      const err = new Error(
-        String(payload.error || `http_${res.status}`),
-      ) as ApiError;
-      err.status = res.status;
-      err.details = data;
-      throw err;
-    }
-    return data as T;
-  } catch (err) {
-    const apiErr = err as ApiError;
-    const retryableStatus =
-      typeof apiErr?.status === "number" ? apiErr.status >= 500 : true;
-    if (
-      retries > 0 &&
-      err instanceof Error &&
-      err.name !== "AbortError" &&
-      retryableStatus
-    ) {
-      console.warn(`[api] Connection failed, retrying for Render wake-up...`);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      return request<T>(path, init, retries - 1);
-    }
-    throw err;
-  }
-}
-
+import { API_BASE_URL } from '@/lib/backend';
+import { httpRequest, type RequestOptions } from './http';
+import type { AdminUser, AdminPayment, PaymentSummary, AdminSeason, AdminTask, AdminTaskDefinition, AdminAnalytics } from './contracts';
+export type { ApiError } from './http';
+const request = <T>(path: string, init: RequestInit = {}, options?: RequestOptions) => httpRequest<T>(API_BASE_URL + (path.startsWith('/') ? path : '/' + path), init, options);
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) }),
+  get: <T>(path: string, options?: RequestOptions) => request<T>(path, {}, options),
+  post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
 };
-
 // --- API Interfaces ---
 export interface ApiUser {
   wallet: string;
@@ -202,7 +137,7 @@ export const authApi = {
   }) => api.post<{ ok: true; user: ApiUser }>(`/api/auth/wallet`, body),
   google: (accessToken: string, ref?: string) =>
     api.post<{ ok: true; user: ApiUser }>(`/api/auth/google`, { accessToken, ref }),
-  me: () => api.get<{ user: ApiUser }>(`/api/auth/me`),
+  me: (options?: RequestOptions) => api.get<{ user: ApiUser }>(`/api/auth/me`, options),
   logout: () => api.post(`/api/auth/logout`),
 };
 
@@ -357,10 +292,10 @@ export const adminApi = {
       email,
       password,
     }),
-  me: () =>
+  me: (options?: RequestOptions) =>
     api.get<{
       admin: { email: string | null; wallet?: string };
-    }>(`/api/admin/me`),
+    }>(`/api/admin/me`, options),
   logout: () => api.post(`/api/admin/logout`),
   users: (opts?: {
     q?: string;
@@ -378,7 +313,7 @@ export const adminApi = {
     if (opts?.limit && opts.limit > 0) params.set("limit", String(opts.limit));
     const query = params.toString();
     return api.get<{
-      users: Array<Record<string, unknown>>;
+      users: AdminUser[];
       total: number;
       limit: number;
       skip: number;
@@ -414,13 +349,13 @@ export const adminApi = {
         startDate: string;
         endDate: string;
       } | null;
-      payments: Array<Record<string, unknown>>;
-      summary?: Record<string, unknown>;
+      payments: AdminPayment[];
+      summary?: PaymentSummary;
     }>(`/api/admin/payments`),
   tasks: (status = "") =>
     api.get<{
-      tasks: Array<Record<string, unknown>>;
-      definitions: Array<Record<string, unknown>>;
+      tasks: AdminTask[];
+      definitions: AdminTaskDefinition[];
     }>(`/api/admin/tasks${status ? `?status=${status}` : ""}`),
   createTaskDefinition: (body: {
     id: string;
@@ -486,8 +421,8 @@ export const adminApi = {
     api.post(`/api/admin/tasks/review`, { taskMongoId, decision }),
   seasons: () =>
     api.get<{
-      seasons: Array<Record<string, unknown>>;
-      activeSeason?: Record<string, unknown> | null;
+      seasons: AdminSeason[];
+      activeSeason?: AdminSeason | null;
       seasonComingSoon?: boolean;
     }>(`/api/admin/seasons`),
   startSeason: (body: {
@@ -504,7 +439,7 @@ export const adminApi = {
     ),
   treasureRewardState: () =>
     api.get<TreasureRewardStateResponse>(`/api/admin/treasure-rewards/state`),
-  analytics: () => api.get<Record<string, unknown>>(`/api/admin/analytics`),
+  analytics: () => api.get<AdminAnalytics>(`/api/admin/analytics`),
   leaderboard: (page = 1, limit = 50) =>
     api.get<{
       seasonComingSoon?: boolean;

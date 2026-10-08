@@ -174,7 +174,7 @@ export function getCardMultiplierPrice(multiplier: number): number {
   return CARD_MULTIPLIER_PRICE_BY_VALUE_USDC[multiplier] ?? 0;
 }
 
-export function getLevelInfo(level: Level): LevelInfo {
+export function getLevelInfo(level: Level | string): LevelInfo {
   return LEVELS.find((l) => l.name === level) || LEVELS[0];
 }
 

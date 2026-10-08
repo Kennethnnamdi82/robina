@@ -1,10 +1,4 @@
-// 1. THE POLYFILLS MUST BE FIRST
-import { Buffer } from "buffer";
-// @ts-expect-error Browser polyfill assignment
-window.Buffer = Buffer;
-// @ts-expect-error Browser polyfill assignment
-window.global = window;
-
+import "./polyfills";
 import { createRoot } from "react-dom/client";
 import { StrictMode } from "react";
 import App from "./App.tsx";
