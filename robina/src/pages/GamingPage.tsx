@@ -1,735 +1,186 @@
-﻿import { memo, useEffect, useMemo, useState, useCallback } from 'react';
-import { Loader2, Gem, RefreshCw, AlertCircle, Trophy, BadgePercent } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAccount } from 'wagmi';
-import { gameApi, paymentsApi, type GameSessionState, type ApiError } from '@/services/api';
-import { sendSolanaUsdc, sendUsdcOnEvm, waitForUsdcTx } from '@/services/usdc';
-import { HAS_BACKEND } from '@/lib/backend';
-import { useGame } from '@/context/GameContext';
-import { useAuth } from '@/context/AuthContext';
-import { getCardMultiplierPrice, MAX_CARD_MULTIPLIER, MIN_CARD_MULTIPLIER } from '@/types/game';
-import treasure1Image from '@/assets/treasures/treasure-1.jpeg';
-import treasure2Image from '@/assets/treasures/treasure-2.jpeg';
-import treasure3Image from '@/assets/treasures/treasure-3.jpeg';
-import treasure4Image from '@/assets/treasures/treasure-4.jpeg';
-import treasure5Image from '@/assets/treasures/treasure-5.jpeg';
-import treasure6Image from '@/assets/treasures/treasure-6.jpeg';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Crosshair, Shield, Skull, Target, Trophy, RotateCcw, Home, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import RugfireMission, { type ActiveEnemy } from "@/features/rugfire/RugfireMission";
+import { ENEMIES, MISSION_ENEMIES, OBJECTIVES, WEAPONS, type EnemyRole, type WeaponId } from "@/features/rugfire/gameData";
 
-const CARDS_PER_ROUND = 8;
-const CARD_PRICE_USDC = 0.1;
-const OPEN_ALL_PRICE_USDC = 0.8;
-const REVEAL_MAX_ATTEMPTS = 18;
-const REVEAL_RETRY_MS = 4000;
-const OPEN_ALL_RESULT_DISPLAY_MS = 3200;
-const AUTH_ERRORS = new Set(["unauthenticated", "invalid_token", "token_revoked"]);
-const DARK_GAME_CARD_CLASS = "border border-border bg-card/95 shadow-card";
-const MULTIPLIER_OPTIONS = Array.from(
-  { length: MAX_CARD_MULTIPLIER - MIN_CARD_MULTIPLIER + 1 },
-  (_, i) => MIN_CARD_MULTIPLIER + i,
-);
+type MissionMode = "briefing" | "active" | "rugged" | "complete";
+type AmmoState = Record<WeaponId, { magazine: number; reserve: number }>;
 
-function asFriendlyError(msg: string) {
-  return AUTH_ERRORS.has(msg) ? "Session expired. Please sign in again." : msg;
+const WEAPON_ORDER: WeaponId[] = ["pistol", "smg", "rifle"];
+
+function createEnemies(): ActiveEnemy[] {
+  return MISSION_ENEMIES.map((enemy) => ({ ...enemy, health: ENEMIES[enemy.role].health, alive: true }));
 }
 
-type CardState = 'idle' | 'processing' | 'revealed';
-
-type TreasureItem = {
-  id: string;
-  name: string;
-  image: string;
-};
-
-const TREASURE_IMAGE_OVERRIDES: Record<string, string> = {
-  pearl_of_tides: treasure1Image,
-  abyssal_key: treasure2Image,
-  coral_crown: treasure3Image,
-  sunken_compass: treasure4Image,
-  storm_anchor: treasure5Image,
-  atlas_fragment: treasure6Image,
-};
-
-function withTreasureImage(treasure?: TreasureItem | null): TreasureItem | null {
-  if (!treasure) return null;
+function createAmmo(): AmmoState {
   return {
-    ...treasure,
-    image: TREASURE_IMAGE_OVERRIDES[treasure.id] ?? treasure.image,
+    pistol: { magazine: WEAPONS.pistol.magazineSize, reserve: WEAPONS.pistol.reserveAmmo },
+    smg: { magazine: WEAPONS.smg.magazineSize, reserve: WEAPONS.smg.reserveAmmo },
+    rifle: { magazine: WEAPONS.rifle.magazineSize, reserve: WEAPONS.rifle.reserveAmmo },
   };
 }
 
-interface UICard {
-  index: number;
-  state: CardState;
-  result: 'treasure' | 'empty' | null;
-  bdPointsEarned: number | null;
-}
-
-function buildCards(session: GameSessionState | null): UICard[] {
-  const cardsPerRound = session?.cardsPerRound ?? CARDS_PER_ROUND;
-  const revealedByIndex = new Map(
-    (session?.revealedCards ?? []).map((card) => [card.cardIndex, card]),
-  );
-  return Array.from({ length: cardsPerRound }, (_, i) => {
-    const revealed = revealedByIndex.get(i);
-    return {
-      index: i,
-      state: revealed ? 'revealed' : 'idle',
-      result: revealed ? revealed.result : null,
-      bdPointsEarned: revealed ? revealed.bdPointsEarned : null,
-    };
-  });
-}
-
-function buildCardsFromRevealed(
-  revealedCards: GameSessionState['revealedCards'],
-  cardsPerRound: number,
-): UICard[] {
-  const revealedByIndex = new Map(
-    (revealedCards ?? []).map((card) => [card.cardIndex, card]),
-  );
-  return Array.from({ length: cardsPerRound }, (_, i) => {
-    const revealed = revealedByIndex.get(i);
-    return {
-      index: i,
-      state: revealed ? 'revealed' : 'idle',
-      result: revealed ? revealed.result : null,
-      bdPointsEarned: revealed ? revealed.bdPointsEarned : null,
-    };
-  });
-}
-
 export default function GamingPage() {
-  const { isConnected, chainId } = useAccount();
-  const {
-    authChainType,
-    baseUser,
-    solanaAddress,
-    connectSolanaWallet,
-  } = useAuth();
-  const { user, refreshUser } = useGame();
-  const [session, setSession] = useState<GameSessionState | null>(null);
-  const [cards, setCards] = useState<UICard[]>(() => buildCards(null));
-  const [processingIndex, setProcessingIndex] = useState<number | null>(null);
-  const [isOpenAllProcessing, setIsOpenAllProcessing] = useState(false);
-  const [isMultiplierProcessing, setIsMultiplierProcessing] = useState(false);
-  const [selectedMultiplier, setSelectedMultiplier] = useState(MIN_CARD_MULTIPLIER);
-  const [showingOpenAllResults, setShowingOpenAllResults] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastReveal, setLastReveal] = useState<{ result: 'treasure' | 'empty'; bd: number; treasure?: TreasureItem | null; completedSeason?: boolean } | null>(null);
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<MissionMode>("briefing");
+  const [phase, setPhase] = useState(0);
+  const [enemies, setEnemies] = useState<ActiveEnemy[]>(createEnemies);
+  const [weaponId, setWeaponId] = useState<WeaponId>("rifle");
+  const [ammo, setAmmo] = useState<AmmoState>(createAmmo);
+  const [health, setHealth] = useState(100);
+  const [reloading, setReloading] = useState(false);
+  const [damageReceived, setDamageReceived] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [feed, setFeed] = useState("SYSTEM READY");
+  const dodgeUntil = useRef(0);
 
-  async function submitGamePayment(amount: number, gameSession: GameSessionState) {
-    const network = gameSession.paymentNetworks.find((candidate) =>
-      candidate.chainType === authChainType &&
-      (candidate.chainType === "solana" || candidate.chainId === chainId),
-    );
-    if (!network) throw new Error("Payment network is not supported for this signed-in wallet.");
-    if (network.chainType === "solana") {
-      const { wallet, account } = await connectSolanaWallet();
-      if (account.address !== solanaAddress || account.address !== baseUser?.wallet) {
-        throw new Error("Reconnect the same Phantom Solana wallet you used to sign in.");
-      }
-      const signature = await sendSolanaUsdc(
-        wallet,
-        account,
-        network.recipient,
-        network.usdcContract,
-        BigInt(Math.round(amount * 1_000_000)).toString(),
-      );
-      return { signature, chainType: "solana" as const, chainId: network.chainId };
-    }
-    if (!isConnected) throw new Error("Connect your signed-in EVM wallet first.");
-    const signature = await sendUsdcOnEvm(
-      network.recipient as `0x${string}`,
-      amount,
-      network.usdcContract as `0x${string}`,
-      Number(network.chainId),
-    );
-    await waitForUsdcTx(signature, Number(network.chainId));
-    return { signature, chainType: "evm" as const, chainId: network.chainId };
-  }
-
-  const refresh = useCallback(async () => {
-    if (!HAS_BACKEND) {
-      setLoading(false);
-      setError('Backend not configured. Set VITE_API_URL to enable the game.');
-      return;
-    }
-    try {
-      const { session: s } = await gameApi.start();
-      setSession(s);
-      setCards(buildCards(s));
-      setError(null);
-    } catch (e) {
-      const msg = (e as Error).message || "Failed to load game";
-      setError(asFriendlyError(msg));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const weapon = WEAPONS[weaponId];
+  const activeWave = phase === 0 ? 0 : phase <= 2 ? 1 : phase === 3 ? 2 : 3;
+  const objective = OBJECTIVES[phase];
+  const boss = enemies.find((enemy) => enemy.id === "boss");
+  const enemiesEliminated = enemies.filter((enemy) => !enemy.alive).length;
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    if (!HAS_BACKEND) return;
-    const interval = window.setInterval(async () => {
-      try {
-        const { session: s } = await gameApi.state();
-        setSession(s);
-        setCards(buildCards(s));
-      } catch {
-        // keep current UI state
-      }
-    }, 12000);
+    if (!startedAt || mode !== "active") return;
+    const interval = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
     return () => window.clearInterval(interval);
-  }, []);
-
-  const requiredTreasures = session?.requiredTreasures ?? 6;
-  const seasonTreasures = (session?.seasonTreasures ?? [])
-    .map((treasure) => withTreasureImage(treasure))
-    .filter((treasure): treasure is TreasureItem => Boolean(treasure));
-  const treasureBank = (session?.treasureBank ?? [])
-    .map((treasure) => withTreasureImage(treasure))
-    .filter((treasure): treasure is TreasureItem => Boolean(treasure));
-  const cardsPerRound = session?.cardsPerRound ?? CARDS_PER_ROUND;
-  const cardPriceUsdc = session?.cardPriceUsdc ?? CARD_PRICE_USDC;
-  const openAllPriceUsdc = session?.openAllPriceUsdc ?? OPEN_ALL_PRICE_USDC;
-  const currentMultiplier = Math.max(1, Number(session?.cardMultiplier || user.cardMultiplier || 1));
-  const hasMultiplier = currentMultiplier >= MIN_CARD_MULTIPLIER;
-  const nextMultiplier = Math.min(MAX_CARD_MULTIPLIER, Math.max(MIN_CARD_MULTIPLIER, currentMultiplier + 1));
-  const canUpgradeMultiplier = selectedMultiplier > currentMultiplier && currentMultiplier < MAX_CARD_MULTIPLIER;
-  const completionPct = Math.min(100, Math.round((seasonTreasures.length / requiredTreasures) * 100));
-
-  const treasureSlots = useMemo(
-    () => Array.from({ length: requiredTreasures }, (_, i) => seasonTreasures[i] || null),
-    [requiredTreasures, seasonTreasures],
-  );
+  }, [mode, startedAt]);
 
   useEffect(() => {
-    if (selectedMultiplier <= currentMultiplier && currentMultiplier < MAX_CARD_MULTIPLIER) {
-      setSelectedMultiplier(nextMultiplier);
+    const waveOneClear = enemies.filter((enemy) => enemy.wave === 1).every((enemy) => !enemy.alive);
+    const waveTwoClear = enemies.filter((enemy) => enemy.wave === 2).every((enemy) => !enemy.alive);
+    if (mode !== "active") return;
+    if (phase === 1 && waveOneClear) {
+      setPhase(2);
+      setFeed("LAUNCH DISTRICT SECURED · ADVANCE TO FACILITY");
     }
-  }, [currentMultiplier, nextMultiplier, selectedMultiplier]);
-
-  async function handleCardClick(index: number) {
-    if (!HAS_BACKEND) {
-      toast.error('Backend not configured');
-      return;
+    if (phase === 3 && waveTwoClear) {
+      setPhase(4);
+      setFeed("MEGA RUGGER DETECTED · ELIMINATE THE THREAT");
     }
-    if (processingIndex !== null || isOpenAllProcessing || showingOpenAllResults) return;
-    if (cards[index].state !== 'idle') return;
-    if (authChainType === "none") {
-      toast.error('Sign in with a supported wallet first');
-      return;
+    if (phase === 4 && boss && !boss.alive) {
+      setMode("complete");
+      setFeed("THREAT ELIMINATED");
     }
+  }, [boss, enemies, mode, phase]);
 
-    setProcessingIndex(index);
-    setLastReveal(null);
-    setCards((prev) => prev.map((c, i) => (i === index ? { ...c, state: 'processing' } : c)));
+  const retry = () => {
+    setMode("briefing"); setPhase(0); setEnemies(createEnemies()); setWeaponId("rifle"); setAmmo(createAmmo());
+    setHealth(100); setReloading(false); setDamageReceived(0); setElapsed(0); setStartedAt(null); setFeed("SYSTEM READY"); dodgeUntil.current = 0;
+  };
 
-    try {
-      const payment = await submitGamePayment(cardPriceUsdc, session!);
-      const { signature } = payment;
-      toast.message('Payment submitted', { description: `${signature.slice(0, 10)}...` });
+  const beginMission = () => {
+    setMode("active"); setPhase(0); setStartedAt(Date.now()); setFeed("OPERATION LIVE · REACH THE LAUNCH DISTRICT");
+  };
 
-      let res: Awaited<ReturnType<typeof gameApi.reveal>> | null = null;
-      let lastErr: ApiError | null = null;
-      for (let attempt = 1; attempt <= REVEAL_MAX_ATTEMPTS; attempt += 1) {
-        try {
-          res = await gameApi.reveal(index, signature, payment.chainId, payment.chainType);
-          break;
-        } catch (e) {
-          const err = e as ApiError;
-          lastErr = err;
-          const code = String(err.message || '');
-          const retryable =
-            code === 'confirmations_pending' ||
-            code === 'verification_in_progress' ||
-            code === 'tx_not_found_yet';
-          if (!retryable || attempt === REVEAL_MAX_ATTEMPTS) break;
-          toast.message(`Confirming reveal payment on-chain (${attempt}/${REVEAL_MAX_ATTEMPTS})...`);
-          await new Promise((resolve) => setTimeout(resolve, REVEAL_RETRY_MS));
-        }
-      }
-      if (!res) throw lastErr || new Error('Reveal failed');
+  const handleReachZone = (zone: number) => {
+    if (phase === 0 && zone >= 1) { setPhase(1); setFeed("SUSPICIOUS ACTIVITY DETECTED · INVESTIGATE THE LAUNCH"); }
+    if (phase === 2 && zone >= 2) { setPhase(3); setFeed("LIQUIDITY FACILITY BREACHED · DISABLE THE OPERATION"); }
+  };
 
-      setSession(res.session);
-      setCards(buildCards(res.session));
-      const completedSeason =
-        Boolean(res.guaranteedCompletion || res.session.seasonEligible) ||
-        res.session.seasonTreasures.length >= res.session.requiredTreasures;
-      setLastReveal({
-        result: completedSeason ? 'treasure' : res.result,
-        bd: res.bdPointsEarned,
-        treasure: withTreasureImage(res.foundTreasure || res.revealedCard.treasure || null),
-        completedSeason,
+  const handleFire = (targetId?: string) => {
+    const current = ammo[weaponId];
+    if (mode !== "active" || reloading || current.magazine <= 0) {
+      if (current.magazine <= 0 && !reloading) setFeed("MAGAZINE EMPTY · PRESS R TO RELOAD");
+      return false;
+    }
+    setAmmo((previous) => ({ ...previous, [weaponId]: { ...previous[weaponId], magazine: previous[weaponId].magazine - 1 } }));
+    if (!targetId) setFeed("ROUND EXPENDED · NO TARGET LOCK");
+    return true;
+  };
+
+  const handleDamageEnemy = (id: string, amount: number) => {
+    setEnemies((previous) => previous.map((enemy) => {
+      if (enemy.id !== id || !enemy.alive) return enemy;
+      const nextHealth = Math.max(0, enemy.health - amount);
+      if (nextHealth === 0) { setFeed(`${ENEMIES[enemy.role].name} · THREAT ELIMINATED`); }
+      else setFeed(`${ENEMIES[enemy.role].name} HIT · ${nextHealth} INTEGRITY`);
+      return { ...enemy, health: nextHealth, alive: nextHealth > 0 };
+    }));
+  };
+
+  const handlePlayerDamage = (amount: number, source: EnemyRole) => {
+    if (Date.now() < dodgeUntil.current || mode !== "active") return;
+    setDamageReceived((value) => value + amount);
+    setHealth((previous) => {
+      const nextHealth = Math.max(0, previous - amount);
+      if (nextHealth === 0) { setMode("rugged"); setFeed(`YOU GOT RUGGED · ${ENEMIES[source].name} GOT THE LAST HIT`); }
+      else if (source === "whale") setFeed("WHALE LOCKED ON · TAKE COVER");
+      return nextHealth;
+    });
+  };
+
+  const handleReload = () => {
+    const current = ammo[weaponId];
+    if (reloading || current.magazine >= weapon.magazineSize || current.reserve <= 0 || mode !== "active") return;
+    setReloading(true); setFeed(`RELOADING ${weapon.name.toUpperCase()}`);
+    window.setTimeout(() => {
+      setAmmo((previous) => {
+        const equipped = previous[weaponId];
+        const loaded = Math.min(weapon.magazineSize - equipped.magazine, equipped.reserve);
+        return { ...previous, [weaponId]: { magazine: equipped.magazine + loaded, reserve: equipped.reserve - loaded } };
       });
+      setReloading(false); setFeed("WEAPON READY");
+    }, weapon.reloadMs);
+  };
 
-      if (completedSeason) {
-        toast.success('6/6 treasures unlocked');
-      } else if (res.result === 'treasure') {
-        const treasureName = res.foundTreasure?.name || res.revealedCard.treasure?.name || 'Treasure';
-        toast.success(`${treasureName} added to Treasure Bank`);
-      } else {
-        toast(`Empty card · +${res.bdPointsEarned} BD`);
-      }
-    } catch (e) {
-      const msg = asFriendlyError((e as Error).message || "Reveal failed");
-      setCards((prev) => prev.map((c, i) => (i === index && c.state === 'processing' ? { ...c, state: 'idle' } : c)));
-      if (/user rejected|denied|user_denied/i.test(msg)) toast.error('Payment cancelled');
-      else if (/tx_already_used|card_already_revealed/i.test(msg)) {
-        toast.error('That card or transaction was already used');
-        refresh();
-      } else if (/amount_too_low/i.test(msg)) toast.error('Payment amount was too low');
-      else if (/sender_mismatch/i.test(msg)) toast.error('Payment must come from your connected wallet');
-      else toast.error(msg);
-    } finally {
-      setProcessingIndex(null);
-    }
-  }
+  const handleDodge = () => { if (mode === "active") { dodgeUntil.current = Date.now() + 280; setFeed("EVADE WINDOW ACTIVE"); } };
+  const handleWeaponInput = (number: 1 | 2 | 3) => {
+    const nextWeapon = WEAPON_ORDER[number - 1];
+    if (nextWeapon && mode === "active") { setWeaponId(nextWeapon); setReloading(false); setFeed(`${WEAPONS[nextWeapon].name.toUpperCase()} EQUIPPED`); }
+  };
 
-  async function handleOpenAllCards() {
-    if (!HAS_BACKEND) {
-      toast.error('Backend not configured');
-      return;
-    }
-    if (!session) return;
-    if (processingIndex !== null || isOpenAllProcessing || showingOpenAllResults) return;
-    if (session.revealedCards.length > 0) {
-      toast.error('Open All works only on a fresh card set');
-      return;
-    }
-    if (authChainType === "none") {
-      toast.error('Sign in with a supported wallet first');
-      return;
-    }
-
-    setIsOpenAllProcessing(true);
-    setLastReveal(null);
-    setCards((prev) => prev.map((c) => (c.state === 'idle' ? { ...c, state: 'processing' } : c)));
-
-    try {
-      const payment = await submitGamePayment(openAllPriceUsdc, session);
-      const { signature } = payment;
-      toast.message('Open-all payment submitted', { description: `${signature.slice(0, 10)}...` });
-
-      let res: Awaited<ReturnType<typeof gameApi.openAll>> | null = null;
-      let lastErr: ApiError | null = null;
-      for (let attempt = 1; attempt <= REVEAL_MAX_ATTEMPTS; attempt += 1) {
-        try {
-          res = await gameApi.openAll(signature, payment.chainId, payment.chainType);
-          break;
-        } catch (e) {
-          const err = e as ApiError;
-          lastErr = err;
-          const code = String(err.message || '');
-          const retryable =
-            code === 'confirmations_pending' ||
-            code === 'verification_in_progress' ||
-            code === 'tx_not_found_yet';
-          if (!retryable || attempt === REVEAL_MAX_ATTEMPTS) break;
-          toast.message(`Confirming open-all payment on-chain (${attempt}/${REVEAL_MAX_ATTEMPTS})...`);
-          await new Promise((resolve) => setTimeout(resolve, REVEAL_RETRY_MS));
-        }
-      }
-      if (!res) throw lastErr || new Error('Open all failed');
-
-      const revealViewSession: GameSessionState = { ...res.session, revealedCards: res.cards };
-      setSession(revealViewSession);
-      setCards(buildCardsFromRevealed(res.cards, cardsPerRound));
-      setShowingOpenAllResults(true);
-
-      const bdTotal = res.cards.reduce((sum, card) => sum + Number(card.bdPointsEarned || 0), 0);
-      const completedSeason =
-        Boolean(res.guaranteedCompletion || res.session.seasonEligible) ||
-        res.session.seasonTreasures.length >= res.session.requiredTreasures;
-      setLastReveal({
-        result: completedSeason || res.foundTreasure ? 'treasure' : 'empty',
-        bd: bdTotal,
-        treasure: withTreasureImage(res.foundTreasure || null),
-        completedSeason,
-      });
-
-      if (completedSeason) {
-        toast.success('6/6 treasures unlocked');
-      } else if (res.foundTreasure) {
-        toast.success(`${res.foundTreasure.name} found. All cards opened.`);
-      } else {
-        toast.success(`All cards opened · +${bdTotal} BD`);
-      }
-
-      window.setTimeout(() => {
-        setSession(res.session);
-        setCards(buildCards(res.session));
-        setShowingOpenAllResults(false);
-      }, OPEN_ALL_RESULT_DISPLAY_MS);
-    } catch (e) {
-      const msg = asFriendlyError((e as Error).message || "Open all failed");
-      setCards(buildCards(session));
-      if (/user rejected|denied|user_denied/i.test(msg)) toast.error('Payment cancelled');
-      else if (/tx_already_used|open_all_requires_fresh_round/i.test(msg)) {
-        toast.error('Open All requires a fresh card set and a new transaction');
-        refresh();
-      } else if (/amount_too_low/i.test(msg)) toast.error('Payment amount was too low');
-      else if (/sender_mismatch/i.test(msg)) toast.error('Payment must come from your connected wallet');
-      else toast.error(msg);
-    } finally {
-      setIsOpenAllProcessing(false);
-    }
-  }
-
-  async function handlePurchaseMultiplier() {
-    if (!HAS_BACKEND) {
-      toast.error('Backend not configured');
-      return;
-    }
-    if (!isConnected) {
-      toast.error('Connect your Base wallet first');
-      return;
-    }
-    if (!canUpgradeMultiplier) {
-      toast.error(currentMultiplier >= MAX_CARD_MULTIPLIER ? 'Maximum multiplier active' : 'Choose a higher multiplier');
-      return;
-    }
-
-    setIsMultiplierProcessing(true);
-    try {
-      const { intent } = await paymentsApi.createIntent(
-        'multiplier',
-        selectedMultiplier,
-        chainId,
-        authChainType === "solana" ? "solana" : "evm",
-      );
-      let hash: string;
-      if (intent.chainType === "solana") {
-        if (intent.asset.type !== "spl" || !intent.asset.address) throw new Error("Solana USDC quote unavailable.");
-        const { wallet, account } = await connectSolanaWallet();
-        if (account.address !== solanaAddress || account.address !== baseUser?.wallet) {
-          throw new Error("Reconnect the same Phantom Solana wallet you used to sign in.");
-        }
-        hash = await sendSolanaUsdc(
-          wallet,
-          account,
-          intent.recipient,
-          intent.asset.address,
-          intent.amountAtomic,
-        );
-      } else {
-        const to = intent.recipient as `0x${string}`;
-        const usdcContract = intent.asset.address as `0x${string}` | undefined;
-        if (!to || !/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error('Payment recipient unavailable');
-        if (!usdcContract || !/^0x[0-9a-fA-F]{40}$/.test(usdcContract)) throw new Error('USDC contract unavailable');
-        if (!isConnected) throw new Error("Connect your signed-in EVM wallet first.");
-        const paymentChainId = Number(intent.chainId);
-        const evmHash = await sendUsdcOnEvm(to, Number(intent.amount), usdcContract, paymentChainId);
-        hash = evmHash;
-        await waitForUsdcTx(evmHash, paymentChainId);
-      }
-      toast.message(`${selectedMultiplier}x multiplier payment submitted`, { description: `${hash.slice(0, 10)}...` });
-
-      let verified = false;
-      let lastErr: ApiError | null = null;
-      for (let attempt = 1; attempt <= REVEAL_MAX_ATTEMPTS; attempt += 1) {
-        try {
-          await paymentsApi.verifyIntent(intent.id, hash);
-          verified = true;
-          break;
-        } catch (e) {
-          const err = e as ApiError;
-          lastErr = err;
-          const code = String(err.message || '');
-          const retryable =
-            code === 'confirmations_pending' ||
-            code === 'verification_in_progress' ||
-            code === 'tx_not_found_yet';
-          if (!retryable || attempt === REVEAL_MAX_ATTEMPTS) break;
-          toast.message(`Confirming multiplier payment on-chain (${attempt}/${REVEAL_MAX_ATTEMPTS})...`);
-          await new Promise((resolve) => setTimeout(resolve, REVEAL_RETRY_MS));
-        }
-      }
-      if (!verified) throw lastErr || new Error('Multiplier payment verification failed');
-
-      await refreshUser();
-      const { session: latestSession } = await gameApi.state();
-      setSession(latestSession);
-      setCards(buildCards(latestSession));
-      toast.success(`${selectedMultiplier}x multiplier activated permanently`);
-    } catch (e) {
-      const msg = asFriendlyError((e as Error).message || 'Multiplier purchase failed');
-      if (/user rejected|denied|user_denied/i.test(msg)) toast.error('Payment cancelled');
-      else if (/multiplier_not_upgrade/i.test(msg)) toast.error('Choose a higher multiplier');
-      else if (/amount_too_low/i.test(msg)) toast.error('Payment amount was too low');
-      else if (/sender_mismatch/i.test(msg)) toast.error('Payment must come from your connected wallet');
-      else toast.error(msg);
-    } finally {
-      setIsMultiplierProcessing(false);
-    }
-  }
-
-  async function handleReset() {
-    try {
-      const { session: s } = await gameApi.reset();
-      setSession(s);
-      setCards(buildCards(s));
-      setLastReveal(null);
-      toast.success('New card set loaded');
-    } catch (e) {
-      toast.error(asFriendlyError((e as Error).message || "Reset failed"));
-    }
-  }
+  const formattedTime = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
+  const healthTone = health <= 30 ? "bg-red-500" : "bg-lime-300";
+  const lowHealth = health <= 30 && mode === "active";
+  const missionStats = useMemo(() => [["Targets", `${enemiesEliminated}/${enemies.length}`], ["Time", formattedTime], ["Damage", damageReceived.toString()]], [damageReceived, enemies.length, enemiesEliminated, formattedTime]);
 
   return (
-    <div className="user-experience min-h-screen pb-24 px-4 pt-6 max-w-lg mx-auto">
-      <header className="text-center mb-5">
-        <p className="lime-kicker mb-1">Open, collect, progress</p>
-        <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
-          Base Drop
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">Open cards, find treasures, earn BD Points</p>
-      </header>
+    <main className="user-experience min-h-screen pb-24 pt-4">
+      <div className="mx-auto max-w-5xl px-3 sm:px-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div><p className="lime-kicker">Rugfire · operation 01</p><h1 className="mt-0.5 text-2xl font-black tracking-tight text-white sm:text-3xl">THE LAUNCH</h1></div>
+          <div className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2 text-right"><p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/40">Mission time</p><p className="font-mono text-sm font-bold text-primary">{formattedTime}</p></div>
+        </div>
 
-      <section className={`rounded-2xl p-3 mb-4 ${DARK_GAME_CARD_CLASS}`}>
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-2">
-          <span>Stage {session?.seasonStage || 1}</span>
-          <span>{seasonTreasures.length}/{requiredTreasures}</span>
-        </div>
-        <div className="h-2 rounded-full bg-secondary overflow-hidden">
-          <div className="h-full gradient-primary transition-all" style={{ width: `${completionPct}%` }} />
-        </div>
-      </section>
-
-      <section className={`rounded-2xl p-3 mb-5 ${DARK_GAME_CARD_CLASS}`}>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold">Season Treasure Bank</p>
-          <p className="text-[11px] text-muted-foreground">{seasonTreasures.length} / {requiredTreasures}</p>
-        </div>
-        <div className="grid grid-cols-6 gap-2">
-          {treasureSlots.map((treasure, i) => (
-            <div
-              key={i}
-              className={`aspect-square rounded-xl border overflow-hidden flex items-center justify-center ${treasure ? 'border-primary/60 neon-glow' : 'border-border bg-secondary/40'}`}
-              title={treasure?.name || 'Locked'}
-            >
-              {treasure ? (
-                <img src={treasure.image} alt={treasure.name} className="w-full h-full object-cover" />
-              ) : (
-                <Gem className="w-5 h-5 text-muted-foreground/40" />
-              )}
-            </div>
-          ))}
-        </div>
-        {session?.seasonEligible ? (
-          <div className="mt-3 text-xs text-green-400 flex items-center gap-1">
-            <Trophy className="w-3 h-3" />
-            Eligible for season rewards (6/6 treasures)
-          </div>
-        ) : null}
-      </section>
-
-      {!loading && session && (
-        <section className={`rounded-2xl p-4 mb-5 ${DARK_GAME_CARD_CLASS}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-                <BadgePercent className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white">Card Multiplier</p>
-                <p className={`text-xs ${hasMultiplier ? 'text-green-400' : 'text-muted-foreground'}`}>
-                  {hasMultiplier ? `${currentMultiplier}x active permanently` : 'No multiplier active'}
-                </p>
-              </div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-right">
-              <p className="text-[10px] font-bold uppercase text-white/55">Selected</p>
-              <p className="text-lg font-black text-white">{selectedMultiplier}x</p>
-            </div>
+        <div className="relative">
+          <RugfireMission mode={mode} enemies={enemies} activeWave={activeWave} weapon={weapon} onFire={handleFire} onDamageEnemy={handleDamageEnemy} onPlayerDamage={handlePlayerDamage} onReachZone={handleReachZone} onWeaponInput={handleWeaponInput} onReloadInput={handleReload} onDodge={handleDodge} reloading={reloading} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3 sm:p-5">
+            <div className="w-36 rounded-lg border border-white/10 bg-black/65 p-2 backdrop-blur-md"><div className="mb-1 flex items-center justify-between text-[9px] font-bold tracking-wider text-white/65"><span className="flex items-center gap-1"><Shield className="h-3 w-3 text-primary" /> VITALS</span><span>{health}/100</span></div><div className="h-1.5 overflow-hidden bg-white/10"><div className={`h-full transition-all duration-300 ${healthTone}`} style={{ width: `${health}%` }} /></div></div>
+            <div className="max-w-[58%] rounded-lg border border-primary/20 bg-black/65 px-3 py-2 text-right backdrop-blur-md"><p className="text-[8px] font-bold uppercase tracking-[0.15em] text-primary/75">Objective {phase + 1}/5</p><p className="mt-0.5 text-[10px] font-bold uppercase text-white">{objective}</p></div>
           </div>
 
-          {currentMultiplier < MAX_CARD_MULTIPLIER ? (
-            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
-              <select
-                value={selectedMultiplier}
-                onChange={(e) => setSelectedMultiplier(Number(e.target.value))}
-                disabled={isMultiplierProcessing}
-                className="h-11 rounded-xl border border-white/10 bg-background px-3 text-sm font-bold text-white outline-none focus:border-primary disabled:opacity-60"
-              >
-                {MULTIPLIER_OPTIONS.map((multiplier) => (
-                  <option
-                    key={multiplier}
-                    value={multiplier}
-                    disabled={multiplier <= currentMultiplier}
-                  >
-                    {multiplier}x - ${getCardMultiplierPrice(multiplier)} USDC
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handlePurchaseMultiplier}
-                disabled={!canUpgradeMultiplier || isMultiplierProcessing}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl gradient-primary px-4 text-sm font-bold text-primary-foreground transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:whitespace-nowrap"
-              >
-                {isMultiplierProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {isMultiplierProcessing ? 'Buying...' : `Buy ${selectedMultiplier}x Multiplier`}
-              </button>
-            </div>
-          ) : (
-            <p className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-center text-xs font-bold text-green-400">
-              Maximum 100x multiplier active
-            </p>
-          )}
-
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            One-time upgrade. Applies automatically to BD Point cards only.
-          </p>
-        </section>
-      )}
-
-      {loading && (
-        <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-      )}
-      {error && !loading && (
-        <div className={`rounded-2xl p-4 mb-4 flex items-start gap-3 ${DARK_GAME_CARD_CLASS}`}>
-          <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-bold text-destructive">Couldn't load game</p>
-            <p className="text-[11px] text-muted-foreground break-words">{error}</p>
-          </div>
+          {mode === "active" ? <><div className="pointer-events-none absolute left-1/2 top-1/2 z-10 grid h-5 w-5 -translate-x-1/2 -translate-y-1/2 place-items-center"><Crosshair className="h-5 w-5 text-primary/90 drop-shadow-[0_0_6px_rgba(201,255,69,0.65)]" /></div><div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border border-white/10 bg-black/65 px-3 py-2 backdrop-blur-md sm:bottom-5 sm:left-5"><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/45">{reloading ? "Reloading" : weapon.name}</p><p className="font-mono text-xl font-black text-white">{ammo[weaponId].magazine}<span className="text-xs text-white/45"> / {ammo[weaponId].reserve}</span></p></div><div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-lg border border-white/10 bg-black/65 px-3 py-2 text-right backdrop-blur-md sm:bottom-5 sm:right-5"><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/45">Intel</p><p className="max-w-40 text-[9px] font-bold uppercase leading-tight text-primary">{feed}</p></div></> : null}
+          {lowHealth ? <div className="pointer-events-none absolute inset-0 z-20 border-[10px] border-red-500/30 shadow-[inset_0_0_90px_rgba(255,35,35,0.38)]" /> : null}
+          {mode === "briefing" ? <Briefing onStart={beginMission} /> : null}
+          {mode === "rugged" ? <ResultScreen title="YOU GOT RUGGED" copy="The liquidity disappeared. Re-enter the operation and finish the hunt." action="Retry operation" onAction={retry} onExit={() => navigate("/")} rugged stats={missionStats} /> : null}
+          {mode === "complete" ? <ResultScreen title="MISSION COMPLETE" copy="Mega Rugger has been neutralized. The Launch District is secure." action="Run again" onAction={retry} onExit={() => navigate("/")} stats={missionStats} /> : null}
         </div>
-      )}
 
-      {!loading && (
-        <section className="grid grid-cols-4 gap-2 mb-5">
-          {cards.map((card) => (
-            <CardTile
-              key={card.index}
-              card={card}
-              onCardClick={handleCardClick}
-              disabled={processingIndex !== null || isOpenAllProcessing || showingOpenAllResults}
-              cardPriceUsdc={cardPriceUsdc}
-              cardMultiplier={currentMultiplier}
-            />
-          ))}
+        <section className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {WEAPON_ORDER.map((id, index) => <button key={id} onClick={() => handleWeaponInput((index + 1) as 1 | 2 | 3)} disabled={mode !== "active"} className={`rounded-xl border px-2 py-2 text-left transition-all ${weaponId === id ? "border-primary/45 bg-primary/10" : "border-border bg-card/70 hover:border-white/25"} disabled:opacity-60`}><p className="text-[8px] font-black text-primary">0{index + 1}</p><p className="mt-0.5 truncate text-[10px] font-bold text-white">{WEAPONS[id].name}</p></button>)}
+          <button onClick={handleReload} disabled={mode !== "active" || reloading} className="rounded-xl border border-border bg-card/70 px-2 py-2 text-left hover:border-primary/40 disabled:opacity-60"><p className="text-[8px] font-black text-primary">R</p><p className="mt-0.5 text-[10px] font-bold text-white">Reload</p></button>
+          <button onClick={handleDodge} disabled={mode !== "active"} className="rounded-xl border border-border bg-card/70 px-2 py-2 text-left hover:border-primary/40 disabled:opacity-60"><p className="text-[8px] font-black text-primary">SPACE</p><p className="mt-0.5 text-[10px] font-bold text-white">Dodge</p></button>
+          <div className="rounded-xl border border-border bg-card/70 px-2 py-2 text-left"><p className="text-[8px] font-black text-primary">STATUS</p><p className="mt-0.5 text-[10px] font-bold text-white">{mode === "active" ? "LIVE" : mode.toUpperCase()}</p></div>
         </section>
-      )}
-
-      {!loading && session && (
-        <section className={`rounded-2xl p-3 mb-4 ${DARK_GAME_CARD_CLASS}`}>
-          <button
-            onClick={handleOpenAllCards}
-            disabled={
-              processingIndex !== null ||
-              isOpenAllProcessing ||
-              showingOpenAllResults ||
-              session.revealedCards.length > 0
-            }
-            className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-bold text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isOpenAllProcessing
-              ? 'Processing Open All...'
-              : `Open All Cards - ${openAllPriceUsdc} USDC`}
-          </button>
-          <p className="mt-2 text-[11px] text-muted-foreground text-center">
-            Opens all {cardsPerRound} cards instantly for {openAllPriceUsdc} USDC. Single-card opening still available.
-          </p>
-        </section>
-      )}
-
-      {lastReveal && (
-        <div className={`rounded-2xl p-3 mb-4 text-center ${DARK_GAME_CARD_CLASS} ${lastReveal.result === 'treasure' ? 'border-accent/50 neon-glow' : ''}`}>
-          <p className="text-sm font-bold">{lastReveal.completedSeason ? '6/6 Treasures Completed' : lastReveal.result === 'treasure' ? 'Treasure Found' : 'Empty Card'}</p>
-          {lastReveal.completedSeason ? (
-            <p className="text-xs text-muted-foreground">All season treasure images are unlocked in your Treasure Bank</p>
-          ) : lastReveal.result === 'treasure' && lastReveal.treasure ? (
-            <div className="mt-2 flex flex-col items-center gap-1">
-              <img src={lastReveal.treasure.image} alt={lastReveal.treasure.name} className="w-20 h-14 object-cover rounded-lg border border-primary/50" />
-              <p className="text-xs font-semibold">{lastReveal.treasure.name}</p>
-              <p className="text-[11px] text-muted-foreground">Saved permanently in your Treasure Bank</p>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">+{lastReveal.bd} BD Points earned</p>
-          )}
-        </div>
-      )}
-
-      {!loading && session && (
-        <div className="flex items-center justify-between text-center text-[11px] text-muted-foreground mb-5">
-          <p>{cardsPerRound - session.revealedCards.length} cards remaining in this set</p>
-          <button onClick={handleReset} className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 hover:bg-secondary/40">
-            <RefreshCw className="w-3 h-3" /> New set
-          </button>
-        </div>
-      )}
-
-      {treasureBank.length > 0 ? (
-        <section className={`rounded-2xl p-3 mb-5 ${DARK_GAME_CARD_CLASS}`}>
-          <p className="text-xs font-semibold mb-2">Permanent Treasure Bank</p>
-          <div className="grid grid-cols-3 gap-2">
-            {treasureBank.map((item) => (
-              <div key={item.id} className="rounded-xl border border-primary/40 overflow-hidden">
-                <img src={item.image} alt={item.name} className="w-full h-16 object-cover" />
-                <p className="text-[10px] font-semibold px-2 py-1 truncate">{item.name}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </div>
+        <section className="mt-3 rounded-2xl border border-border bg-card/65 p-3"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Target className="h-4 w-4 text-primary" /><p className="text-xs font-bold text-white">Operator controls</p></div><p className="text-[9px] font-semibold text-muted-foreground">CLICK THE GAME TO LOCK MOUSE</p></div><p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">WASD to move · Mouse to look · Left click to fire · Right click to aim · Shift to sprint · Space to dodge · 1 / 2 / 3 to switch weapons · R to reload.</p></section>
+      </div>
+    </main>
   );
 }
 
-const CardTile = memo(function CardTile({
-  card,
-  onCardClick,
-  disabled,
-  cardPriceUsdc,
-  cardMultiplier,
-}: {
-  card: UICard;
-  onCardClick: (index: number) => void;
-  disabled: boolean;
-  cardPriceUsdc: number;
-  cardMultiplier: number;
-}) {
-  const isProcessing = card.state === 'processing';
-  const isRevealed = card.state === 'revealed';
-  const isTreasure = card.result === 'treasure';
+function Briefing({ onStart }: { onStart: () => void }) {
+  return <div className="absolute inset-0 z-30 grid place-items-center bg-[#07090c]/55 p-4 backdrop-blur-[2px]"><div className="w-full max-w-md border border-white/15 bg-[#0b0e11]/95 p-5 shadow-2xl sm:p-7"><p className="lime-kicker">Mission briefing</p><h2 className="mt-2 text-3xl font-black text-white">OPERATION: THE LAUNCH</h2><div className="mt-5 border-l-2 border-primary/70 pl-3"><p className="text-xs font-bold uppercase tracking-wide text-primary">Locate the liquidity operation.</p><p className="mt-2 text-sm leading-relaxed text-white/60">A fictional token launch has triggered a suspicious liquidity drain in Meme City. Enter the district, clear the threat, and extract.</p></div><div className="mt-6 grid grid-cols-3 gap-2 text-center"><MissionTag icon={<Crosshair className="h-4 w-4" />} label="3 weapons" /><MissionTag icon={<Skull className="h-4 w-4" />} label="4 threats" /><MissionTag icon={<Zap className="h-4 w-4" />} label="1 boss" /></div><button onClick={onStart} className="mt-6 flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-sm font-black text-primary-foreground transition hover:brightness-110 active:scale-[0.99]"><Crosshair className="h-4 w-4" /> ENTER OPERATION</button></div></div>;
+}
 
-  return (
-    <button
-      onClick={() => onCardClick(card.index)}
-      disabled={disabled || isRevealed || isProcessing}
-      aria-label={isRevealed ? `Card ${card.index + 1} revealed: ${card.result}` : `Reveal card ${card.index + 1} for ${cardPriceUsdc} USDC`}
-      className={`relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300 active:scale-95 disabled:cursor-not-allowed ${
-        isRevealed
-          ? isTreasure
-            ? 'bg-card/95 border-2 border-accent neon-glow'
-            : 'bg-card/95 border border-border opacity-70'
-          : 'bg-card/95 border border-primary/40 hover:scale-[1.03]'
-      }`}
-    >
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-        {isProcessing ? (
-          <Loader2 className="w-6 h-6 animate-spin text-primary-foreground" />
-        ) : isRevealed ? (
-          <>
-            {isTreasure ? <Gem className="w-7 h-7 text-accent" /> : <span className="text-2xl opacity-60">X</span>}
-            <span className="text-[10px] font-bold text-foreground">
-              {isTreasure ? 'Treasure' : `+${card.bdPointsEarned} BD`}
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="text-3xl font-black text-primary-foreground/90">?</span>
-            <span className="text-[9px] font-semibold text-primary-foreground/80">{cardPriceUsdc} USDC</span>
-            {cardMultiplier >= MIN_CARD_MULTIPLIER ? (
-              <span className="text-[9px] font-bold text-accent">{cardMultiplier}x</span>
-            ) : null}
-          </>
-        )}
-      </div>
-    </button>
-  );
-});
+function MissionTag({ icon, label }: { icon: ReactNode; label: string }) {
+  return <div className="border border-white/10 bg-white/[0.035] px-2 py-3 text-primary"><div className="mx-auto grid w-fit place-items-center">{icon}</div><p className="mt-1 text-[9px] font-bold uppercase text-white/65">{label}</p></div>;
+}
+
+function ResultScreen({ title, copy, action, onAction, onExit, rugged = false, stats }: { title: string; copy: string; action: string; onAction: () => void; onExit: () => void; rugged?: boolean; stats: string[][] }) {
+  return <div className="absolute inset-0 z-30 grid place-items-center bg-[#08090b]/80 p-4 backdrop-blur-sm"><div className={`w-full max-w-md border p-6 text-center shadow-2xl ${rugged ? "border-red-500/45 bg-[#190b0d]/95" : "border-primary/35 bg-[#10150b]/95"}`}><div className={`mx-auto grid h-12 w-12 place-items-center border ${rugged ? "border-red-400/50 text-red-400" : "border-primary/50 text-primary"}`}>{rugged ? <Skull className="h-6 w-6" /> : <Trophy className="h-6 w-6" />}</div><p className="lime-kicker mt-4">Rugfire mission report</p><h2 className="mt-2 text-3xl font-black text-white">{title}</h2><p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-white/60">{copy}</p><div className="mt-6 grid grid-cols-3 gap-2 border-y border-white/10 py-4">{stats.map(([label, value]) => <ReportStat key={label} label={label} value={value} />)}</div><button onClick={onAction} className="mt-5 flex w-full items-center justify-center gap-2 bg-primary py-3 text-sm font-black text-primary-foreground"><RotateCcw className="h-4 w-4" /> {action}</button><button onClick={onExit} className="mt-2 flex w-full items-center justify-center gap-2 border border-white/15 py-3 text-xs font-bold text-white/65"><Home className="h-4 w-4" /> Return to base</button></div></div>;
+}
+
+function ReportStat({ label, value }: { label: string; value: string }) { return <div><p className="text-[8px] font-bold uppercase tracking-wider text-white/40">{label}</p><p className="mt-1 text-xs font-black text-white">{value}</p></div>; }
