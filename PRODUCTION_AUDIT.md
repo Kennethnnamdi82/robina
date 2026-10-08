@@ -20,6 +20,9 @@ Local verification passed, including the final packaged build. Deployment and li
 
 | Check | Result |
 | --- | --- |
+| Frontend clean npm installation | Passed in an isolated project, without force or legacy peer dependency flags; 0 known vulnerabilities |
+| Clean-install production build and Chrome smoke checks | Passed; login recovery and game start/return both passed |
+| Linux native packages and import filename casing | Required native packages are locked; 199 local imports checked |
 | Frontend TypeScript, application and Node configs | Passed |
 | ESLint | 0 errors; 9 existing development Fast Refresh warnings |
 | Frontend unit/regression tests | 27 passed |
@@ -36,17 +39,20 @@ Production browser tests exercise expired sessions, stalled APIs, HTML API fallb
 
 The game tests cover combat controls, all mission stages through actual raycast damage, sniper telegraphs, projectile/cover behavior, boss phases, extraction, graphics restart, disposal, fixed-step timing, and delayed audio resumes. The measured test scene has 22 player meshes, four active district lights, and 158 draw calls. This is a software WebGL check, not a hardware FPS certification.
 
-The final entry is 215.70 kB (60.70 kB gzip). The shared platform SDK asset is 7,176.52 kB (2,060.12 kB gzip), and the Three.js asset is 537.99 kB (135.25 kB gzip). The build retains its large-chunk warning; that warning is not being hidden. No circular chunk warning remains.
+The clean-install build entry is 215.65 kB (60.69 kB gzip). The shared platform SDK asset is 7,175.07 kB (2,059.51 kB gzip), and the Three.js asset is 537.99 kB (135.25 kB gzip). The build retains its large-chunk warning; that warning is not being hidden. No circular chunk warning remains.
 
 ## Repeatable release checks
 
 From robina:
 
 ```sh
+npm ci --include=dev
 npm run verify:release
 ```
 
-This checks types, lint, unit tests, the production build, game/production browser tests, backend tests/imports, environment preflight, and production dependency audits. Node 22.12 or newer is required. Browser tests use installed Windows Chrome; set PLAYWRIGHT_CHROME_PATH for another installation.
+Start with a clean npm installation. The original audit used existing node_modules and missed React peer dependency conflicts during installation. The frontend now targets Node 24.x, removes unused React 19-only 3D dependencies and unused direct Stripe/mesh packages, supplies the testing library's DOM peer, and explicitly selects npm in Vercel configuration. Stale Bun lockfiles have been removed. The clean-install production build, TypeScript checks, lint, 27 unit tests, and two production browser smoke checks passed. See [Vercel deployment settings](robina/VERCEL_DEPLOYMENT.md).
+
+The release command checks types, lint, unit tests, the production build, game/production browser tests, backend tests/imports, environment preflight, and production dependency audits. Browser tests use installed Windows Chrome; set PLAYWRIGHT_CHROME_PATH for another installation.
 
 For the separate read-only database gate, from backend:
 
