@@ -13,8 +13,9 @@ test('real UI: enter, aim, fire, switch, reload, pause, retry and return', async
   await expect(page.locator('.rf-reticle')).toBeVisible();
   await page.keyboard.down('KeyW'); await page.waitForTimeout(650); await page.keyboard.up('KeyW');
   await page.mouse.down({ button: 'right' }); await expect(page.locator('.rf-reticle')).toHaveClass(/aiming/);
-  await page.mouse.down({ button: 'left' }); await page.waitForTimeout(400); await page.mouse.up({ button: 'left' }); await page.mouse.up({ button: 'right' });
+  await page.mouse.down({ button: 'left' });
   await expect(page.locator('.rf-weapon strong')).not.toHaveText('30', { timeout: 15000 });
+  await page.mouse.up({ button: 'left' }); await page.mouse.up({ button: 'right' });
   await page.keyboard.press('KeyR'); await expect(page.locator('.rf-reload')).toBeVisible();
   await page.keyboard.press('Digit2'); await expect(page.locator('.rf-weapon>span')).toHaveText('SLIPSTREAM / SMG');
   await expect(page.locator('.rf-reload')).toHaveCount(0);
@@ -33,7 +34,7 @@ test('real UI: enter, aim, fire, switch, reload, pause, retry and return', async
 });
 test('complete operation through actual gunfire, interaction, boss phases and extraction', async ({ page }) => {
   await page.goto('/tests/rugfire/index.html?engine');
-  await page.waitForFunction(() => Boolean((window as Scope).engine));
+  await page.waitForFunction(() => Boolean((window as Scope).engine?.snapshot().assetsReady));
   const result = await page.evaluate(() => {
     const w = window as Scope, e = w.engine, r = e.runtime, V = w.THREE.Vector3;
     cancelAnimationFrame(e.animation); r.mode = 'active';
@@ -89,7 +90,7 @@ test('complete operation through actual gunfire, interaction, boss phases and ex
   console.log(JSON.stringify(result));
 });
 test('enemy attacks require line of sight, sniper telegraphs and death stops combat', async ({ page }) => {
-  await page.goto('/tests/rugfire/index.html?engine'); await page.waitForFunction(() => Boolean((window as Scope).engine));
+  await page.goto('/tests/rugfire/index.html?engine'); await page.waitForFunction(() => Boolean((window as Scope).engine?.snapshot().assetsReady));
   const result = await page.evaluate(() => {
     const w = window as Scope, e = w.engine, r = e.runtime;
     cancelAnimationFrame(e.animation); r.mode = 'active'; r.stage = 3;
@@ -118,7 +119,7 @@ test('graphics context loss offers a working restart', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(() => Object.defineProperty(window, 'devicePixelRatio', { value: .5 }));
   await page.goto('/tests/rugfire/index.html');
-  await expect(page.getByRole('button', { name: 'ENTER OPERATION' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'ENTER OPERATION' })).toBeEnabled({ timeout: 60000 });
   await page.locator('canvas').evaluate(canvas => canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true })));
   await expect(page.getByRole('alert')).toContainText('Graphics context lost');
   await page.getByRole('button', { name: 'RESTART GRAPHICS' }).click();
@@ -132,7 +133,7 @@ test('graphics context loss offers a working restart', async ({ page }) => {
 
 test('fixed-step simulation, bounded lighting and safe graphics failure', async ({ page }) => {
   await page.goto('/tests/rugfire/index.html?engine');
-  await page.waitForFunction(() => Boolean((window as Scope).engine));
+  await page.waitForFunction(() => Boolean((window as Scope).engine?.snapshot().assetsReady));
   const result = await page.evaluate(() => {
     const w = window as Scope & { engineError?: string };
     const e = w.engine as typeof w.engine & { frame(time: number): void; last: number; accumulator: number };
@@ -160,7 +161,7 @@ test('fixed-step simulation, bounded lighting and safe graphics failure', async 
 
 test('a delayed start cannot revive a disposed engine', async ({ page }) => {
   await page.goto('/tests/rugfire/index.html?engine');
-  await page.waitForFunction(() => Boolean((window as Scope).engine));
+  await page.waitForFunction(() => Boolean((window as Scope).engine?.snapshot().assetsReady));
   const result = await page.evaluate(async () => {
     const w = window as Scope & { engineError?: string }, e = w.engine;
     let resolveLock!: () => void;
@@ -174,7 +175,7 @@ test('a delayed start cannot revive a disposed engine', async ({ page }) => {
 
 test('an older audio unlock cannot suspend a newly resumed operation', async ({ page }) => {
   await page.goto('/tests/rugfire/index.html?engine');
-  await page.waitForFunction(() => Boolean((window as Scope).engine));
+  await page.waitForFunction(() => Boolean((window as Scope).engine?.snapshot().assetsReady));
   const result = await page.evaluate(async () => {
     const e = (window as Scope).engine;
     cancelAnimationFrame(e.animation);

@@ -28,7 +28,8 @@ export default function GamingPage() {
         <p className="rf-desc">Everyone bought the hype. Someone pulled the trigger.<br />A fraudulent token launch is draining the district. Find the source. Shut it down. Make it out.</p>
         <div className="rf-brief-objective"><small>PRIMARY DIRECTIVE</small><p>Locate and disable the liquidity operation.</p></div>
         <div className="rf-loadout"><span>GHOST-01<b>OPERATOR</b></span><span>03 WEAPONS<b>FIELD LOADOUT</b></span><span>MEGA RUGGER<b>PRIORITY TARGET</b></span></div>
-        <button className="rf-primary" disabled={starting || !hud} onClick={start}>{starting ? 'CONNECTING…' : 'ENTER OPERATION'}<ArrowUpRight size={18} /></button>
+        <button className="rf-primary" disabled={starting || !hud?.assetsReady} onClick={start}>{starting ? 'ENTERING OPERATION…' : 'ENTER OPERATION'}<ArrowUpRight size={18} /></button>
+        {hud && !hud.assetsReady && !error && <p className="rf-controlhint" role="status">PREPARING DISTRICT / {Math.round(hud.assetsProgress * 100)}%</p>}
         <button className="rf-secondary" onClick={exit}>RETURN TO BASE</button>
         <p className="rf-controlhint">WASD MOVE / MOUSE LOOK / RMB AIM / LMB FIRE<br />SHIFT SPRINT / SPACE EVADE / R RELOAD / 1–3 WEAPONS<br />E INTERACT / ESC PAUSE · DESKTOP KEYBOARD + MOUSE</p>
       </div><div className="rf-footer"><span>● UPLINK SECURE</span>LAUNCH DISTRICT / LIQUIDITY AT RISK</div></section>}

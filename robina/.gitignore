@@ -4,3 +4,6 @@
 /typecheck-rugfire.log
 /audit-*.log
 /audit-*.json
+
+# Original multi-hundred-MB art downloads stay local. Ship prepared public assets.
+/src/RUGFIRE_ASSETS/

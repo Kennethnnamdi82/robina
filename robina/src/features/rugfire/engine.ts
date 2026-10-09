@@ -1,5 +1,8 @@
 import * as T from 'three';
-import { createActor, equipActor, animateActor, type Actor } from './actors';
+import { createActor, equipActor, animateActor, mountActor, disposeActor, type Actor } from './actors';
+import { MissionAssets, disposeObject } from './assets';
+import { DistrictArt } from './environment';
+import { districtSky } from './atmosphere';
 import { CombatAudio } from './audio';
 import { CombatEffects } from './effects';
 import { GameInput } from './input';
@@ -12,6 +15,7 @@ export type EnemyActor = { id: string; role: EnemyRole; stage: number; hp: numbe
 type Projectile = { mesh: T.Mesh; velocity: T.Vector3; life: number; damage: number; role: EnemyRole };
 type Hazard = { mesh: T.Mesh; age: number; active: boolean };
 export type HudSnapshot = {
+  assetsReady: boolean; assetsProgress: number;
   mode: MissionRuntime['mode']; stage: number; objective: string; health: number; ammo: number; reserve: number; weaponId: WeaponId;
   reload: number; dodge: number; hit: boolean; kill: boolean; damage: number; damageAngle: number; aiming: boolean; covered: boolean;
   bearing: number; time: number; kills: number; shots: number; hits: number; damageReceived: number; feed: string; cause: string; muted: boolean;
@@ -21,6 +25,8 @@ export type HudSnapshot = {
   rewards: { xp: number; credits: number; item: string };
 };
 export class RugfireEngine {
+  readonly assets = new MissionAssets(); readonly ready: Promise<void>;
+  private assetsReady = false; private assetsProgress = 0; private art?: DistrictArt;
   readonly runtime = new MissionRuntime();
   readonly scene = new T.Scene(); readonly camera = new T.PerspectiveCamera(56, 1, .06, 180);
   readonly audio = new CombatAudio(); readonly effects = new CombatEffects();
@@ -36,10 +42,10 @@ export class RugfireEngine {
   constructor(private host: HTMLElement, private onHud: (snapshot: HudSnapshot) => void, private onError: (message: string) => void) {
     try {
     this.renderer = new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = T.PCFSoftShadowMap;
-    this.renderer.toneMapping = T.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.2; this.renderer.outputColorSpace = T.SRGBColorSpace;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = T.PCFShadowMap;
+    this.renderer.toneMapping = T.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.15; this.renderer.outputColorSpace = T.SRGBColorSpace;
     host.appendChild(this.renderer.domElement); this.renderer.domElement.setAttribute('aria-label', 'RUGFIRE third-person combat world');
-    this.scene.background = new T.Color(0x202b33); this.scene.fog = new T.FogExp2(0x202b33, .012);
+    districtSky(this.scene);
     this.scene.add(new T.HemisphereLight(0xbacbd6, 0x5b5344, 1.45));
     const sun = new T.DirectionalLight(0xe5cdb0, 2.1); sun.position.set(-15, 28, 12); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -24; sun.shadow.camera.right = 24; sun.shadow.camera.top = 34; sun.shadow.camera.bottom = -34;
@@ -59,23 +65,38 @@ export class RugfireEngine {
     this.renderer.domElement.addEventListener('webglcontextlost', this.contextLost);
     this.resize = new ResizeObserver(() => this.resizeView()); this.resize.observe(host); this.resizeView();
     this.camera.position.set(1, 3.2, 18); this.camera.lookAt(0, 1.4, -5); this.publish(); this.animation = requestAnimationFrame(this.frame);
+    this.ready = this.prepareAssets();
     } catch (error) { this.dispose(); throw error; }
+  }
+  private async prepareAssets() {
+    try {
+      await this.assets.load((loaded, total) => { if (!this.disposed) { this.assetsProgress = loaded / total; this.publish(); } });
+      if (this.disposed) return;
+      mountActor(this.player, this.assets);
+      this.enemies.forEach(enemy => mountActor(enemy.actor, this.assets));
+      this.art = new DistrictArt(this.assets, this.world);
+      this.assetsReady = true; this.publish();
+    } catch (error) {
+      if (!this.disposed) { this.failed = true; this.assets.dispose(); this.onError('Mission assets could not be prepared. Check your connection and restart graphics. ' + (error instanceof Error ? error.message : '')); }
+    }
   }
   private contextLost = (event: Event) => { event.preventDefault(); this.failed = true; this.pause(); this.onError('Graphics context lost. Reload the page to restore the operation.'); };
   private resizeView() { const w = this.host.clientWidth, h = this.host.clientHeight; if (!w || !h) return; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
   private spawn(id: string, role: EnemyRole, x: number, y: number, z: number, stage: number) {
     const actor = createActor(role); actor.root.position.set(x, y, z); actor.root.visible = false; this.scene.add(actor.root);
+    if (this.assetsReady) mountActor(actor, this.assets);
     this.enemies.push({ id, role, stage, hp: ENEMIES[role].health, actor, home: new T.Vector3(x, y, z), cooldown: 1.3 + this.enemies.length * .21, warning: 0, target: new T.Vector3(), hit: 0, speed: 0, engaged: false, visible: false, side: this.enemies.length % 2 ? 1 : -1, think: 0, direction: new T.Vector3() });
   }
   async start() {
-    if (this.disposed || this.failed || (this.runtime.mode !== 'briefing' && this.runtime.mode !== 'paused')) return;
+    if (this.disposed || this.failed || !this.assetsReady || (this.runtime.mode !== 'briefing' && this.runtime.mode !== 'paused')) return;
     const epoch = ++this.startEpoch; let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       const lock = this.input.lock().then(() => { if (this.disposed || epoch !== this.startEpoch) this.input.release(); });
       await Promise.race([lock, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Mouse capture timed out')), 3000); })]);
       if (this.disposed || epoch !== this.startEpoch) return;
       if (document.pointerLockElement !== this.renderer.domElement) throw new Error('Pointer lock unavailable');
-      this.runtime.mode = 'active'; this.runtime.notify('OPERATION LIVE / REACH LAUNCH DISTRICT'); this.input.clear(); this.last = 0; this.publish();
+      this.runtime.mode = 'active'; if (this.runtime.stage === 0) this.runtime.stage = 1;
+      this.runtime.notify('OPERATION LIVE / HOSTILES IN THE STREET'); this.input.clear(); this.last = 0; this.publish();
       void this.audio.unlock().then(available => { if (this.disposed) return; if (epoch !== this.startEpoch || this.runtime.mode !== 'active') { if (this.runtime.mode !== 'active') this.audio.suspend(); return; } if (!available) { this.runtime.notify('AUDIO UNAVAILABLE / OPERATION READY'); this.publish(); } });
     } catch {
       if (this.disposed || epoch !== this.startEpoch) return;
@@ -111,11 +132,11 @@ export class RugfireEngine {
       // Menus do not need continuous expensive world rendering.
       const render = this.runtime.mode === 'active' || timestamp - this.lastRender > 160;
       if (render && !document.hidden) {
-        const dt = Math.min(elapsed, .1); this.updateCamera(dt); this.effects.update(dt);
+        const dt = Math.min(elapsed, .1); this.updateCamera(dt); this.effects.update(dt); this.art?.update(timestamp / 1000);
         animateActor(this.player, dt, this.runtime.mode === 'active' ? this.velocity.length() : 0, this.runtime.time, this.runtime.reloadLeft ? 1 - this.runtime.reloadLeft / (this.runtime.weapon.reloadMs / 1000) : 0, this.runtime.dodgeLeft / .38, this.runtime.damagePulse, this.runtime.mode === 'rugged');
         if (!this.runtime.dodgeLeft && this.runtime.mode !== 'rugged') this.player.torso.rotation.x -= this.pitch * .65;
         for (const enemy of this.enemies) {
-          enemy.actor.root.visible = enemy.stage <= this.runtime.stage && enemy.actor.root.position.distanceToSquared(this.player.root.position) < 3600;
+          enemy.actor.root.visible = enemy.stage <= Math.max(1, this.runtime.stage) && enemy.actor.root.position.distanceToSquared(this.player.root.position) < 3600;
           if (enemy.actor.root.visible) animateActor(enemy.actor, dt, this.runtime.mode === 'active' ? enemy.speed : 0, this.runtime.time, 0, 0, enemy.hit, enemy.hp <= 0);
         }
         if (timestamp - this.lightUpdate > 250) {
@@ -157,6 +178,14 @@ export class RugfireEngine {
     if (r.dodgeLeft > 0) moveBody(this.player.root.position, this.dodgeDirection.x * dt * 12, this.dodgeDirection.z * dt * 12, this.world.colliders);
     else moveBody(this.player.root.position, this.velocity.x * dt, this.velocity.z * dt, this.world.colliders);
     this.player.root.rotation.y = -this.yaw;
+    this.player.move = input.keys.has('KeyS') ? 'Back' : input.keys.has('KeyA') ? 'Left' : input.keys.has('KeyD') ? 'Right' : 'Walk';
+    this.player.reloadTime = r.weapon.reloadMs / 1000;
+    for (const supply of this.art?.supplies || []) if (!supply.taken && supply.mesh.position.distanceTo(this.player.root.position) < 1.25) {
+      supply.taken = true; supply.mesh.visible = false;
+      if (supply.kind === 'health') r.health = Math.min(100, r.health + 40);
+      else for (const id of WEAPON_ORDER) r.ammo[id].reserve += id === 'pistol' ? 24 : 60;
+      r.notify(supply.kind === 'health' ? 'FIELD MEDKIT / HEALTH RESTORED' : 'AMMUNITION RECOVERED'); this.audio.tone(540, .12, .08);
+    }
     this.footstep += dt; if (this.velocity.length() > 1 && this.footstep > (speed > 6 ? .24 : .36)) { this.audio.footstep(); this.footstep = 0; }
     this.heartbeat += dt; if (r.health < 30 && this.heartbeat > .85) { this.audio.tone(45, .16, .14); this.heartbeat = 0; }
     if ((input.fire && r.weapon.automatic) || input.firePressed) this.shoot(); input.firePressed = false;
@@ -264,7 +293,9 @@ export class RugfireEngine {
   private enemyShot(enemy: EnemyActor) {
     if (this.runtime.mode !== 'active' || enemy.hp <= 0) return;
     const count = enemy.role === 'boss' ? (enemy.hp < ENEMIES.boss.health * .2 ? 5 : 3) : 1;
-    enemy.actor.root.updateMatrixWorld(true); enemy.actor.muzzle.getWorldPosition(this.vectors[0]); enemy.actor.recoil = 1; this.effects.flash(this.vectors[0]); this.audio.shot('enemy');
+    enemy.actor.root.updateMatrixWorld(true); enemy.actor.muzzle.getWorldPosition(this.vectors[0]); enemy.actor.recoil = 1; this.effects.flash(this.vectors[0]);
+    const relative = this.vectors[1].subVectors(enemy.actor.root.position, this.player.root.position);
+    this.audio.shot('enemy', (relative.x * Math.cos(this.yaw) + relative.z * Math.sin(this.yaw)) / 16, relative.length());
     for (let i = 0; i < count; i++) {
       const projectile = this.projectiles[this.projectileCursor++ % this.projectiles.length]; projectile.mesh.position.copy(this.vectors[0]);
       projectile.velocity.subVectors(enemy.target, this.vectors[0]); projectile.velocity.x += (i - (count - 1) / 2) * .7;
@@ -345,6 +376,7 @@ export class RugfireEngine {
       targets.push({ id: e.id, x: (world.x + 1) * 50, y: (1 - world.y) * 50, name: ENEMIES[e.role].name, threat: ENEMIES[e.role].threat, hp: e.hp / ENEMIES[e.role].health, warning: e.warning > 0 });
     }
     return {
+      assetsReady: this.assetsReady, assetsProgress: this.assetsProgress,
       mode: r.mode, stage: r.stage, objective: OBJECTIVES[r.stage], health: Math.ceil(r.health), ammo: r.ammo[r.weaponId].magazine, reserve: r.ammo[r.weaponId].reserve,
       weaponId: r.weaponId, reload: r.reloadLeft ? 1 - r.reloadLeft / (r.weapon.reloadMs / 1000) : 0, dodge: r.dodgeCooldown, hit: r.hitPulse > 0, kill: r.killPulse > 0,
       damage: r.damagePulse, damageAngle: this.damageAngle, aiming: this.input?.aim ?? false, covered: this.nearCover, bearing: ((this.yaw * 180 / Math.PI) % 360 + 360) % 360, time: Math.floor(r.time), kills: r.kills,
@@ -359,9 +391,8 @@ export class RugfireEngine {
   dispose() {
     if (this.disposed) return; this.disposed = true; this.startEpoch++; cancelAnimationFrame(this.animation); this.resize?.disconnect(); this.input?.dispose(); this.audio.dispose();
     this.renderer?.domElement.removeEventListener('webglcontextlost', this.contextLost);
-    const geometries = new Set<T.BufferGeometry>(), materials = new Set<T.Material>();
-    this.scene.traverse(o => { if (o instanceof T.Mesh || o instanceof T.Line) { geometries.add(o.geometry); const list = Array.isArray(o.material) ? o.material : [o.material]; list.forEach(m => materials.add(m)); } });
-    geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); this.world?.textures.forEach(t => t.dispose());
+    disposeActor(this.player); this.enemies.forEach(enemy => disposeActor(enemy.actor));
+    disposeObject(this.scene); this.assets.dispose(); this.world?.textures.forEach(t => t.dispose()); this.scene.environment?.dispose();
     this.renderer?.dispose(); this.renderer?.domElement.remove();
   }
 }

@@ -28,7 +28,7 @@ export function createDistrict(): District {
   const random = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (let i = 0; i < 18000; i++) { const value = 35 + random() * 35; ctx.fillStyle = 'rgb(' + value + ',' + (value + 3) + ',' + (value + 4) + ')'; ctx.fillRect(random() * 256, random() * 256, 1, 1); }
   const roadTexture = new T.CanvasTexture(asphalt); roadTexture.wrapS = roadTexture.wrapT = T.RepeatWrapping; roadTexture.repeat.set(7, 36); textures.push(roadTexture);
-  const road = new T.Mesh(new T.PlaneGeometry(26, 112), new T.MeshStandardMaterial({ map: roadTexture, roughness: .42, metalness: .25 }));
+  const road = new T.Mesh(new T.PlaneGeometry(26, 112), new T.MeshStandardMaterial({ map: roadTexture, roughness: .76, metalness: .08 }));
   road.rotation.x = -Math.PI / 2; road.position.set(0, -.02, -34); road.receiveShadow = true; root.add(road);
   for (const side of [-1, 1]) {
     box(side * 8.3, .05, -32, 5.4, .12, 100, 0x414748);
@@ -65,9 +65,7 @@ export function createDistrict(): District {
   for (let x = -4.5; x < 5; x += 1) box(x, .005, 6, .5, .016, 2.3, 0x96978a);
   const covers = [[-2.5, 2, 2.8], [3.8, -6, 2.4], [-3.8, -15, 2.6], [1, -21, 2.3], [-2.7, -31, 2.5], [3, -43, 2.6], [-4.5, -61, 3], [4.5, -65, 3], [0, -72, 2.2]];
   for (const [x, z, width] of covers) {
-    box(x, .64, z, width, 1.28, .65, 0x626865, true);
-    box(x, .08, z, width + .35, .16, .9, 0x444b4b);
-    for (let i = 0; i < 3; i++) box(x - width / 2 + .3 + i * .65, .8, z + .33, .32, .18, .015, 0xb49156);
+    colliders.push({ box: new T.Box3(new T.Vector3(x - width / 2, 0, z - .325), new T.Vector3(x + width / 2, 1.28, z + .325)), camera: true });
   }
   const car = (x: number, z: number, color: number) => {
     box(x, .55, z, 1.8, .65, 3.9, color, true);
@@ -77,11 +75,9 @@ export function createDistrict(): District {
     box(x, .62, z - 1.98, 1.5, .12, .04, 0xd7cbae, false, true);
     box(x, .6, z + 1.98, 1.4, .12, .04, 0x992d25, false, true);
   };
-  car(-4.7, -5, 0x36494a); car(4.6, -19, 0x584b43); car(-4.6, -44, 0x343f47);
+  for (const [x, z] of [[-4.7, -5], [4.6, -19], [-4.6, -44]]) colliders.push({ box: new T.Box3(new T.Vector3(x - .9, 0, z - 1.95), new T.Vector3(x + .9, 1.41, z + 1.95)), camera: true });
   for (const [x, z] of [[-7, -15], [6.8, -29], [-6.5, -55], [7, -71]]) {
-    box(x, .5, z, 1.1, 1, 1.1, 0x695942, true);
-    box(x, 1.3, z, .85, .65, .85, 0x494c42, true);
-    for (const side of [-1, 1]) box(x + side * .42, .7, z + .56, .07, 1.35, .04, 0x2b302e);
+    colliders.push({ box: new T.Box3(new T.Vector3(x - .55, 0, z - .55), new T.Vector3(x + .55, 1.62, z + .55)), camera: true });
   }
   for (let z = 7; z > -76; z -= 15) for (const side of [-1, 1]) {
     const x = side * 5.9;

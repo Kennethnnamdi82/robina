@@ -29,6 +29,7 @@
     ],
     "useDefineForClassFields": true
   },
+  "exclude": ["src/RUGFIRE_ASSETS"],
   "include": [
     "src"
   ]
