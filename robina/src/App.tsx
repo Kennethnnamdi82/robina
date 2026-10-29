@@ -81,7 +81,7 @@ function ReferralQueryCapture() {
 function AppRoutes() {
   const { isLoggedIn, isAdmin, isAuthLoading } = useAuth();
   const location = useLocation();
-  const showSnapshotBanner = !location.pathname.startsWith("/admin");
+  const showSnapshotBanner = !location.pathname.startsWith("/admin") && location.pathname !== "/gaming";
 
   if (isAuthLoading) return <SessionRestoreScreen />;
 

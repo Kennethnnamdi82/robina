@@ -1,0 +1,3195 @@
+{
+  "name": "RIVALS Ultimate 2D Asset Kit",
+  "version": "1.0",
+  "files": [
+    {
+      "category": "tile",
+      "name": "neon/floor_a",
+      "path": "public/assets/tiles/neon/floor_a.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_b",
+      "path": "public/assets/tiles/neon/floor_b.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_c",
+      "path": "public/assets/tiles/neon/floor_c.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_grate",
+      "path": "public/assets/tiles/neon/floor_grate.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_caution",
+      "path": "public/assets/tiles/neon/floor_caution.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/wall_solid",
+      "path": "public/assets/tiles/neon/wall_solid.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "neon/wall_panel",
+      "path": "public/assets/tiles/neon/wall_panel.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "neon/wall_reinforced",
+      "path": "public/assets/tiles/neon/wall_reinforced.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_circuit",
+      "path": "public/assets/tiles/neon/floor_circuit.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_slats",
+      "path": "public/assets/tiles/neon/floor_slats.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_grid",
+      "path": "public/assets/tiles/neon/floor_grid.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_holo",
+      "path": "public/assets/tiles/neon/floor_holo.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_reactor",
+      "path": "public/assets/tiles/neon/floor_reactor.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "neon/wall_glow",
+      "path": "public/assets/tiles/neon/wall_glow.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "neon/wall_corner",
+      "path": "public/assets/tiles/neon/wall_corner.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "neon/floor_crack",
+      "path": "public/assets/tiles/neon/floor_crack.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tileset",
+      "name": "neon_atlas",
+      "path": "public/assets/tilesets/neon_atlas_4x4.png",
+      "tileWidth": 64,
+      "tileHeight": 64,
+      "columns": 4,
+      "rows": 4
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_a",
+      "path": "public/assets/tiles/phantom/floor_a.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_b",
+      "path": "public/assets/tiles/phantom/floor_b.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_c",
+      "path": "public/assets/tiles/phantom/floor_c.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_grate",
+      "path": "public/assets/tiles/phantom/floor_grate.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_caution",
+      "path": "public/assets/tiles/phantom/floor_caution.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/wall_solid",
+      "path": "public/assets/tiles/phantom/wall_solid.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "phantom/wall_panel",
+      "path": "public/assets/tiles/phantom/wall_panel.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "phantom/wall_reinforced",
+      "path": "public/assets/tiles/phantom/wall_reinforced.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_circuit",
+      "path": "public/assets/tiles/phantom/floor_circuit.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_slats",
+      "path": "public/assets/tiles/phantom/floor_slats.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_grid",
+      "path": "public/assets/tiles/phantom/floor_grid.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_holo",
+      "path": "public/assets/tiles/phantom/floor_holo.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_reactor",
+      "path": "public/assets/tiles/phantom/floor_reactor.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "phantom/wall_glow",
+      "path": "public/assets/tiles/phantom/wall_glow.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "phantom/wall_corner",
+      "path": "public/assets/tiles/phantom/wall_corner.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "phantom/floor_crack",
+      "path": "public/assets/tiles/phantom/floor_crack.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tileset",
+      "name": "phantom_atlas",
+      "path": "public/assets/tilesets/phantom_atlas_4x4.png",
+      "tileWidth": 64,
+      "tileHeight": 64,
+      "columns": 4,
+      "rows": 4
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_a",
+      "path": "public/assets/tiles/reactor/floor_a.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_b",
+      "path": "public/assets/tiles/reactor/floor_b.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_c",
+      "path": "public/assets/tiles/reactor/floor_c.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_grate",
+      "path": "public/assets/tiles/reactor/floor_grate.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_caution",
+      "path": "public/assets/tiles/reactor/floor_caution.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/wall_solid",
+      "path": "public/assets/tiles/reactor/wall_solid.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "reactor/wall_panel",
+      "path": "public/assets/tiles/reactor/wall_panel.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "reactor/wall_reinforced",
+      "path": "public/assets/tiles/reactor/wall_reinforced.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_circuit",
+      "path": "public/assets/tiles/reactor/floor_circuit.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_slats",
+      "path": "public/assets/tiles/reactor/floor_slats.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_grid",
+      "path": "public/assets/tiles/reactor/floor_grid.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_holo",
+      "path": "public/assets/tiles/reactor/floor_holo.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_reactor",
+      "path": "public/assets/tiles/reactor/floor_reactor.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tile",
+      "name": "reactor/wall_glow",
+      "path": "public/assets/tiles/reactor/wall_glow.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "reactor/wall_corner",
+      "path": "public/assets/tiles/reactor/wall_corner.png",
+      "w": 64,
+      "h": 64,
+      "collision": true
+    },
+    {
+      "category": "tile",
+      "name": "reactor/floor_crack",
+      "path": "public/assets/tiles/reactor/floor_crack.png",
+      "w": 64,
+      "h": 64,
+      "collision": false
+    },
+    {
+      "category": "tileset",
+      "name": "reactor_atlas",
+      "path": "public/assets/tilesets/reactor_atlas_4x4.png",
+      "tileWidth": 64,
+      "tileHeight": 64,
+      "columns": 4,
+      "rows": 4
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/base/idle",
+      "path": "public/assets/characters/vex_base_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/base/walk",
+      "path": "public/assets/characters/vex_base_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/base/dash",
+      "path": "public/assets/characters/vex_base_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/base/attack",
+      "path": "public/assets/characters/vex_base_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/base/hurt",
+      "path": "public/assets/characters/vex_base_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/base/down",
+      "path": "public/assets/characters/vex_base_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "vex/base",
+      "path": "public/assets/characters/vex_base_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/shadow/idle",
+      "path": "public/assets/characters/vex_shadow_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/shadow/walk",
+      "path": "public/assets/characters/vex_shadow_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/shadow/dash",
+      "path": "public/assets/characters/vex_shadow_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/shadow/attack",
+      "path": "public/assets/characters/vex_shadow_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/shadow/hurt",
+      "path": "public/assets/characters/vex_shadow_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/shadow/down",
+      "path": "public/assets/characters/vex_shadow_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "vex/shadow",
+      "path": "public/assets/characters/vex_shadow_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/solar/idle",
+      "path": "public/assets/characters/vex_solar_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/solar/walk",
+      "path": "public/assets/characters/vex_solar_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/solar/dash",
+      "path": "public/assets/characters/vex_solar_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/solar/attack",
+      "path": "public/assets/characters/vex_solar_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/solar/hurt",
+      "path": "public/assets/characters/vex_solar_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "vex/solar/down",
+      "path": "public/assets/characters/vex_solar_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "vex/solar",
+      "path": "public/assets/characters/vex_solar_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/base/idle",
+      "path": "public/assets/characters/nyx_base_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/base/walk",
+      "path": "public/assets/characters/nyx_base_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/base/dash",
+      "path": "public/assets/characters/nyx_base_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/base/attack",
+      "path": "public/assets/characters/nyx_base_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/base/hurt",
+      "path": "public/assets/characters/nyx_base_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/base/down",
+      "path": "public/assets/characters/nyx_base_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "nyx/base",
+      "path": "public/assets/characters/nyx_base_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/shadow/idle",
+      "path": "public/assets/characters/nyx_shadow_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/shadow/walk",
+      "path": "public/assets/characters/nyx_shadow_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/shadow/dash",
+      "path": "public/assets/characters/nyx_shadow_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/shadow/attack",
+      "path": "public/assets/characters/nyx_shadow_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/shadow/hurt",
+      "path": "public/assets/characters/nyx_shadow_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/shadow/down",
+      "path": "public/assets/characters/nyx_shadow_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "nyx/shadow",
+      "path": "public/assets/characters/nyx_shadow_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/solar/idle",
+      "path": "public/assets/characters/nyx_solar_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/solar/walk",
+      "path": "public/assets/characters/nyx_solar_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/solar/dash",
+      "path": "public/assets/characters/nyx_solar_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/solar/attack",
+      "path": "public/assets/characters/nyx_solar_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/solar/hurt",
+      "path": "public/assets/characters/nyx_solar_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "nyx/solar/down",
+      "path": "public/assets/characters/nyx_solar_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "nyx/solar",
+      "path": "public/assets/characters/nyx_solar_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/base/idle",
+      "path": "public/assets/characters/rook_base_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/base/walk",
+      "path": "public/assets/characters/rook_base_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/base/dash",
+      "path": "public/assets/characters/rook_base_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/base/attack",
+      "path": "public/assets/characters/rook_base_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/base/hurt",
+      "path": "public/assets/characters/rook_base_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/base/down",
+      "path": "public/assets/characters/rook_base_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "rook/base",
+      "path": "public/assets/characters/rook_base_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/shadow/idle",
+      "path": "public/assets/characters/rook_shadow_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/shadow/walk",
+      "path": "public/assets/characters/rook_shadow_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/shadow/dash",
+      "path": "public/assets/characters/rook_shadow_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/shadow/attack",
+      "path": "public/assets/characters/rook_shadow_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/shadow/hurt",
+      "path": "public/assets/characters/rook_shadow_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/shadow/down",
+      "path": "public/assets/characters/rook_shadow_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "rook/shadow",
+      "path": "public/assets/characters/rook_shadow_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/solar/idle",
+      "path": "public/assets/characters/rook_solar_idle_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/solar/walk",
+      "path": "public/assets/characters/rook_solar_walk_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/solar/dash",
+      "path": "public/assets/characters/rook_solar_dash_4x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 4,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/solar/attack",
+      "path": "public/assets/characters/rook_solar_attack_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": true
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/solar/hurt",
+      "path": "public/assets/characters/rook_solar_hurt_3x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 3,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "character_animation",
+      "name": "rook/solar/down",
+      "path": "public/assets/characters/rook_solar_down_6x4.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "fps": 5,
+      "loop": false
+    },
+    {
+      "category": "portrait",
+      "name": "rook/solar",
+      "path": "public/assets/characters/rook_solar_portrait.png",
+      "w": 96,
+      "h": 96
+    },
+    {
+      "category": "enemy_animation",
+      "name": "drone/idle",
+      "path": "public/assets/enemies/drone_idle_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "drone/alert",
+      "path": "public/assets/enemies/drone_alert_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "drone/attack",
+      "path": "public/assets/enemies/drone_attack_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "drone/destroy",
+      "path": "public/assets/enemies/drone_destroy_6x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 6
+    },
+    {
+      "category": "enemy_animation",
+      "name": "sentinel/idle",
+      "path": "public/assets/enemies/sentinel_idle_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "sentinel/alert",
+      "path": "public/assets/enemies/sentinel_alert_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "sentinel/attack",
+      "path": "public/assets/enemies/sentinel_attack_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "sentinel/destroy",
+      "path": "public/assets/enemies/sentinel_destroy_6x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 6
+    },
+    {
+      "category": "enemy_animation",
+      "name": "spider/idle",
+      "path": "public/assets/enemies/spider_idle_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "spider/alert",
+      "path": "public/assets/enemies/spider_alert_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "spider/attack",
+      "path": "public/assets/enemies/spider_attack_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "spider/destroy",
+      "path": "public/assets/enemies/spider_destroy_6x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 6
+    },
+    {
+      "category": "enemy_animation",
+      "name": "turret/idle",
+      "path": "public/assets/enemies/turret_idle_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "turret/alert",
+      "path": "public/assets/enemies/turret_alert_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "turret/attack",
+      "path": "public/assets/enemies/turret_attack_4x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 4
+    },
+    {
+      "category": "enemy_animation",
+      "name": "turret/destroy",
+      "path": "public/assets/enemies/turret_destroy_6x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "guardian/idle",
+      "path": "public/assets/bosses/guardian_idle_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "guardian/attack",
+      "path": "public/assets/bosses/guardian_attack_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "guardian/defeat",
+      "path": "public/assets/bosses/guardian_defeat_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "wraith/idle",
+      "path": "public/assets/bosses/wraith_idle_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "wraith/attack",
+      "path": "public/assets/bosses/wraith_attack_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "wraith/defeat",
+      "path": "public/assets/bosses/wraith_defeat_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "reactor_behemoth/idle",
+      "path": "public/assets/bosses/reactor_behemoth_idle_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "reactor_behemoth/attack",
+      "path": "public/assets/bosses/reactor_behemoth_attack_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "boss_animation",
+      "name": "reactor_behemoth/defeat",
+      "path": "public/assets/bosses/reactor_behemoth_defeat_6x1.png",
+      "frameWidth": 192,
+      "frameHeight": 192,
+      "frames": 6
+    },
+    {
+      "category": "prop",
+      "name": "entrance_door",
+      "path": "public/assets/props/entrance_door.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "vault_door",
+      "path": "public/assets/props/vault_door.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "vault_core",
+      "path": "public/assets/props/vault_core.png",
+      "w": 96,
+      "h": 96,
+      "interaction": true,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "terminal_off",
+      "path": "public/assets/props/terminal_off.png",
+      "w": 96,
+      "h": 96,
+      "interaction": true,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "terminal_on",
+      "path": "public/assets/props/terminal_on.png",
+      "w": 96,
+      "h": 96,
+      "interaction": true,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "laser_emitter",
+      "path": "public/assets/props/laser_emitter.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "laser_receiver",
+      "path": "public/assets/props/laser_receiver.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "turret_pedestal",
+      "path": "public/assets/props/turret_pedestal.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "crate",
+      "path": "public/assets/props/crate.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": true
+    },
+    {
+      "category": "prop",
+      "name": "storage_box",
+      "path": "public/assets/props/storage_box.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": true
+    },
+    {
+      "category": "prop",
+      "name": "cover_block",
+      "path": "public/assets/props/cover_block.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": true
+    },
+    {
+      "category": "prop",
+      "name": "barrier",
+      "path": "public/assets/props/barrier.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": true
+    },
+    {
+      "category": "prop",
+      "name": "heal_station",
+      "path": "public/assets/props/heal_station.png",
+      "w": 96,
+      "h": 96,
+      "interaction": true,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "checkpoint",
+      "path": "public/assets/props/checkpoint.png",
+      "w": 96,
+      "h": 96,
+      "interaction": true,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "extraction_portal",
+      "path": "public/assets/props/extraction_portal.png",
+      "w": 96,
+      "h": 96,
+      "interaction": true,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "floor_switch",
+      "path": "public/assets/props/floor_switch.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "security_camera",
+      "path": "public/assets/props/security_camera.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "data_console",
+      "path": "public/assets/props/data_console.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "keycard_blue",
+      "path": "public/assets/props/keycard_blue.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "keycard_red",
+      "path": "public/assets/props/keycard_red.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "energy_cell",
+      "path": "public/assets/props/energy_cell.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "loot_chest",
+      "path": "public/assets/props/loot_chest.png",
+      "w": 96,
+      "h": 96,
+      "interaction": true,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "warning_beacon",
+      "path": "public/assets/props/warning_beacon.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "hologram",
+      "path": "public/assets/props/hologram.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "floor_trap",
+      "path": "public/assets/props/floor_trap.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "pressure_plate",
+      "path": "public/assets/props/pressure_plate.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "power_generator",
+      "path": "public/assets/props/power_generator.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": true
+    },
+    {
+      "category": "prop",
+      "name": "light_column",
+      "path": "public/assets/props/light_column.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "teleporter",
+      "path": "public/assets/props/teleporter.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "sensor",
+      "path": "public/assets/props/sensor.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "decor_banner",
+      "path": "public/assets/props/decor_banner.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "crew_flag",
+      "path": "public/assets/props/crew_flag.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "forge_table",
+      "path": "public/assets/props/forge_table.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "nft_relic",
+      "path": "public/assets/props/nft_relic.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "laser_gate",
+      "path": "public/assets/props/laser_gate.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "prop",
+      "name": "ammo_pickup",
+      "path": "public/assets/props/ammo_pickup.png",
+      "w": 96,
+      "h": 96,
+      "interaction": false,
+      "solid": false
+    },
+    {
+      "category": "vfx_animation",
+      "name": "slash",
+      "path": "public/assets/vfx/slash_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "muzzle",
+      "path": "public/assets/vfx/muzzle_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "explosion",
+      "path": "public/assets/vfx/explosion_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "spark",
+      "path": "public/assets/vfx/spark_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "dash_trail",
+      "path": "public/assets/vfx/dash_trail_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "shield_hit",
+      "path": "public/assets/vfx/shield_hit_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "laser_beam",
+      "path": "public/assets/vfx/laser_beam_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "terminal_hack",
+      "path": "public/assets/vfx/terminal_hack_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "teleport",
+      "path": "public/assets/vfx/teleport_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "heal",
+      "path": "public/assets/vfx/heal_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "collect",
+      "path": "public/assets/vfx/collect_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "boss_charge",
+      "path": "public/assets/vfx/boss_charge_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "alert",
+      "path": "public/assets/vfx/alert_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "smoke",
+      "path": "public/assets/vfx/smoke_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "level_up",
+      "path": "public/assets/vfx/level_up_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "vfx_animation",
+      "name": "vault_unlock",
+      "path": "public/assets/vfx/vault_unlock_8x1.png",
+      "frameWidth": 96,
+      "frameHeight": 96,
+      "frames": 8,
+      "fps": 16
+    },
+    {
+      "category": "ui_icon",
+      "name": "play",
+      "path": "public/assets/ui/icons/play.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "raid",
+      "path": "public/assets/ui/icons/raid.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "defend",
+      "path": "public/assets/ui/icons/defend.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "duel",
+      "path": "public/assets/ui/icons/duel.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "boss",
+      "path": "public/assets/ui/icons/boss.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "mine",
+      "path": "public/assets/ui/icons/mine.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "nft",
+      "path": "public/assets/ui/icons/nft.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "forge",
+      "path": "public/assets/ui/icons/forge.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "crew",
+      "path": "public/assets/ui/icons/crew.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "events",
+      "path": "public/assets/ui/icons/events.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "season",
+      "path": "public/assets/ui/icons/season.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "map",
+      "path": "public/assets/ui/icons/map.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "leaderboard",
+      "path": "public/assets/ui/icons/leaderboard.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "profile",
+      "path": "public/assets/ui/icons/profile.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "settings",
+      "path": "public/assets/ui/icons/settings.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "back",
+      "path": "public/assets/ui/icons/back.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "pause",
+      "path": "public/assets/ui/icons/pause.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "resume",
+      "path": "public/assets/ui/icons/resume.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "sound",
+      "path": "public/assets/ui/icons/sound.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "mute",
+      "path": "public/assets/ui/icons/mute.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "heart",
+      "path": "public/assets/ui/icons/heart.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "shield",
+      "path": "public/assets/ui/icons/shield.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "timer",
+      "path": "public/assets/ui/icons/timer.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "energy",
+      "path": "public/assets/ui/icons/energy.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "xp",
+      "path": "public/assets/ui/icons/xp.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "shard",
+      "path": "public/assets/ui/icons/shard.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "key",
+      "path": "public/assets/ui/icons/key.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "vault",
+      "path": "public/assets/ui/icons/vault.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "terminal",
+      "path": "public/assets/ui/icons/terminal.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "dash",
+      "path": "public/assets/ui/icons/dash.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "attack",
+      "path": "public/assets/ui/icons/attack.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "interact",
+      "path": "public/assets/ui/icons/interact.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "inventory",
+      "path": "public/assets/ui/icons/inventory.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "wallet",
+      "path": "public/assets/ui/icons/wallet.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "market",
+      "path": "public/assets/ui/icons/market.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "check",
+      "path": "public/assets/ui/icons/check.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "lock",
+      "path": "public/assets/ui/icons/lock.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "warning",
+      "path": "public/assets/ui/icons/warning.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "close",
+      "path": "public/assets/ui/icons/close.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "star",
+      "path": "public/assets/ui/icons/star.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "trophy",
+      "path": "public/assets/ui/icons/trophy.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "crosshair",
+      "path": "public/assets/ui/icons/crosshair.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "quest",
+      "path": "public/assets/ui/icons/quest.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "gift",
+      "path": "public/assets/ui/icons/gift.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "share",
+      "path": "public/assets/ui/icons/share.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "ghost",
+      "path": "public/assets/ui/icons/ghost.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "edit",
+      "path": "public/assets/ui/icons/edit.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "test",
+      "path": "public/assets/ui/icons/test.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "publish",
+      "path": "public/assets/ui/icons/publish.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "camera",
+      "path": "public/assets/ui/icons/camera.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_icon",
+      "name": "info",
+      "path": "public/assets/ui/icons/info.png",
+      "w": 64,
+      "h": 64
+    },
+    {
+      "category": "ui_chrome",
+      "name": "default/button",
+      "path": "public/assets/ui/chrome/default_button.png",
+      "w": 320,
+      "h": 72
+    },
+    {
+      "category": "ui_chrome",
+      "name": "default/panel",
+      "path": "public/assets/ui/chrome/default_panel.png",
+      "w": 480,
+      "h": 240
+    },
+    {
+      "category": "ui_chrome",
+      "name": "default/badge",
+      "path": "public/assets/ui/chrome/default_badge.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "ui_chrome",
+      "name": "default/notification",
+      "path": "public/assets/ui/chrome/default_notification.png",
+      "w": 580,
+      "h": 100
+    },
+    {
+      "category": "ui_chrome",
+      "name": "premium/button",
+      "path": "public/assets/ui/chrome/premium_button.png",
+      "w": 320,
+      "h": 72
+    },
+    {
+      "category": "ui_chrome",
+      "name": "premium/panel",
+      "path": "public/assets/ui/chrome/premium_panel.png",
+      "w": 480,
+      "h": 240
+    },
+    {
+      "category": "ui_chrome",
+      "name": "premium/badge",
+      "path": "public/assets/ui/chrome/premium_badge.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "ui_chrome",
+      "name": "premium/notification",
+      "path": "public/assets/ui/chrome/premium_notification.png",
+      "w": 580,
+      "h": 100
+    },
+    {
+      "category": "ui_chrome",
+      "name": "danger/button",
+      "path": "public/assets/ui/chrome/danger_button.png",
+      "w": 320,
+      "h": 72
+    },
+    {
+      "category": "ui_chrome",
+      "name": "danger/panel",
+      "path": "public/assets/ui/chrome/danger_panel.png",
+      "w": 480,
+      "h": 240
+    },
+    {
+      "category": "ui_chrome",
+      "name": "danger/badge",
+      "path": "public/assets/ui/chrome/danger_badge.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "ui_chrome",
+      "name": "danger/notification",
+      "path": "public/assets/ui/chrome/danger_notification.png",
+      "w": 580,
+      "h": 100
+    },
+    {
+      "category": "ui_chrome",
+      "name": "guild/button",
+      "path": "public/assets/ui/chrome/guild_button.png",
+      "w": 320,
+      "h": 72
+    },
+    {
+      "category": "ui_chrome",
+      "name": "guild/panel",
+      "path": "public/assets/ui/chrome/guild_panel.png",
+      "w": 480,
+      "h": 240
+    },
+    {
+      "category": "ui_chrome",
+      "name": "guild/badge",
+      "path": "public/assets/ui/chrome/guild_badge.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "ui_chrome",
+      "name": "guild/notification",
+      "path": "public/assets/ui/chrome/guild_notification.png",
+      "w": 580,
+      "h": 100
+    },
+    {
+      "category": "ui_hud",
+      "name": "joystick_base",
+      "path": "public/assets/ui/hud/joystick_base.png",
+      "w": 160,
+      "h": 160
+    },
+    {
+      "category": "ui_hud",
+      "name": "joystick_knob",
+      "path": "public/assets/ui/hud/joystick_knob.png",
+      "w": 160,
+      "h": 160
+    },
+    {
+      "category": "ui_hud",
+      "name": "action_button",
+      "path": "public/assets/ui/hud/action_button.png",
+      "w": 100,
+      "h": 100
+    },
+    {
+      "category": "ui_hud",
+      "name": "minimap_frame",
+      "path": "public/assets/ui/hud/minimap_frame.png",
+      "w": 340,
+      "h": 140
+    },
+    {
+      "category": "ui_hud",
+      "name": "health_bar_bg",
+      "path": "public/assets/ui/hud/health_bar_bg.png",
+      "w": 280,
+      "h": 50
+    },
+    {
+      "category": "ui_hud",
+      "name": "health_bar_fill",
+      "path": "public/assets/ui/hud/health_bar_fill.png",
+      "w": 280,
+      "h": 50
+    },
+    {
+      "category": "ui_hud",
+      "name": "xp_bar",
+      "path": "public/assets/ui/hud/xp_bar.png",
+      "w": 280,
+      "h": 50
+    },
+    {
+      "category": "ui_hud",
+      "name": "objective_panel",
+      "path": "public/assets/ui/hud/objective_panel.png",
+      "w": 340,
+      "h": 140
+    },
+    {
+      "category": "nft_art",
+      "name": "SHADOW VEX",
+      "path": "public/assets/nft/cards/shadow_vex.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "COMMON",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "NEON NYX",
+      "path": "public/assets/nft/cards/neon_nyx.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "RARE",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "SOLAR ROOK",
+      "path": "public/assets/nft/cards/solar_rook.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "EPIC",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "PHANTOM VAULT",
+      "path": "public/assets/nft/cards/phantom_vault.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "COMMON",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "GUARDIAN CORE",
+      "path": "public/assets/nft/cards/guardian_core.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "RARE",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "GENESIS BADGE",
+      "path": "public/assets/nft/cards/genesis_badge.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "EPIC",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "CRIMSON SENTRY",
+      "path": "public/assets/nft/cards/crimson_sentry.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "COMMON",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "ECHO RELIC",
+      "path": "public/assets/nft/cards/echo_relic.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "RARE",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "nft_art",
+      "name": "VOID EMBLEM",
+      "path": "public/assets/nft/cards/void_emblem.png",
+      "w": 350,
+      "h": 490,
+      "rarity": "EPIC",
+      "utility": "cosmetic or commemorative; no investment return"
+    },
+    {
+      "category": "audio_sfx",
+      "name": "ui_hover",
+      "path": "public/assets/audio/sfx/ui_hover.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "ui_click",
+      "path": "public/assets/audio/sfx/ui_click.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "ui_confirm",
+      "path": "public/assets/audio/sfx/ui_confirm.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_sfx",
+      "name": "ui_back",
+      "path": "public/assets/audio/sfx/ui_back.wav",
+      "duration": 0.37
+    },
+    {
+      "category": "audio_sfx",
+      "name": "ui_error",
+      "path": "public/assets/audio/sfx/ui_error.wav",
+      "duration": 0.44
+    },
+    {
+      "category": "audio_sfx",
+      "name": "player_step",
+      "path": "public/assets/audio/sfx/player_step.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "player_dash",
+      "path": "public/assets/audio/sfx/player_dash.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "player_swing",
+      "path": "public/assets/audio/sfx/player_swing.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_sfx",
+      "name": "player_hit",
+      "path": "public/assets/audio/sfx/player_hit.wav",
+      "duration": 0.37
+    },
+    {
+      "category": "audio_sfx",
+      "name": "player_death",
+      "path": "public/assets/audio/sfx/player_death.wav",
+      "duration": 0.44
+    },
+    {
+      "category": "audio_sfx",
+      "name": "drone_alert",
+      "path": "public/assets/audio/sfx/drone_alert.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "drone_fire",
+      "path": "public/assets/audio/sfx/drone_fire.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "turret_fire",
+      "path": "public/assets/audio/sfx/turret_fire.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_sfx",
+      "name": "laser_on",
+      "path": "public/assets/audio/sfx/laser_on.wav",
+      "duration": 0.37
+    },
+    {
+      "category": "audio_sfx",
+      "name": "laser_hit",
+      "path": "public/assets/audio/sfx/laser_hit.wav",
+      "duration": 0.44
+    },
+    {
+      "category": "audio_sfx",
+      "name": "terminal_start",
+      "path": "public/assets/audio/sfx/terminal_start.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "terminal_success",
+      "path": "public/assets/audio/sfx/terminal_success.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "terminal_fail",
+      "path": "public/assets/audio/sfx/terminal_fail.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_sfx",
+      "name": "core_pickup",
+      "path": "public/assets/audio/sfx/core_pickup.wav",
+      "duration": 0.37
+    },
+    {
+      "category": "audio_sfx",
+      "name": "shard_pickup",
+      "path": "public/assets/audio/sfx/shard_pickup.wav",
+      "duration": 0.44
+    },
+    {
+      "category": "audio_sfx",
+      "name": "keycard_pickup",
+      "path": "public/assets/audio/sfx/keycard_pickup.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "vault_open",
+      "path": "public/assets/audio/sfx/vault_open.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "portal_open",
+      "path": "public/assets/audio/sfx/portal_open.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_sfx",
+      "name": "extract_success",
+      "path": "public/assets/audio/sfx/extract_success.wav",
+      "duration": 0.37
+    },
+    {
+      "category": "audio_sfx",
+      "name": "mission_fail",
+      "path": "public/assets/audio/sfx/mission_fail.wav",
+      "duration": 0.44
+    },
+    {
+      "category": "audio_sfx",
+      "name": "victory",
+      "path": "public/assets/audio/sfx/victory.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "boss_roar",
+      "path": "public/assets/audio/sfx/boss_roar.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "boss_attack",
+      "path": "public/assets/audio/sfx/boss_attack.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_sfx",
+      "name": "boss_defeat",
+      "path": "public/assets/audio/sfx/boss_defeat.wav",
+      "duration": 0.37
+    },
+    {
+      "category": "audio_sfx",
+      "name": "rank_up",
+      "path": "public/assets/audio/sfx/rank_up.wav",
+      "duration": 0.44
+    },
+    {
+      "category": "audio_sfx",
+      "name": "craft_complete",
+      "path": "public/assets/audio/sfx/craft_complete.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "nft_mint",
+      "path": "public/assets/audio/sfx/nft_mint.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "coin_purchase",
+      "path": "public/assets/audio/sfx/coin_purchase.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_sfx",
+      "name": "vault_publish",
+      "path": "public/assets/audio/sfx/vault_publish.wav",
+      "duration": 0.37
+    },
+    {
+      "category": "audio_sfx",
+      "name": "warning",
+      "path": "public/assets/audio/sfx/warning.wav",
+      "duration": 0.44
+    },
+    {
+      "category": "audio_sfx",
+      "name": "countdown",
+      "path": "public/assets/audio/sfx/countdown.wav",
+      "duration": 0.16
+    },
+    {
+      "category": "audio_sfx",
+      "name": "shield",
+      "path": "public/assets/audio/sfx/shield.wav",
+      "duration": 0.23
+    },
+    {
+      "category": "audio_sfx",
+      "name": "heal",
+      "path": "public/assets/audio/sfx/heal.wav",
+      "duration": 0.3
+    },
+    {
+      "category": "audio_music",
+      "name": "neon_ambient",
+      "path": "public/assets/audio/music/neon_ambient.wav",
+      "duration": 6.0,
+      "loop": true
+    },
+    {
+      "category": "audio_music",
+      "name": "phantom_ambient",
+      "path": "public/assets/audio/music/phantom_ambient.wav",
+      "duration": 6.0,
+      "loop": true
+    },
+    {
+      "category": "audio_music",
+      "name": "reactor_ambient",
+      "path": "public/assets/audio/music/reactor_ambient.wav",
+      "duration": 6.0,
+      "loop": true
+    },
+    {
+      "category": "tiled_map",
+      "name": "training_vault",
+      "path": "public/assets/maps/training_vault.json",
+      "width": 32,
+      "height": 20,
+      "tileWidth": 64,
+      "zone": "neon",
+      "difficulty": 1
+    },
+    {
+      "category": "tiled_map",
+      "name": "neon_district",
+      "path": "public/assets/maps/neon_district.json",
+      "width": 32,
+      "height": 20,
+      "tileWidth": 64,
+      "zone": "neon",
+      "difficulty": 2
+    },
+    {
+      "category": "tiled_map",
+      "name": "phantom_fortress",
+      "path": "public/assets/maps/phantom_fortress.json",
+      "width": 32,
+      "height": 20,
+      "tileWidth": 64,
+      "zone": "phantom",
+      "difficulty": 3
+    },
+    {
+      "category": "tiled_map",
+      "name": "reactor_siege",
+      "path": "public/assets/maps/reactor_siege.json",
+      "width": 32,
+      "height": 20,
+      "tileWidth": 64,
+      "zone": "reactor",
+      "difficulty": 4
+    },
+    {
+      "category": "weapon",
+      "name": "neon_blade",
+      "path": "public/assets/weapons/neon_blade.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "phantom_blade",
+      "path": "public/assets/weapons/phantom_blade.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "solar_blade",
+      "path": "public/assets/weapons/solar_blade.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "plasma_pistol",
+      "path": "public/assets/weapons/plasma_pistol.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "crimson_pistol",
+      "path": "public/assets/weapons/crimson_pistol.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "pulse_rifle",
+      "path": "public/assets/weapons/pulse_rifle.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "rail_rifle",
+      "path": "public/assets/weapons/rail_rifle.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "arc_bow",
+      "path": "public/assets/weapons/arc_bow.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "ion_staff",
+      "path": "public/assets/weapons/ion_staff.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "energy_shield",
+      "path": "public/assets/weapons/energy_shield.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "pulse_grenade",
+      "path": "public/assets/weapons/pulse_grenade.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "data_hacker",
+      "path": "public/assets/weapons/data_hacker.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "med_patch",
+      "path": "public/assets/weapons/med_patch.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "weapon",
+      "name": "reactor_wrench",
+      "path": "public/assets/weapons/reactor_wrench.png",
+      "w": 144,
+      "h": 144
+    },
+    {
+      "category": "parallax_background",
+      "name": "neon/far",
+      "path": "public/assets/backdrops/neon_far_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "neon/mid",
+      "path": "public/assets/backdrops/neon_mid_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "neon/near",
+      "path": "public/assets/backdrops/neon_near_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "phantom/far",
+      "path": "public/assets/backdrops/phantom_far_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "phantom/mid",
+      "path": "public/assets/backdrops/phantom_mid_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "phantom/near",
+      "path": "public/assets/backdrops/phantom_near_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "reactor/far",
+      "path": "public/assets/backdrops/reactor_far_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "reactor/mid",
+      "path": "public/assets/backdrops/reactor_mid_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "parallax_background",
+      "name": "reactor/near",
+      "path": "public/assets/backdrops/reactor_near_1280x720.png",
+      "w": 1280,
+      "h": 720,
+      "use": "menu/background; not orthogonal tilemap texture"
+    },
+    {
+      "category": "projectile_animation",
+      "name": "cyan_bolt",
+      "path": "public/assets/particles/cyan_bolt_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    },
+    {
+      "category": "projectile_animation",
+      "name": "pink_bolt",
+      "path": "public/assets/particles/pink_bolt_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    },
+    {
+      "category": "projectile_animation",
+      "name": "red_bolt",
+      "path": "public/assets/particles/red_bolt_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    },
+    {
+      "category": "projectile_animation",
+      "name": "amber_bolt",
+      "path": "public/assets/particles/amber_bolt_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    },
+    {
+      "category": "projectile_animation",
+      "name": "green_orb",
+      "path": "public/assets/particles/green_orb_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    },
+    {
+      "category": "projectile_animation",
+      "name": "spark_pickup",
+      "path": "public/assets/particles/spark_pickup_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    },
+    {
+      "category": "projectile_animation",
+      "name": "shield_wave",
+      "path": "public/assets/particles/shield_wave_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    },
+    {
+      "category": "projectile_animation",
+      "name": "projectile_impact",
+      "path": "public/assets/particles/projectile_impact_8x1.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "frames": 8
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+/* RIVALS owns its visual scope. The website theme and legacy screens are untouched. */
+.rivals-shell {
+  --rv-bg: #070a12; --rv-panel: #0d121e; --rv-border: #253044;
+  --rv-text: #e9edf6; --rv-muted: #8d9bb2; --rv-cyan: #6adcf2; --rv-gold: #ffd05b;
+  min-height: 100svh; padding: 0 28px 100px; color: var(--rv-text);
+  background: radial-gradient(ellipse at 65% 30%, #14223b55, transparent 60%), var(--rv-bg);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.rivals-shell *, .rivals-guide * { box-sizing: border-box; }
+.rivals-shell button, .rivals-guide button { font: inherit; cursor: pointer; }
+.rivals-shell button:disabled { cursor: default; opacity: .45; }
+.rivals-shell button:focus-visible, .rivals-shell a:focus-visible, .rivals-guide button:focus-visible { outline: 2px solid #7ce6ff; outline-offset: 4px; }
+.rivals-shell h1, .rivals-shell h2, .rivals-shell h3, .rivals-shell p { margin: 0; }
+.rivals-lobby { max-width: 1440px; margin: 0 auto; }
+.rivals-topbar { height: 91px; display: flex; align-items: center; gap: 40px; border-bottom: 1px solid #293347; }
+.rivals-brand { display: flex; gap: 12px; align-items: center; }
+.rivals-crest { display: grid; place-items: center; width: 43px; height: 49px; color: #f7dd98; border: 1px solid #77643c; background: linear-gradient(160deg,#2e2d27,#11151e); clip-path: polygon(50% 0,100% 15%,92% 76%,50% 100%,8% 76%,0 15%); }
+.rivals-brand strong { display: block; font-size: 29px; font-weight: 900; font-style: italic; letter-spacing: -.06em; line-height: 1; }
+.rivals-brand div > span { display: block; font-size: 8px; letter-spacing: .39em; margin: 7px 0 0 3px; color: #a8b4c9; }
+.rivals-topnav { display: flex; align-self: stretch; align-items: stretch; gap: 32px; margin-left: 25px; }
+.rivals-topnav > * { display: flex; align-items: center; gap: 9px; border: 0; background: none; color: #8d9bb2; font-size: 12px; font-weight: 600; padding: 2px 0 0; }
+.rivals-topnav .rivals-active-tab { color: #f5ddb0; border-bottom: 2px solid #e6bd65; }
+.rivals-topnav button:hover { color: #fff; }
+.rivals-system-status { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #899db0; font-size: 9px; letter-spacing: .12em; }
+.rivals-system-status i, .rivals-readiness > i, .rivals-entry-note > i, .rivals-lobby-footer i { width: 5px; height: 5px; display: inline-block; background: #70dfa9; border-radius: 100%; box-shadow: 0 0 10px #70dfa955; }
+.rivals-icon-button { min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #354158; border-radius: 6px; color: #b9c5d8; background: #101827d9; text-decoration: none; }
+.rivals-icon-button:hover { border-color: #7892ae; color: #fff; background: #1a2638; }
+.rivals-overline { font-size: 9px; font-weight: 600; letter-spacing: .18em; color: #82adca; line-height: 1.5; }
+.rivals-lobby-heading { display: flex; justify-content: space-between; align-items: end; padding: 33px 0 25px; }
+.rivals-lobby-heading h1 { font-size: clamp(26px, 2.6vw, 39px); margin-top: 6px; letter-spacing: -.055em; font-weight: 600; }
+.rivals-lobby-heading h1 em { font-weight: 500; color: #e6c483; font-style: normal; }
+.rivals-build-label { margin-bottom: 5px; color: #67798f; font-size: 8px; letter-spacing: .17em; }
+.rivals-lobby-grid { display: grid; grid-template-columns: 248px minmax(0,1fr); gap: 18px; }
+.rivals-operative-panel { border: 1px solid #263145; border-radius: 8px; background: linear-gradient(160deg, #141d2bbf, #0b101a); padding: 21px 19px 0; overflow: hidden; }
+.rivals-profile { display: flex; align-items: center; gap: 13px; padding-bottom: 22px; }
+.rivals-profile img { height: 55px; width: 55px; object-fit: cover; border: 1px solid #806937; border-radius: 5px; background: #17203a; }
+.rivals-profile .rivals-overline { font-size: 7px; color: #7187a3; }
+.rivals-profile h2 { font-size: 24px; font-weight: 800; letter-spacing: .04em; line-height: 1.3; }
+.rivals-profile div > span:last-child { font-size: 10px; color: #a1aabf; }
+.rivals-readiness { display: flex; align-items: center; gap: 10px; padding: 16px 0; border-top: 1px solid #273246; border-bottom: 1px solid #273246; }
+.rivals-readiness > svg { color: #d2af64; }
+.rivals-readiness div > span { display: block; font-size: 7px; letter-spacing: .13em; color: #7d8ba2; }
+.rivals-readiness strong { display: block; font-size: 10px; margin-top: 5px; font-weight: 500; }
+.rivals-readiness > i { margin-left: auto; }
+.rivals-panel-section { padding: 22px 0 19px; }
+.rivals-panel-section .rivals-overline { font-size: 7px; }
+.rivals-panel-section h3 { margin-top: 8px; font-size: 16px; font-weight: 600; letter-spacing: -.035em; }
+.rivals-panel-section p { color: #8e9ab0; font-size: 11px; line-height: 1.8; margin-top: 8px; }
+.rivals-briefing-list { padding: 0; margin: 0; list-style: none; display: grid; gap: 18px; }
+.rivals-briefing-list li { display: flex; align-items: center; gap: 12px; }
+.rivals-briefing-list b { font-size: 9px; width: 27px; height: 28px; display: grid; place-items: center; color: #7d8dff; border: 1px solid #384064; border-radius: 4px; background: #20233b; font-family: monospace; }
+.rivals-briefing-list strong { display: block; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+.rivals-briefing-list li span { display: block; color: #7f8da3; font-size: 9px; }
+.rivals-input-note { display: flex; align-items: center; gap: 10px; margin: 24px -19px 0; padding: 18px 19px; border-top: 1px solid #263145; color: #7a8da7; background: #090f19; }
+.rivals-input-note > span { font-size: 7px; letter-spacing: .1em; }.rivals-input-note strong { display: block; margin-top: 5px; color: #a8b4c9; font-size: 9px; letter-spacing: 0; font-weight: 400; }
+.rivals-operation { display: grid; grid-template-columns: minmax(220px, .9fr) minmax(320px,1fr); min-height: 530px; border: 1px solid #354059; border-radius: 8px; overflow: hidden; background: #0b1221; position: relative; }
+.rivals-operative-stage { position: relative; isolation: isolate; container-type: size; min-width: 0; border-right: 1px solid #425b7759; overflow: hidden; }
+.rivals-chamber-art { position: absolute; inset: 0; z-index: -2; background-repeat: no-repeat; background-size: max(360%, 250cqh) auto; background-position: 36.5% 50%; }
+.rivals-operative-stage::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg,#080e1e 0%,transparent 35%,#08101a00 70%,#08101a55); }
+.rivals-chamber-glow { position: absolute; width: 120px; height: 70px; left: 33%; top: 45%; background: #925aff22; filter: blur(35px); animation: rivals-glow 4s ease-in-out infinite alternate; pointer-events: none; }
+.rivals-operative-caption { position: absolute; bottom: 28px; left: 27px; right: 20px; }
+.rivals-operative-caption .rivals-overline { color: #af96e0; font-size: 8px; }
+.rivals-operative-caption > strong { font-size: 37px; font-weight: 800; display: block; letter-spacing: -.05em; margin-top: 3px; }
+.rivals-operative-caption strong > span { display: block; font-size: 8px; color: #d0c4e9; font-weight: 400; letter-spacing: .2em; margin-top: 3px; }
+.rivals-chamber-caption { display: block; margin-top: 20px; font-size: 6px; color: #7c83a4; letter-spacing: .15em; }
+.rivals-operation-content { padding: 25px 28px 23px; display: flex; flex-direction: column; position: relative; background: radial-gradient(ellipse at 100% 5%,#11527a55,transparent 60%),linear-gradient(155deg,#131f31,#0c1321 75%); }
+.rivals-operation-content::before { content: ''; position: absolute; inset: 0; opacity: .25; pointer-events: none; background: repeating-linear-gradient(0deg,transparent 0 69px,#4f759d30 70px),repeating-linear-gradient(90deg,transparent 0 69px,#4f759d30 70px); mask-image: linear-gradient(0deg,transparent,#000); }
+.rivals-operation-content > * { position: relative; }
+.rivals-operation-topline { display: flex; justify-content: space-between; align-items: center; font-size: 7px; color: #7d91ac; letter-spacing: .13em; gap: 10px; }
+.rivals-operation-topline > span:first-child { display: flex; gap: 7px; align-items: center; color: #7fd4df; }
+.rivals-operation-copy { margin: 34px 0 25px; }
+.rivals-operation-copy .rivals-overline { font-size: 7px; color: #92a4be; }
+.rivals-operation-copy h2 { font-size: clamp(60px,6.3vw,99px); font-weight: 900; font-style: italic; line-height: .85; letter-spacing: -.075em; margin: 16px 0 20px; text-shadow: 0 5px 25px #0003; }
+.rivals-operation-copy h2 em { font-style: inherit; color: #f4dc9f; }
+.rivals-operation-copy h2 > span { color: #ffcf58; }
+.rivals-operation-copy > p { font-size: 12px; color: #a7b6cb; line-height: 1.7; }
+.rivals-entry { margin-top: auto; }
+.rivals-entry-location { display: flex; align-items: center; gap: 11px; padding-bottom: 16px; color: #d8b66d; }
+.rivals-entry-location strong { display: block; color: #e5eaf5; font-size: 10px; font-weight: 600; letter-spacing: .1em; }
+.rivals-entry-location div > span { display: block; font-size: 9px; color: #8193ad; margin-top: 5px; }
+.rivals-primary { border: 1px solid #ffe195; border-radius: 5px; background: linear-gradient(115deg,#ffe598,#f6c34e); color: #282112; box-shadow: inset 0 1px #fff6,0 5px 25px #fbc95512; font-size: 11px !important; font-weight: 800 !important; letter-spacing: .035em; display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 49px; padding: 14px 19px; width: 100%; transition: background .15s, box-shadow .15s, transform .15s; }
+.rivals-primary:hover { background: #ffe6a3; box-shadow: 0 5px 30px #ffcb5933; transform: translateY(-1px); }
+.rivals-primary > svg:last-child:not(:first-child) { margin-left: auto; }
+.rivals-enter-button { justify-content: flex-start; min-height: 53px; }
+.rivals-entry-note { display: flex; align-items: center; gap: 6px; font-size: 6px; letter-spacing: .08em; color: #7eb795; padding-top: 12px; }
+.rivals-entry-note > span { color: #8190a7; margin-left: auto; font-size: 8px; letter-spacing: 0; }
+.rivals-lobby-bottom { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 18px; }
+.rivals-lobby-bottom > div { display: flex; align-items: center; gap: 13px; border: 1px solid #242e40; border-radius: 6px; padding: 17px 22px; background: #10162280; }
+.rivals-lobby-bottom svg { flex-shrink: 0; color: #c1ac7b; }
+.rivals-lobby-bottom span { font-size: 9px; color: #798aa3; line-height: 1.5; }
+.rivals-lobby-bottom strong { display: block; color: #b9c4d7; font-size: 8px; letter-spacing: .1em; margin-bottom: 4px; }
+.rivals-lobby-footer { display: flex; justify-content: space-between; margin-top: 22px; font-family: monospace; font-size: 7px; letter-spacing: .12em; color: #55647c; }
+.rivals-lobby-footer > span:first-child { display: flex; align-items: center; gap: 8px; }.rivals-lobby-footer i { width: 4px; height: 4px; background: #7995a3; box-shadow: none; }.rivals-lobby-footer b { color: #8c96a7; margin-left: 28px; font-style: italic; }
+.rivals-guide { --rv-text: #e9edf6; width: min(480px, calc(100% - 32px)); padding: 35px; border: 1px solid #43506a; border-radius: 12px; color: var(--rv-text); background: #0e1727; box-shadow: 0 30px 90px #0008; }
+.rivals-guide::backdrop { background: #030712c9; backdrop-filter: blur(8px); }
+.rivals-guide-close { position: absolute; right: 12px; top: 12px; }.rivals-guide h2 { font-size: 30px; margin: 14px 0; letter-spacing: -.04em; }.rivals-guide p { color: #9baac1; font-size: 12px; line-height: 1.8; }.rivals-guide dl { margin: 25px 0; }.rivals-guide dl > div { display: flex; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid #26354b; }.rivals-guide dt { font-size: 8px; color: #84c4d8; letter-spacing: .1em; }.rivals-guide dd { font-size: 11px; margin: 0; }.rivals-guide .rivals-guide-note { font-size: 10px; margin-bottom: 24px; }
+
+/* The arena stays above the website content and below the existing bottom navigation. */
+.rivals-game-view { position: fixed; inset: 0 0 4.5rem; z-index: 40; isolation: isolate; background: #060b17; overflow: hidden; color: #e9edf6; user-select: none; }
+.rivals-engine-host { position: absolute; inset: 0; touch-action: none; }.rivals-engine-host canvas { display: block; width: 100%; height: 100%; }
+.rivals-game-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center,transparent 30%,#02050e8c 100%); pointer-events: none; }
+.rivals-arena-hud { position: absolute; top: max(24px,env(safe-area-inset-top)); left: 28px; right: 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; pointer-events: none; }
+.rivals-sector { padding: 15px 21px; border-left: 2px solid #65cce3; background: linear-gradient(90deg,#080f1fec, #080f1f80 75%,transparent); min-width: 280px; }
+.rivals-sector .rivals-overline { font-size: 8px; color: #78bed3; }.rivals-sector > strong { display: block; font-size: 23px; font-weight: 700; letter-spacing: .015em; margin: 5px 0; }.rivals-hud-subtitle { display: block; color: #8fa0bc; font-size: 10px; }
+.rivals-arena-tools { display: flex; align-items: center; gap: 9px; pointer-events: auto; }.rivals-timer { display: grid; place-items: center; border: 1px solid #354158; background: #0a1321dc; border-radius: 5px; height: 40px; padding: 0 17px; font-family: monospace; font-size: 16px; color: #e4d3a8; }
+.rivals-minimap { position: absolute; top: 92px; right: 28px; width: 146px; padding: 11px; background: #0a1321e8; border: 1px solid #3a4a63; border-radius: 5px; box-shadow: 0 8px 30px #0003; pointer-events: none; }.rivals-minimap svg { display: block; width: 100%; }.rivals-minimap > span { display: block; text-align: center; margin-top: 8px; color: #7992b3; font-size: 6px; letter-spacing: .22em; }
+.rivals-field-note { position: absolute; left: 28px; bottom: 60px; display: flex; align-items: center; gap: 11px; padding: 14px 18px; border: 1px solid #34415a; border-radius: 5px; background: #0b1221d9; pointer-events: none; }.rivals-field-note > i { height: 5px; width: 5px; background: #70dda5; border-radius: 50%; box-shadow: 0 0 14px #70dda5; }.rivals-field-note > span { font-size: 7px; color: #8b9ab4; letter-spacing: .13em; }.rivals-field-note strong { display: block; font-size: 10px; letter-spacing: 0; color: #d0dae9; font-weight: 400; margin-top: 4px; }
+.rivals-desktop-controls { display: flex; position: absolute; bottom: 22px; left: 28px; right: 28px; gap: 25px; color: #8298b3; font-size: 8px; letter-spacing: .06em; }.rivals-desktop-controls span { display: flex; gap: 3px; align-items: center; } .rivals-desktop-controls kbd { padding: 3px 5px; border: 1px solid #3e5169; border-radius: 3px; background: #0a1322c9; font-size: 8px; color: #c4d5e8; } .rivals-desktop-controls kbd:last-of-type { margin-right: 6px; }
+.rivals-telemetry { position: absolute; right: 28px; bottom: 23px; color: #60728c; font-family: monospace; font-size: 8px; letter-spacing: .1em; pointer-events: none; }
+.rivals-arena-overlay { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: 24px; background: #030815b8; backdrop-filter: blur(9px); overflow-y: auto; }
+.rivals-pause-panel, .rivals-loading-mark { max-width: 410px; width: 100%; padding: 32px; border: 1px solid #3d4f6b; border-radius: 9px; background: linear-gradient(145deg,#182438,#0c1424); box-shadow: 0 30px 100px #0006; }
+.rivals-pause-panel h2, .rivals-loading-mark h2 { margin: 13px 0; font-size: 37px; font-weight: 600; letter-spacing: -.055em; }.rivals-pause-panel p, .rivals-loading-mark p { font-size: 12px; color: #9aadc6; line-height: 1.8; }.rivals-pause-stats { display: flex; gap: 45px; padding: 27px 0; }.rivals-pause-stats span { display: block; color: #7892b3; font-size: 7px; letter-spacing: .13em; }.rivals-pause-stats b { display: block; margin-top: 6px; font-family: monospace; font-size: 24px; font-weight: 500; }.rivals-pause-stats small { font-size: 11px; color: #91a3bc; }
+.rivals-secondary { display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #41516b; border-radius: 5px; background: #111d30; width: 100%; padding: 15px; min-height: 47px; color: #c4d1e2; font-size: 10px !important; font-weight: 500; margin-top: 11px; }.rivals-secondary:hover { background: #1d2e46; }.rivals-pause-hint { display: block; text-align: center; font-size: 7px; color: #637f9e; margin-top: 22px; letter-spacing: .08em; }.rivals-pause-panel[role=alert] .rivals-primary { margin-top: 25px; }
+.rivals-loading-mark { text-align: center; }.rivals-loading-mark > svg { margin: 0 auto 22px; color: #70d5f1; }.rivals-loading-mark h2 { font-size: 29px; }.rivals-loading-mark p { font-size: 10px; }.rivals-progress { height: 3px; background: #2b3a52; border-radius: 3px; margin-top: 25px; overflow: hidden; }.rivals-progress > span { display: block; height: 100%; background: #80dded; transition: width .2s; }.rivals-text-button { border: none; background: none; display: inline-flex; align-items: center; gap: 7px; color: #b6c5db; font-size: 10px !important; margin-top: 25px; padding: 8px; }
+.rivals-touch-controls { display: none; position: absolute; bottom: max(22px,env(safe-area-inset-bottom)); left: 25px; }.rivals-stick { width: 120px; height: 120px; border-radius: 50%; border: 1px solid #8cb0d769; background: radial-gradient(circle,#13253a99,#07101a99); box-shadow: inset 0 0 0 9px #1a2f4340,0 5px 25px #0005; touch-action: none; position: relative; }.rivals-stick-knob { display: block; position: absolute; width: 46px; height: 46px; left: 36px; top: 36px; border-radius: 50%; background: linear-gradient(140deg,#57718bd9,#273e56f0); border: 1px solid #a4c5e17d; box-shadow: 0 4px 12px #0006; pointer-events: none; }.rivals-stick-cross { position: absolute; inset: 24px; border: 1px solid #8eb9d51c; border-radius: 50%; }.rivals-stick-label { display: block; text-align: center; color: #8ba7c2; font-size: 7px; letter-spacing: .2em; margin-top: 8px; }
+.rivals-spin { animation: rivals-spin 1.2s linear infinite; } @keyframes rivals-spin { to { transform: rotate(360deg); } } @keyframes rivals-glow { to { opacity: .3; transform: translateY(-12px); } }
+
+@media (min-width: 1600px) { .rivals-lobby-heading { padding-top: 45px; }.rivals-operation { min-height: 590px; }.rivals-operative-panel { padding-top: 28px; }.rivals-panel-section { padding-top: 31px; padding-bottom: 25px; }.rivals-briefing-list { gap: 25px; }.rivals-input-note { margin-top: 39px; } }
+@media (max-width: 1100px) { .rivals-shell { padding-left: 20px; padding-right: 20px; }.rivals-lobby-grid { grid-template-columns: 214px minmax(0,1fr); gap: 13px; }.rivals-operative-panel { padding-left: 15px; padding-right: 15px; }.rivals-input-note { margin-left: -15px; margin-right: -15px; padding-left: 15px; }.rivals-operation { grid-template-columns: minmax(170px,.75fr) minmax(270px,1fr); }.rivals-operation-content { padding-left: 22px; padding-right: 22px; }.rivals-build-label { display: none; }.rivals-lobby-bottom > div { padding: 15px; } }
+@media (max-width: 850px) { .rivals-lobby-grid { grid-template-columns: 1fr; }.rivals-operative-panel { display: none; }.rivals-operation { grid-template-columns: minmax(200px,.9fr) minmax(300px,1fr); min-height: 520px; }.rivals-lobby-bottom { gap: 10px; }.rivals-lobby-bottom > div { padding: 14px 12px; gap: 9px; }.rivals-lobby-bottom span { font-size: 8px; }.rivals-lobby-bottom strong { font-size: 7px; }.rivals-operation-copy h2 { font-size: 88px; }.rivals-topbar { gap: 22px; }.rivals-topnav { margin-left: 10px; } }
+@media (max-width: 600px) { .rivals-shell { padding: 0 15px 100px; }.rivals-topbar { height: 75px; gap: 12px; }.rivals-brand { gap: 8px; }.rivals-brand strong { font-size: 24px; }.rivals-brand div > span { font-size: 6px; }.rivals-crest { width: 34px; height: 40px; }.rivals-topnav { gap: 17px; margin-left: auto; }.rivals-topnav > * { font-size: 10px; }.rivals-topnav button svg { display: none; }.rivals-system-status { display: none; }.rivals-topbar > .rivals-icon-button { min-width: 34px; min-height: 34px; }.rivals-lobby-heading { padding: 25px 0 21px; }.rivals-lobby-heading .rivals-overline { font-size: 6px; }.rivals-lobby-heading h1 { font-size: 29px; margin-top: 7px; }.rivals-operation { grid-template-columns: minmax(104px,.65fr) minmax(190px,1fr); min-height: 470px; }.rivals-operation-content { padding: 20px 17px; }.rivals-operative-stage { background-position: 36% 50%; }.rivals-operation-topline { font-size: 6px; }.rivals-operation-topline > span:last-child { display: none; }.rivals-operation-copy { margin-top: 34px; }.rivals-operation-copy .rivals-overline { font-size: 5px; letter-spacing: .12em; }.rivals-operation-copy h2 { font-size: clamp(48px,14vw,77px); margin-top: 14px; }.rivals-operation-copy > p { font-size: 10px; }.rivals-operative-caption { left: 14px; bottom: 25px; right: 8px; }.rivals-operative-caption > strong { font-size: 30px; }.rivals-operative-caption strong > span { font-size: 5px; }.rivals-operative-caption .rivals-overline { font-size: 5px; }.rivals-chamber-caption { font-size: 4px; letter-spacing: .05em; }.rivals-primary { font-size: 9px !important; padding: 13px 11px; gap: 7px; }.rivals-enter-button > svg:first-child { display: none; }.rivals-entry-location { gap: 7px; }.rivals-entry-location strong { font-size: 8px; }.rivals-entry-location div > span { font-size: 7px; line-height: 1.5; }.rivals-entry-location > svg { width: 14px; flex-shrink: 0; }.rivals-entry-note { font-size: 5px; }.rivals-entry-note > span { font-size: 6px; }.rivals-lobby-bottom { grid-template-columns: 1fr; gap: 7px; margin-top: 12px; }.rivals-lobby-bottom > div { padding: 12px 14px; }.rivals-lobby-bottom strong { margin-bottom: 2px; }.rivals-lobby-footer { font-size: 5px; margin-top: 19px; }.rivals-lobby-footer b { margin-left: 8px; }.rivals-guide { padding: 30px 23px; }.rivals-guide h2 { font-size: 26px; }.rivals-arena-hud { top: 15px; left: 15px; right: 15px; gap: 8px; }.rivals-sector { padding: 12px; min-width: 0; }.rivals-sector .rivals-overline { font-size: 5px; }.rivals-sector > strong { font-size: 17px; }.rivals-hud-subtitle { display: none; }.rivals-arena-tools { gap: 6px; }.rivals-arena-tools .rivals-icon-button { min-width: 36px; min-height: 36px; }.rivals-timer { height: 36px; font-size: 12px; padding: 0 9px; }.rivals-minimap { top: 74px; right: 15px; width: 100px; padding: 7px; }.rivals-minimap > span { font-size: 5px; margin-top: 5px; }.rivals-field-note { display: none; }.rivals-telemetry { bottom: 23px; right: 17px; font-size: 7px; }.rivals-pause-panel { padding: 27px; }.rivals-pause-panel h2 { font-size: 32px; } }
+@media (pointer: coarse), (max-width: 900px) { .rivals-touch-controls { display: block; }.rivals-desktop-controls { display: none; }.rivals-field-note { left: auto; right: 28px; bottom: 60px; } }
+@media (max-height: 500px) and (orientation: landscape) { .rivals-arena-hud { top: 12px; left: 16px; right: 16px; }.rivals-sector { padding: 9px 13px; }.rivals-sector > strong { font-size: 17px; }.rivals-hud-subtitle, .rivals-field-note { display: none; }.rivals-minimap { width: 94px; top: 64px; right: 16px; }.rivals-touch-controls { left: 18px; bottom: 14px; }.rivals-stick { width: 98px; height: 98px; }.rivals-stick-knob { top: 25px; left: 25px; }.rivals-arena-overlay { padding: 12px; }.rivals-pause-panel { max-width: 420px; padding: 20px 27px; }.rivals-pause-panel h2 { font-size: 25px; margin: 6px 0; }.rivals-pause-stats { padding: 12px 0; }.rivals-pause-stats b { font-size: 19px; }.rivals-pause-hint { display: none; }.rivals-primary, .rivals-secondary { min-height: 40px; padding: 10px; } }
+@media (prefers-reduced-motion: reduce) { .rivals-chamber-glow { animation: none; }.rivals-primary { transition: none; }.rivals-primary:hover { transform: none; } }
+
+/* Phase 02: field-operative selection and renderer controls stay inside RIVALS. */
+.rivals-roster-bar { display: flex; gap: 16px; align-items: stretch; margin: 0 0 19px; }
+.rivals-operative-choices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); flex: 1; gap: 10px; }
+.rivals-operative-choice { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 13px; border: 1px solid #2b364a; border-radius: 6px; color: #d5deed; background: linear-gradient(120deg,#182132c9,#0b1220); text-align: left; }
+.rivals-operative-choice:hover { background: #1b283c; }.rivals-operative-choice[aria-pressed=true] { background: linear-gradient(120deg,#23263d,#10192a); box-shadow: inset 0 0 22px #8c79e314; }
+.rivals-operative-choice img { width: 49px; height: 49px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 4px 5px #0005); }
+.rivals-operative-choice strong { display: block; font-size: 13px; font-weight: 700; letter-spacing: .08em; }.rivals-operative-choice small { display: block; font-size: 9px; margin-top: 5px; color: #8d9bb4; }
+.rivals-operative-choice i { width: 5px; height: 5px; border-radius: 50%; margin-left: auto; background: #364057; flex-shrink: 0; }
+.rivals-quality-choice { min-width: 165px; padding: 11px 15px; border: 1px solid #2b364a; border-radius: 6px; background: #111a29; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.rivals-quality-choice > span { font-size: 7px; letter-spacing: .14em; color: #91a5bc; }
+.rivals-quality-choice select, .rivals-graphics-panel select { border: 1px solid #425371; border-radius: 4px; background: #101a2b; color: #dbe5f4; font: inherit; font-size: 11px; padding: 6px 8px; min-height: 32px; cursor: pointer; color-scheme: dark; }
+.rivals-graphics-panel { display: grid; grid-template-columns: 1fr 135px; align-items: center; gap: 10px; border-top: 1px solid #34465d; margin-bottom: 22px; padding-top: 15px; }
+.rivals-graphics-panel label { font-size: 11px; color: #b7c7db; }.rivals-graphics-panel > span { grid-column: 1 / -1; font-size: 9px; color: #778fae; }
+.rivals-shell select:focus-visible { outline: 2px solid #86dff0; outline-offset: 3px; }
+.rivals-equipment { position: absolute; right: 28px; bottom: 72px; display: flex; gap: 18px; align-items: center; max-width: 360px; }
+.rivals-equipment > div { padding: 13px 16px; border: 1px solid #52617e; border-radius: 5px; background: #0d1629eb; }
+.rivals-equipment span { display: block; font-size: 10px; color: #b9e4f1; font-weight: 600; letter-spacing: .02em; }.rivals-equipment p { font-size: 9px; color: #95a9c4; line-height: 1.6; margin-top: 5px; }
+.rivals-equipment button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; flex-shrink: 0; width: 72px; height: 72px; border-radius: 50%; border: 1px solid #97c4e6; color: #cceeff; background: radial-gradient(circle,#293b69ed,#0b142be8); box-shadow: inset 0 0 0 5px #5674a522,0 4px 25px #0007; }
+.rivals-equipment button small { font-size: 6px; letter-spacing: .06em; }.rivals-equipment button:hover { background: #253d65; border-color: #d1f1ff; }
+.rivals-arena-overlay { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }.rivals-pause-panel, .rivals-loading-mark { flex-shrink: 0; margin: auto 0; }
+@media (max-width: 850px) { .rivals-roster-bar { gap: 10px; }.rivals-quality-choice { min-width: 120px; padding: 10px; }.rivals-operative-choice { padding: 9px; gap: 8px; }.rivals-operative-choice img { width: 40px; height: 40px; }.rivals-operative-choice strong { font-size: 11px; }.rivals-operative-choice small { font-size: 7px; } }
+@media (max-width: 600px) { .rivals-roster-bar { flex-direction: column; margin-bottom: 14px; gap: 9px; }.rivals-operative-choices { gap: 6px; }.rivals-operative-choice { flex-direction: column; position: relative; text-align: center; padding: 9px 5px; gap: 4px; }.rivals-operative-choice img { width: 45px; height: 45px; }.rivals-operative-choice strong { font-size: 10px; }.rivals-operative-choice small { font-size: 7px; margin-top: 3px; }.rivals-operative-choice i { position: absolute; right: 8px; top: 9px; width: 4px; height: 4px; }.rivals-quality-choice { flex-direction: row; align-items: center; justify-content: space-between; padding: 7px 10px; min-height: 38px; }.rivals-quality-choice select { min-width: 110px; font-size: 10px; padding: 4px 8px; }.rivals-graphics-panel { grid-template-columns: 1fr 110px; }.rivals-equipment { right: 16px; bottom: 33px; max-width: 210px; flex-direction: column; align-items: flex-end; gap: 11px; }.rivals-equipment > div { padding: 10px 12px; max-width: 205px; }.rivals-equipment p { font-size: 8px; }.rivals-equipment button { width: 68px; height: 68px; } }
+@media (max-height: 500px) and (orientation: landscape) { .rivals-equipment { bottom: 23px; right: 20px; max-width: 300px; }.rivals-equipment button { width: 58px; height: 58px; }.rivals-graphics-panel { margin-bottom: 13px; padding-top: 10px; }.rivals-pause-panel { margin: auto 0; } }

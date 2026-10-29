@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {starterVault,validateVault} from '../RIVALS_PLAYABLE_ARENA/builder.js';
+const v=starterVault();
+assert.equal(validateVault(v).valid,true,'Starter vault should be structurally valid');
+const noCore=structuredClone(v);noCore.objects=noCore.objects.filter(o=>o.type!=='core');assert.equal(validateVault(noCore).valid,false,'Core must be required');
+const duplicate=structuredClone(v);duplicate.objects.push({type:'terminal',x:10,y:8});assert.equal(validateVault(duplicate).valid,false,'Must reject extra terminal');
+const overlap=structuredClone(v);overlap.objects.push({type:'laser',x:2,y:6});assert.equal(validateVault(overlap).valid,false,'Must reject overlapping objects');
+const wrongMap=structuredClone(v);wrongMap.width=10;assert.equal(validateVault(wrongMap).valid,false,'Must reject wrong grid dimensions');
+const wall=structuredClone(v);for(let y=1;y<wall.height-1;y++)wall.cells[y*wall.width+9]='wall';assert.equal(validateVault(wall).valid,false,'Must reject completely blocked route');
+const huge=structuredClone(v);huge.objects.push({type:'enemy',x:-1,y:40});assert.equal(validateVault(huge).valid,false,'Must reject out-of-bounds');
+console.log('RIVALS V3 builder: 7 assertions passed (valid, missing core, extra terminal, overlap, dimensions, unreachable, bounds).');

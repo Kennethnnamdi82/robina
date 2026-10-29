@@ -1,0 +1,29 @@
+{
+  "recipes": [
+    {
+      "id": "shard_trail",
+      "inputs": [
+        {
+          "id": "crafting_shard",
+          "quantity": 40
+        }
+      ],
+      "output": "cyan_dash_trail",
+      "random": false,
+      "premium": false
+    },
+    {
+      "id": "relic_theme",
+      "inputs": [
+        {
+          "id": "crafting_shard",
+          "quantity": 120
+        }
+      ],
+      "output": "vault_relic_decoration",
+      "random": false,
+      "premium": false
+    }
+  ],
+  "noPaidRandomRewards": true
+}

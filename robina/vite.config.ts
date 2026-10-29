@@ -27,6 +27,7 @@ export default defineConfig(({ mode, command }) => {
             const normalized = id.replace(/\\/g, '/');
             if (!normalized.includes('/node_modules/')) return;
             if (/\/node_modules\/(react|react-dom|scheduler)\//.test(normalized)) return 'react-vendor';
+            if (normalized.includes('/node_modules/phaser/')) return 'rivals-engine';
             if (normalized.includes('/node_modules/three/')) return 'engine-vendor';
             return 'platform-vendor';
           },

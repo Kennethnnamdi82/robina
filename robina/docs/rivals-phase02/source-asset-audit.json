@@ -1,0 +1,3592 @@
+{
+  "pack": "RIVALS_ALL_IN_ONE_V4",
+  "assets": [
+    {
+      "file": "audio/music/neon_ambient.wav",
+      "bytes": 264644,
+      "sha256": "215fa11ff24ce013da1ce60105ce4215e6768c63338b50bd687540b2f0f7fe60"
+    },
+    {
+      "file": "audio/music/phantom_ambient.wav",
+      "bytes": 264644,
+      "sha256": "f684294b648efcfd85825d6920d0ba1e4d95a4ea3d76d0c174fb489d4532c38f"
+    },
+    {
+      "file": "audio/music/reactor_ambient.wav",
+      "bytes": 264644,
+      "sha256": "46d1fbf4b6560e79b67580dd97333fa0303003f6de49c46e3b7658d9d446048f"
+    },
+    {
+      "file": "audio/sfx/boss_attack.wav",
+      "bytes": 13274,
+      "sha256": "10acf0c60ff6afa1d32d2e3a05e42bd85de8887acf7ed5a681db1cfcb83ca0d1"
+    },
+    {
+      "file": "audio/sfx/boss_defeat.wav",
+      "bytes": 16360,
+      "sha256": "9869d57b1f4a2d9cf150154dd42dace06245ffac04e82aa102948af1542f58aa"
+    },
+    {
+      "file": "audio/sfx/boss_roar.wav",
+      "bytes": 10186,
+      "sha256": "c0d0df7529299f85ac486400343d5b37b984b1f7a5304840c0c09018b9ea0f2b"
+    },
+    {
+      "file": "audio/sfx/coin_purchase.wav",
+      "bytes": 13274,
+      "sha256": "09caedf1b9dc508e877d16af7d5fe5a0468b9f683eb8ad73c1088c8b96437c5b"
+    },
+    {
+      "file": "audio/sfx/core_pickup.wav",
+      "bytes": 16360,
+      "sha256": "2741a3787a2ee4e23b9e76da752917fbc7debcb1a66c79055d9a9526ed9d53b3"
+    },
+    {
+      "file": "audio/sfx/countdown.wav",
+      "bytes": 7100,
+      "sha256": "acf45049de65eec572b7535f40810167e9ad496b6b59beb33295dc39641460ca"
+    },
+    {
+      "file": "audio/sfx/craft_complete.wav",
+      "bytes": 7100,
+      "sha256": "4e6e55fa8316e64a7bed03199e02aae73b618198e9111671455bb25bf92d79e0"
+    },
+    {
+      "file": "audio/sfx/drone_alert.wav",
+      "bytes": 7100,
+      "sha256": "bb02428955c31400eb4edbd293c8a4e1a29df822ddd2cb9bcaf027c154d6931f"
+    },
+    {
+      "file": "audio/sfx/drone_fire.wav",
+      "bytes": 10186,
+      "sha256": "ce618e612e5aa1ed319ed15c0097f18b1fbb83c8b1006834cc7e6bdb4bae96a4"
+    },
+    {
+      "file": "audio/sfx/extract_success.wav",
+      "bytes": 16360,
+      "sha256": "befb6cb3e3bbb6d3dcfe549d3470d809527e65be9208555253e324d0c7e23fcb"
+    },
+    {
+      "file": "audio/sfx/heal.wav",
+      "bytes": 13274,
+      "sha256": "1a90efb8118839db1259b7e85e64b518b74d25e4056cf62bf85d65a187dbeb05"
+    },
+    {
+      "file": "audio/sfx/keycard_pickup.wav",
+      "bytes": 7100,
+      "sha256": "c2ab2f9df917b6b52a380879280c8cdcb4ba421d8469489a8d9a1a46ea300463"
+    },
+    {
+      "file": "audio/sfx/laser_hit.wav",
+      "bytes": 19448,
+      "sha256": "2cc5c8f90097f62348719862a7702274ac216d6b6f6520470dabdc75e1100af3"
+    },
+    {
+      "file": "audio/sfx/laser_on.wav",
+      "bytes": 16360,
+      "sha256": "d3bf84b463b1dac8f4db7fc58c95b584ef13f29018fa806bbeb2a85350a7ff99"
+    },
+    {
+      "file": "audio/sfx/mission_fail.wav",
+      "bytes": 19448,
+      "sha256": "dcbafc3f82bd26f7ed61bd68ea437ec57b6991cc9dd724a574383e1e4ce78900"
+    },
+    {
+      "file": "audio/sfx/nft_mint.wav",
+      "bytes": 10186,
+      "sha256": "32c0fbc819d6dae38ff6f2296864a2471fbae616e4c02cfe640a1634222e7491"
+    },
+    {
+      "file": "audio/sfx/player_dash.wav",
+      "bytes": 10186,
+      "sha256": "2f890e50e4e2d9a947bcd805c1a43aef7e078f53cd6fb6e5c3f5a676f78e0619"
+    },
+    {
+      "file": "audio/sfx/player_death.wav",
+      "bytes": 19448,
+      "sha256": "a3de96d39a4f121fbe0cbac5a0f4d001e5cd4bb24608b8fe04722f823f062112"
+    },
+    {
+      "file": "audio/sfx/player_hit.wav",
+      "bytes": 16360,
+      "sha256": "a79f2545865a316d655b19655635e4292880d78c53b8cac6fe843ed9769d9d9d"
+    },
+    {
+      "file": "audio/sfx/player_step.wav",
+      "bytes": 7100,
+      "sha256": "39a8aaccc2c97f47da2313d743f4956329f9c70610293c67d58a0208ade824bb"
+    },
+    {
+      "file": "audio/sfx/player_swing.wav",
+      "bytes": 13274,
+      "sha256": "bc4a738ad6e186fdfc4e4e9bab19b29d2139e0ed5eec298e7898bb52c8519424"
+    },
+    {
+      "file": "audio/sfx/portal_open.wav",
+      "bytes": 13274,
+      "sha256": "f087b97772e5aa7e8dcf1c06a404cf507ba8f8fd782cad52cb53165c3004fa05"
+    },
+    {
+      "file": "audio/sfx/rank_up.wav",
+      "bytes": 19448,
+      "sha256": "f54d7c6ce90f5d0c28e92ba68cf00273219404167be8d52d10f99c7cf7cb6c76"
+    },
+    {
+      "file": "audio/sfx/shard_pickup.wav",
+      "bytes": 19448,
+      "sha256": "b05644e990eb5cdf08c308b1ef882d6fe6b9ab344d2126446be82236f1725ae4"
+    },
+    {
+      "file": "audio/sfx/shield.wav",
+      "bytes": 10186,
+      "sha256": "62f528682040484aed629c942f6dbba729c8f96e1a1f5005b628904b47bce6b8"
+    },
+    {
+      "file": "audio/sfx/terminal_fail.wav",
+      "bytes": 13274,
+      "sha256": "232264d651f4e04ccaf799e980e97f5611673515f9ab1ed0f1690e1a75f49b95"
+    },
+    {
+      "file": "audio/sfx/terminal_start.wav",
+      "bytes": 7100,
+      "sha256": "8adf026c8f7f62fad6a428b29d1abe9fe4ce5a9bffae1bddfb6c6bc9dc1d8de1"
+    },
+    {
+      "file": "audio/sfx/terminal_success.wav",
+      "bytes": 10186,
+      "sha256": "ee063af97b2bf74acb38dce8b2906d20a7c2c73cdae578ae852283c5cee19ebb"
+    },
+    {
+      "file": "audio/sfx/turret_fire.wav",
+      "bytes": 13274,
+      "sha256": "9a6d495935c6e9397e868818d91b9dc6bc359bdd538005ba1a344f2c82bdaf68"
+    },
+    {
+      "file": "audio/sfx/ui_back.wav",
+      "bytes": 16360,
+      "sha256": "24fdac4e75654f15e12345406bebd32cc77a64cbceb8b7e9aa574f0dc319328e"
+    },
+    {
+      "file": "audio/sfx/ui_click.wav",
+      "bytes": 10186,
+      "sha256": "c802a4b156365ed33138befd326232358c56a092a5a0c0ffc3686fb8b904bbaa"
+    },
+    {
+      "file": "audio/sfx/ui_confirm.wav",
+      "bytes": 13274,
+      "sha256": "2a6f324319f9ea7b5bb833883ffca4a7f4cf43cff4db2fa69a6dbd8be59c7979"
+    },
+    {
+      "file": "audio/sfx/ui_error.wav",
+      "bytes": 19448,
+      "sha256": "3da1e37df8d82f2846f47d14ad60f7281aa73bd515e97bc1248a9143c53b55a5"
+    },
+    {
+      "file": "audio/sfx/ui_hover.wav",
+      "bytes": 7100,
+      "sha256": "81f9ee1773cbc767265ae3abae23c5e7fa551e4ea5b7c593cf78fe9fa4ac60e4"
+    },
+    {
+      "file": "audio/sfx/vault_open.wav",
+      "bytes": 10186,
+      "sha256": "c450da2eaad987508ea9d9690adc2ab4fdb7d3cc30d764235c2fceb57b7068ab"
+    },
+    {
+      "file": "audio/sfx/vault_publish.wav",
+      "bytes": 16360,
+      "sha256": "2c1dadb9bfaeff9cc7c9d50b6d087613c69f7b4ad8e81273b9f29c3bcfc81d4e"
+    },
+    {
+      "file": "audio/sfx/victory.wav",
+      "bytes": 7100,
+      "sha256": "e5f4e0a9d8183be208246a9d14abf2067d12881f0627ea3420fec4ee50532781"
+    },
+    {
+      "file": "audio/sfx/warning.wav",
+      "bytes": 19448,
+      "sha256": "51bc7315a7afb0ef5dea539db04de433ab90d2dd67cd823e90093f8d271abc60"
+    },
+    {
+      "file": "backdrops/neon_far_1280x720.png",
+      "bytes": 15154,
+      "sha256": "c20803d3275c7688549ac779a5d22557752794aa0d7fcfee5df4ce445d46dd94",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/neon_mid_1280x720.png",
+      "bytes": 13802,
+      "sha256": "9b50f50fc8094ccad5bfb5d70a1c2bfc1b980460fc37c037d54e8010e68fa4bf",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/neon_near_1280x720.png",
+      "bytes": 13858,
+      "sha256": "533b38d900e7015b254bea4d9a4cd82788e7c0ae30bd2bbc88059ccda941467f",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/phantom_far_1280x720.png",
+      "bytes": 14952,
+      "sha256": "40ee12b6f01da1f519aaeba6e631732878449a76fd384f7f9e15cce5e0c84733",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/phantom_mid_1280x720.png",
+      "bytes": 13919,
+      "sha256": "6761c554f849d9395efbf10a676cdbd6a0227627e26b48eb87a647403cfc8488",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/phantom_near_1280x720.png",
+      "bytes": 14148,
+      "sha256": "59f39dcd077780a0dff2b96757c42a9e92199403814404301b2d7f9dd6578fca",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/reactor_far_1280x720.png",
+      "bytes": 15273,
+      "sha256": "3a2b217e2592e6f0b3479ce57db85498ba53b5ab45bec38ffea48995fee1b284",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/reactor_mid_1280x720.png",
+      "bytes": 13265,
+      "sha256": "d3706dd2dfe92c54ce2afa66af2767c9c25b28a8a6bd9b6469d79f5a476c6ecb",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "backdrops/reactor_near_1280x720.png",
+      "bytes": 14264,
+      "sha256": "d86239e1e6015ff703a88d2beee44d44c95c05fd8c1fd048bd183caafe002eb8",
+      "width": 1280,
+      "height": 720,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 1280,
+        "rows": 720,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "file": "bosses/guardian_attack_6x1.png",
+      "bytes": 43712,
+      "sha256": "4e3ff7a32d3cdbd51f739b2e2d0520218e69be486ce244a97346dd69eda442be",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/guardian_defeat_6x1.png",
+      "bytes": 52510,
+      "sha256": "59b0d8dd8bb32c84a566b63cdf0dba76001b5e029f18f8fca0ef8968214d8d4b",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/guardian_idle_6x1.png",
+      "bytes": 84333,
+      "sha256": "151c4f988e362e2e02a02ec6c07595f55301ae01446470458d20a0298bf8d992",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/reactor_behemoth_attack_6x1.png",
+      "bytes": 45901,
+      "sha256": "9e64f7c9763359fb8c44fec3fab111adc7e949f309e4a29b3e61c11975f876ea",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/reactor_behemoth_defeat_6x1.png",
+      "bytes": 54429,
+      "sha256": "08b8fdf247a0c762af21147eb9544d3915a53ec75d78a0748a3759bd2dabe648",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/reactor_behemoth_idle_6x1.png",
+      "bytes": 22688,
+      "sha256": "3dfb585b56437e98667e45119a3549e21d4a1cccbeba1cbfd391df841387aaaa",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/wraith_attack_6x1.png",
+      "bytes": 46082,
+      "sha256": "8a875291bc43594b8b2370d3e37926b6f3a21fc57c3179e0debd964a1df6fc52",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/wraith_defeat_6x1.png",
+      "bytes": 54265,
+      "sha256": "f4250e824c89317c3f3cede9e45c83637a105848280954d0be5b9ad031751e49",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "bosses/wraith_idle_6x1.png",
+      "bytes": 22768,
+      "sha256": "845f856cf0ce3281f33f41154d005cd3587b84ff5a60d5b6bb7cb96f1d325c4f",
+      "width": 1152,
+      "height": 192,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "file": "characters/nyx_base_attack_6x4.png",
+      "bytes": 221804,
+      "sha256": "5b40de26519090449c59716b43af53b367f419e476e7282b1808a394f22b6000",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_base_dash_4x4.png",
+      "bytes": 139414,
+      "sha256": "68d0fca2455b9246083eea78b7c5e68437c67b62220c964e40dd21c37dd2cf37",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_base_down_6x4.png",
+      "bytes": 204047,
+      "sha256": "3f35ddfa39ad68d12c4c00188fbb7e48200d97b0275d8d8f05ef629ac77d784a",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_base_hurt_3x4.png",
+      "bytes": 109278,
+      "sha256": "51168ec75f79dc7e7c2c506e43b336e3177a3447362561c21e6768337cd2355a",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_base_idle_4x4.png",
+      "bytes": 138890,
+      "sha256": "d3cdc2670ef2a97dfa824e4c1cb48a786ba79ff8e7f836f7ccf39bd8dcf12ab6",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_base_portrait.png",
+      "bytes": 7428,
+      "sha256": "6860004ae6eb859ac1369c8058045c97aebccbb1bb7a49620856ad430d734891",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "characters/nyx_base_walk_6x4.png",
+      "bytes": 79730,
+      "sha256": "bb1a3de37adbc80ac0a3657b540c08f09a2b8e90164f6e1c2c8a56caa45ed3c7",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_shadow_attack_6x4.png",
+      "bytes": 47561,
+      "sha256": "0c6dea53192107dec6d7061d89f91650e70a56a3c6f045e9617f85cab748a3a3",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_shadow_dash_4x4.png",
+      "bytes": 34632,
+      "sha256": "8b9a4e2f7ac2b5fd370d3ee9e3c13c5e9c0d70f00d3b89b0354f4008f9287834",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_shadow_down_6x4.png",
+      "bytes": 194895,
+      "sha256": "ef1a36261a85f6acf9c97f7e2e44ad695771cfa01c129f188e87479541d54c51",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_shadow_hurt_3x4.png",
+      "bytes": 36744,
+      "sha256": "bb8676808a6ec915f8571e9071a9f4f5154d0664b54ad1ee7f4e91298011dca0",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_shadow_idle_4x4.png",
+      "bytes": 59489,
+      "sha256": "3f240217826df8f1a1f86a2ed2fcd7f166260c62dfe2e1cc8279b2194cd8931e",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_shadow_portrait.png",
+      "bytes": 7428,
+      "sha256": "6860004ae6eb859ac1369c8058045c97aebccbb1bb7a49620856ad430d734891",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "characters/nyx_base_portrait.png"
+    },
+    {
+      "file": "characters/nyx_shadow_walk_6x4.png",
+      "bytes": 85619,
+      "sha256": "ea76d1f73d80a5b6c41f9f5d6d51a6012594a4531695bcd85806a50f12e8d74d",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_solar_attack_6x4.png",
+      "bytes": 47198,
+      "sha256": "21e704a394c02db09ef2e11c397dd2485155cfe419fb7838b671744c20ad247a",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_solar_dash_4x4.png",
+      "bytes": 33894,
+      "sha256": "6c9ce6db8e6ef2154c88a82ab1a06c00729ee079b80f6a508d603e9bac2c9714",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_solar_down_6x4.png",
+      "bytes": 190429,
+      "sha256": "50feb9a1668b672ae4e84118ff8a4de148175a7484ded35d55913c74ab4f328c",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_solar_hurt_3x4.png",
+      "bytes": 36091,
+      "sha256": "a345ec903f33f203a6b2d9b02bcb73acec08bf2ae8f85c81bd30ba2fdf47b049",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_solar_idle_4x4.png",
+      "bytes": 58032,
+      "sha256": "f2ae4b411a08339e00e21e9c406a3f93c081b712089dd474e7e1a4454b7f194c",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/nyx_solar_portrait.png",
+      "bytes": 7280,
+      "sha256": "bf32b2b4d2eaa96268ca60b2a45194531ad93c7c6a7360c0d8d60b76baa6070d",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "characters/nyx_solar_walk_6x4.png",
+      "bytes": 83685,
+      "sha256": "8bf503a1247df68d441787e0ee8d30c8447c098f8572fc00b5ae49e86cb22724",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_base_attack_6x4.png",
+      "bytes": 226221,
+      "sha256": "671815685b62717a30abdf3c9e92963f8f789b56bae87ed6e0d2b5589b9c87ca",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_base_dash_4x4.png",
+      "bytes": 140170,
+      "sha256": "b55fabe17c0b372e40010d788c312c1206ccb9ab47001449ab20c31f5f88f5a6",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_base_down_6x4.png",
+      "bytes": 205538,
+      "sha256": "5418bc53cffaf39e14af2abee98826eefb677aa4a8daa92516b8f2fd360a33b7",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_base_hurt_3x4.png",
+      "bytes": 109933,
+      "sha256": "58613d66238f093553893f4ad989170a81240d0917a5c1ea217f0efab600535c",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_base_idle_4x4.png",
+      "bytes": 139697,
+      "sha256": "ee47e391fa1098dd0c3851bff3c81070cc5d1d245b21d1ed6dce576a5a73673a",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_base_portrait.png",
+      "bytes": 7177,
+      "sha256": "5436d36f127cf5196dc3f2bc58b83315d4f6064b9467df1ff0ae42eaa2a3d6a1",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "characters/rook_base_walk_6x4.png",
+      "bytes": 80064,
+      "sha256": "36f4e74691a0ce677178fc98c2c10237868b751f79157d8f7b2c7acf8107e78d",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_shadow_attack_6x4.png",
+      "bytes": 47410,
+      "sha256": "b9898f79d1771fb276063dc8ab5e99499db98f59690227152cb483cadeef22b8",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_shadow_dash_4x4.png",
+      "bytes": 34500,
+      "sha256": "994e48fbe2830cdf5e7bf33e33c887eff8726fb233b38db775e5caf4d4d304a8",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_shadow_down_6x4.png",
+      "bytes": 193022,
+      "sha256": "da6ddfffe1e78157c4c013589664c73c643e0e6d427a947a19820db61b884687",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_shadow_hurt_3x4.png",
+      "bytes": 36636,
+      "sha256": "ce9dccdd0aca166e14a5e2ab6a6cc3fa77f3b344b47bd670db7d8ef2109b556d",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_shadow_idle_4x4.png",
+      "bytes": 59259,
+      "sha256": "a7a829a0744f434f68820f20caf22428f361ab34164f6ac52d1e0e1b6fbb64d2",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_shadow_portrait.png",
+      "bytes": 7418,
+      "sha256": "f01af25fe150ad4bea81162632797929185bb4eb820a7457199fb10e791cd433",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "characters/rook_shadow_walk_6x4.png",
+      "bytes": 85130,
+      "sha256": "3a59c8323c71121cc2e802f4c836b9ac70f6142f3b95d4c1a00183b2353c7707",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_solar_attack_6x4.png",
+      "bytes": 46792,
+      "sha256": "c8ef75b1f21f9f4c645906f75b0311bcf2ea7b7d14fc6aae03c85c56184cc681",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_solar_dash_4x4.png",
+      "bytes": 33472,
+      "sha256": "7e5e7e63644b656ab6915f16cceb5ab2a5a9ccd41f90b9f76a78941d7f7bfe0e",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_solar_down_6x4.png",
+      "bytes": 187281,
+      "sha256": "351e7388e5d4ea4cbfe06f5f8fb01e082109cea5f1b5e21575f18e97c8212b55",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_solar_hurt_3x4.png",
+      "bytes": 35773,
+      "sha256": "b12c016dda78cfc9700eb8f40b2bed85118dab9e4a06f49c5373a57794b221c5",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_solar_idle_4x4.png",
+      "bytes": 57242,
+      "sha256": "5d0eec1987e1c3580f5964791c99fc523e88e7945d67579e65d1db47cc8b781b",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/rook_solar_portrait.png",
+      "bytes": 7177,
+      "sha256": "5436d36f127cf5196dc3f2bc58b83315d4f6064b9467df1ff0ae42eaa2a3d6a1",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "characters/rook_base_portrait.png"
+    },
+    {
+      "file": "characters/rook_solar_walk_6x4.png",
+      "bytes": 82480,
+      "sha256": "def0fd8d35179d7361f0df7d286c46c9f5b7a761683c867508d292dfc47efe2e",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_base_attack_6x4.png",
+      "bytes": 219765,
+      "sha256": "42516df7ff0eeb5f8cfa66f49c9222e750ab14fc0041ffe56edb9a4d9f1d8994",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_base_dash_4x4.png",
+      "bytes": 137779,
+      "sha256": "536cfdc9f34d4dd318b9a418a84a7b065ac5e4bad8bd4371bf8772f30c84ff26",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_base_down_6x4.png",
+      "bytes": 202041,
+      "sha256": "2092ac1698e41bd77a9117981dea9836a164240af4d1b49d2573ab1e541c0c20",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_base_hurt_3x4.png",
+      "bytes": 108237,
+      "sha256": "9afbdf97f0724a5c749eb64d17ff194e9fb259d6855e976a8a517e0459d122f2",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_base_idle_4x4.png",
+      "bytes": 137282,
+      "sha256": "8ed59b14006f97c37cdebe5747dc69136f3b14e09a850ea7faea82f46fdf0f2e",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_base_portrait.png",
+      "bytes": 6871,
+      "sha256": "d795ee65b2cf225d3b6a5e045c8ae9070bb46d633bc7c1066804c082565f64c3",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "characters/vex_base_walk_6x4.png",
+      "bytes": 78985,
+      "sha256": "9d366100db3736f006c4af5a6ba7301cb79b9a0af37f1de8a255386339b2a802",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_shadow_attack_6x4.png",
+      "bytes": 45700,
+      "sha256": "f43d97433078a641850e38ddc74f3fca18464522c94c66527d82087d094bf445",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_shadow_dash_4x4.png",
+      "bytes": 32881,
+      "sha256": "f07af3956b5232dea4cc7ee8f523dceac43e66ce7dde6f540e9e2ebe19f5e302",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_shadow_down_6x4.png",
+      "bytes": 186955,
+      "sha256": "9491dd2203da37ec5aedbc97410440079e6c11a139b0e3bea986261a21c1ff68",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_shadow_hurt_3x4.png",
+      "bytes": 35143,
+      "sha256": "d8d28befe4c4342f171afb890cd330c69c7ee9b8a7ea28730d75612517f61fcf",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_shadow_idle_4x4.png",
+      "bytes": 56400,
+      "sha256": "99a6105b4cbae6bc00ee507b8854b6d5fc54b327ffec1cea46350ae20f5704e9",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_shadow_portrait.png",
+      "bytes": 7082,
+      "sha256": "f652061612659f0d37904b0a122d8b1030b5e5a07e9f01b429bfd5f8b869c8ac",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "characters/vex_shadow_walk_6x4.png",
+      "bytes": 81773,
+      "sha256": "574d7cf32c9e8abbf80c556ec325ad18269037d1108538a5d16e7c3392b8fa88",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_solar_attack_6x4.png",
+      "bytes": 45114,
+      "sha256": "cb4083a9b3d34819633fa04dc75816cd41e06782dd08377fae52abafb8122b38",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_solar_dash_4x4.png",
+      "bytes": 31870,
+      "sha256": "38bbdcc69bfbc15c160d63184c6fdebfc13922005b61ec8756cac3ffef8581d7",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_solar_down_6x4.png",
+      "bytes": 181817,
+      "sha256": "3c60bd60c6412474a73f3df10f450c477ffc8d1c0d81b59f3a8233712552e04b",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_solar_hurt_3x4.png",
+      "bytes": 34373,
+      "sha256": "1d12d87997afaeb454eb511b935247d82ef1d4f26e9ea754ebad249f4314682a",
+      "width": 288,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 3,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_solar_idle_4x4.png",
+      "bytes": 54541,
+      "sha256": "0ee4ddb1c401c051f4aa4ad9eb276ad8cd32c871ac45bebc401beed465b9258f",
+      "width": 384,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "characters/vex_solar_portrait.png",
+      "bytes": 6849,
+      "sha256": "e6c4d486a589ec221ab2d820011ef4dec2b84b4f94d22e4a79816db2e5d93bd7",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "characters/vex_solar_walk_6x4.png",
+      "bytes": 79324,
+      "sha256": "d11569239d2206c158bba560c137de7674058796514cbf21c0c6181471a3a7b7",
+      "width": 576,
+      "height": 384,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 4,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "data/crafting_recipes.json",
+      "bytes": 514,
+      "sha256": "d4dfd5954876f3097f972f65bfed5c35467f79228742d50c503ce1e242efd53f"
+    },
+    {
+      "file": "data/game_balance.json",
+      "bytes": 1971,
+      "sha256": "bbf4b55c828b448ac7c20e362f868c6f1b69af03d4893ce724019fb776aa5aca"
+    },
+    {
+      "file": "data/levels.json",
+      "bytes": 1350,
+      "sha256": "02dfcf0b8865be5e1dfc9133ddccc698cbda52dd0497e41842d4d58b010befa8"
+    },
+    {
+      "file": "data/shop_catalog.json",
+      "bytes": 677,
+      "sha256": "8b079e5368b3ab4a1b02da6dbbed1d089d4ab0875a8fcf3ff107c861f0d9300f"
+    },
+    {
+      "file": "enemies/drone_alert_4x1.png",
+      "bytes": 8982,
+      "sha256": "a6555dc4abc93540a8ac66ccbf42dccb92c1a1978177a9a495e15c4a10dc5066",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/drone_attack_4x1.png",
+      "bytes": 11486,
+      "sha256": "9c96ff305614e3b4060ae206378e5eb425fac639c397e965738372fbc16bef99",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/drone_destroy_6x1.png",
+      "bytes": 18498,
+      "sha256": "89ab7755d9d9e44c504bab33a1ec9de386f18ed229a529ad944ae00a543ac113",
+      "width": 576,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/drone_idle_4x1.png",
+      "bytes": 8868,
+      "sha256": "00a96857e69e8114341df3e4e5213e5fda9e9ab09f698a404aa849c20016526c",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/sentinel_alert_4x1.png",
+      "bytes": 9180,
+      "sha256": "e81e47f4d612592aad372f15644665cfb6b1d9ad0c60773738143be03d9f9057",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/sentinel_attack_4x1.png",
+      "bytes": 11649,
+      "sha256": "0874b8a6533fa0ba6360412ce3d6e0b56e2d163d9eac9659ba0f2f24f940e879",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/sentinel_destroy_6x1.png",
+      "bytes": 17237,
+      "sha256": "291604802dfd02fbeca955f5be2ca0c47d2ec314c885c601e3abd23949984b04",
+      "width": 576,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/sentinel_idle_4x1.png",
+      "bytes": 8247,
+      "sha256": "ab4a0c0a522d5e60ee3da0f0fd6b3b7f4ea2e54f8ebdc12aebf21b35a0fe89ec",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/spider_alert_4x1.png",
+      "bytes": 12068,
+      "sha256": "93fb764197c36fe04a22042674a863f76fd4a2bd12329984cf92ec9bc1ece571",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/spider_attack_4x1.png",
+      "bytes": 14229,
+      "sha256": "79cc50d78e44ff265e2c5614df47fbb8a2c02eb799ea6aea2c3c8471f0f174b1",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/spider_destroy_6x1.png",
+      "bytes": 25876,
+      "sha256": "a5539639ead956fc77733875d11cafc36581d405b54b05095f6a4831ffc66da3",
+      "width": 576,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/spider_idle_4x1.png",
+      "bytes": 11188,
+      "sha256": "85df28ad89daf70e671e664392ed83b524e1cd187eec7a28999f1770e2f78b73",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/turret_alert_4x1.png",
+      "bytes": 8918,
+      "sha256": "6814f389f0afba6323b06ef88fc476c7db700935e9e7ff25e8936943e1a3cc50",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/turret_attack_4x1.png",
+      "bytes": 12128,
+      "sha256": "56cee627403bb736f4980b859a953b5abe317d921fa4e6055cac7d506bcf18d9",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/turret_destroy_6x1.png",
+      "bytes": 16555,
+      "sha256": "eeef2dfd06fe0fb7d666a26ae4048a04f52c8df1195b95072fddedd5195d849b",
+      "width": 576,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 6,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "enemies/turret_idle_4x1.png",
+      "bytes": 7816,
+      "sha256": "84a3761a385e3784b411d44025c39099eaaffe33e983355646d18fab56e30170",
+      "width": 384,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "maps/neon_district.json",
+      "bytes": 25646,
+      "sha256": "b7dce6fd1627cded8c090fdaa2fd75b938a56da3881b5c01a1377447d012893c"
+    },
+    {
+      "file": "maps/neon_district_preview.png",
+      "bytes": 499125,
+      "sha256": "c8e023aae51aaa8c44aa571f4d29635d91ec8c3aac794b75c65f40c5236e86b7",
+      "width": 1126,
+      "height": 704,
+      "alphaChannel": true
+    },
+    {
+      "file": "maps/phantom_fortress.json",
+      "bytes": 26461,
+      "sha256": "35628c3a55bc9735d016ded76e1430194bee221039f8c612396eb78a3fac0f7a"
+    },
+    {
+      "file": "maps/phantom_fortress_preview.png",
+      "bytes": 516374,
+      "sha256": "4baaea28e24a035292b790e257ac1e072b0fa8774b4ad258e48049ac3daa9121",
+      "width": 1126,
+      "height": 704,
+      "alphaChannel": true
+    },
+    {
+      "file": "maps/reactor_siege.json",
+      "bytes": 26469,
+      "sha256": "11e134b3dc1529dc6e7f60f87c523dcf128e33e0ea8ec7dd5428e9d65e4462e6"
+    },
+    {
+      "file": "maps/reactor_siege_preview.png",
+      "bytes": 513002,
+      "sha256": "d55482938d284de1ea6add9ae67e47bd0749be5ba1e1bf793a45c6f418bbd8f8",
+      "width": 1126,
+      "height": 704,
+      "alphaChannel": true
+    },
+    {
+      "file": "maps/training_vault.json",
+      "bytes": 25245,
+      "sha256": "f408c9f81d41ec834425c428abcb079e9a2a754d42b2e99eac72184a80e4dc57"
+    },
+    {
+      "file": "maps/training_vault_preview.png",
+      "bytes": 470899,
+      "sha256": "5d2084b466af7c0a8072301ce338adf0a1600710a9f06496aea974c762940756",
+      "width": 1126,
+      "height": 704,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/crimson_sentry.png",
+      "bytes": 68145,
+      "sha256": "1f2a71cb0003aad975d871f7aef5cc3b76ee8827fca6b57a26e926087bedb0a0",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/echo_relic.png",
+      "bytes": 77090,
+      "sha256": "148c1d4321ee9c6468bf59bfad58fa5efca86f10ce0c839d3303b2b623e64051",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/genesis_badge.png",
+      "bytes": 78525,
+      "sha256": "3592dcb22906d0216a47efcebb1ac14b3ebe946787275234115e1f1bac7a4cc2",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/guardian_core.png",
+      "bytes": 78054,
+      "sha256": "4416448847b6fe1271817de24f5654285655719c2747399323e23feab69881a0",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/neon_nyx.png",
+      "bytes": 71327,
+      "sha256": "de4829acdd9c249d123ccb2f3e46b76b0a9b408bc04c61c225754b2e36c2d1a6",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/phantom_vault.png",
+      "bytes": 64319,
+      "sha256": "837cf670dc1494d2005c8894e88e143abe36a81607b77cb3cc2d3427a785818c",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/shadow_vex.png",
+      "bytes": 75511,
+      "sha256": "b53c6ce33181a0ea7671840bc123d76d544996d61f199f30eb0698e1b1c8d433",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/solar_rook.png",
+      "bytes": 72728,
+      "sha256": "09eb287e7e26ec133961d0eee1f26cbb7a267d6b8eb35f478634c0dd2845cace",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "nft/cards/void_emblem.png",
+      "bytes": 58626,
+      "sha256": "21694128f281fd9da2e39eef16c8897d4d6ce3aee6b541929635fa850ecba34d",
+      "width": 350,
+      "height": 490,
+      "alphaChannel": true
+    },
+    {
+      "file": "particles/amber_bolt_8x1.png",
+      "bytes": 759,
+      "sha256": "1587ca625d355fc5652f6e2471c852d5781c598356449a2bb60c1ebf53d4ca1c",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "particles/cyan_bolt_8x1.png",
+      "bytes": 759,
+      "sha256": "00f8a1f44c894d5014bcff0ca4766e28b3948d417401e4088d92b15e5a6d3c57",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "particles/green_orb_8x1.png",
+      "bytes": 755,
+      "sha256": "81c8e830c0442b56cc493ba52d4db673b7f96dfe336f0f23e967da771e23cce1",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "particles/pink_bolt_8x1.png",
+      "bytes": 739,
+      "sha256": "4cbaf1da5f90a546372f364cbff3b0d012c877e721b85544a524d98c83935f1c",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "particles/projectile_impact_8x1.png",
+      "bytes": 762,
+      "sha256": "c833750218181f22d679c2198e7c2cd91caa61262cdebe272f2b195704af520f",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "particles/red_bolt_8x1.png",
+      "bytes": 762,
+      "sha256": "c833750218181f22d679c2198e7c2cd91caa61262cdebe272f2b195704af520f",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      },
+      "duplicateOf": "particles/projectile_impact_8x1.png"
+    },
+    {
+      "file": "particles/shield_wave_8x1.png",
+      "bytes": 2099,
+      "sha256": "8bd0c1ef4ef654fe3f5f98160b6278e2f4bef97bc14ca255c7eb258adcbb1c36",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "particles/spark_pickup_8x1.png",
+      "bytes": 759,
+      "sha256": "1587ca625d355fc5652f6e2471c852d5781c598356449a2bb60c1ebf53d4ca1c",
+      "width": 512,
+      "height": 64,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 64,
+        "height": 64
+      },
+      "duplicateOf": "particles/amber_bolt_8x1.png"
+    },
+    {
+      "file": "props/ammo_pickup.png",
+      "bytes": 2556,
+      "sha256": "93afd2b63f41e8eabe85460dec4f21340ad70561ec89999511bfdf1989974781",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/barrier.png",
+      "bytes": 3607,
+      "sha256": "b400b78ce0720d7d7ce00f75e984700a6b0e9ef559f6da55ef55d9f148fe69f9",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/checkpoint.png",
+      "bytes": 9877,
+      "sha256": "67dc68dfea8c9257ba73440869d757f1c2eaab4a4a90271186854bcf4733e66f",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/cover_block.png",
+      "bytes": 2556,
+      "sha256": "93afd2b63f41e8eabe85460dec4f21340ad70561ec89999511bfdf1989974781",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/ammo_pickup.png"
+    },
+    {
+      "file": "props/crate.png",
+      "bytes": 2556,
+      "sha256": "93afd2b63f41e8eabe85460dec4f21340ad70561ec89999511bfdf1989974781",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/ammo_pickup.png"
+    },
+    {
+      "file": "props/crew_flag.png",
+      "bytes": 3607,
+      "sha256": "b400b78ce0720d7d7ce00f75e984700a6b0e9ef559f6da55ef55d9f148fe69f9",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/barrier.png"
+    },
+    {
+      "file": "props/data_console.png",
+      "bytes": 2538,
+      "sha256": "c699947af57caeea5246de7a4e5e80c0a35fa1dab3dfe9bbea3e8bb353900332",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/decor_banner.png",
+      "bytes": 3607,
+      "sha256": "b400b78ce0720d7d7ce00f75e984700a6b0e9ef559f6da55ef55d9f148fe69f9",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/barrier.png"
+    },
+    {
+      "file": "props/energy_cell.png",
+      "bytes": 7837,
+      "sha256": "068daef028ec0969a69896e2d71c36d468a9360f5d70f8669933187ef17da5c9",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/entrance_door.png",
+      "bytes": 2550,
+      "sha256": "b6a3004120d13004cf32a9a0e39709758212b6a066298d37bf64b9ff4371ea8d",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/extraction_portal.png",
+      "bytes": 9877,
+      "sha256": "67dc68dfea8c9257ba73440869d757f1c2eaab4a4a90271186854bcf4733e66f",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/checkpoint.png"
+    },
+    {
+      "file": "props/floor_switch.png",
+      "bytes": 5289,
+      "sha256": "aa249eed41fad42adfeb132e5a9cdbcc1ee5f7c17a6c5a02cf425503d1fb9750",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/floor_trap.png",
+      "bytes": 5204,
+      "sha256": "81d0760c9baa045b320c2c35a871b31ce2217a3f8e39169df7668b71de513940",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/forge_table.png",
+      "bytes": 3251,
+      "sha256": "9f318292178f48b8e21b5b7c2f324eb024acf1e27fc1d30fce662f1d2691c56c",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/heal_station.png",
+      "bytes": 3251,
+      "sha256": "9f318292178f48b8e21b5b7c2f324eb024acf1e27fc1d30fce662f1d2691c56c",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/forge_table.png"
+    },
+    {
+      "file": "props/hologram.png",
+      "bytes": 4006,
+      "sha256": "2ca2ca6f6880911cc11e973be2595c2a753042a85386f315c8ae1df5c5850260",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/keycard_blue.png",
+      "bytes": 2171,
+      "sha256": "e1760532dc4dae1caad1b9bc86d17f523b3464f1a053381154e7939ff0ae5ee0",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/keycard_red.png",
+      "bytes": 2109,
+      "sha256": "a4bb1d3e62a83750eb3cd53b4e7627226cd8589bf2a27e95e2ffa29759379f98",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/laser_emitter.png",
+      "bytes": 5204,
+      "sha256": "81d0760c9baa045b320c2c35a871b31ce2217a3f8e39169df7668b71de513940",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/floor_trap.png"
+    },
+    {
+      "file": "props/laser_gate.png",
+      "bytes": 3151,
+      "sha256": "759f7be86be0e09e078b5e22758785b5a0f62eede897549569b92459282c0ab4",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/laser_receiver.png",
+      "bytes": 5204,
+      "sha256": "81d0760c9baa045b320c2c35a871b31ce2217a3f8e39169df7668b71de513940",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/floor_trap.png"
+    },
+    {
+      "file": "props/light_column.png",
+      "bytes": 4006,
+      "sha256": "2ca2ca6f6880911cc11e973be2595c2a753042a85386f315c8ae1df5c5850260",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/hologram.png"
+    },
+    {
+      "file": "props/loot_chest.png",
+      "bytes": 3356,
+      "sha256": "6e695ee3ba5e7e95dd906804f4b9a5d1501c379e96f5411d8bf8041770b3eee6",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/nft_relic.png",
+      "bytes": 7837,
+      "sha256": "068daef028ec0969a69896e2d71c36d468a9360f5d70f8669933187ef17da5c9",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/energy_cell.png"
+    },
+    {
+      "file": "props/power_generator.png",
+      "bytes": 3251,
+      "sha256": "9f318292178f48b8e21b5b7c2f324eb024acf1e27fc1d30fce662f1d2691c56c",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/forge_table.png"
+    },
+    {
+      "file": "props/pressure_plate.png",
+      "bytes": 5289,
+      "sha256": "aa249eed41fad42adfeb132e5a9cdbcc1ee5f7c17a6c5a02cf425503d1fb9750",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/floor_switch.png"
+    },
+    {
+      "file": "props/security_camera.png",
+      "bytes": 4006,
+      "sha256": "2ca2ca6f6880911cc11e973be2595c2a753042a85386f315c8ae1df5c5850260",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/hologram.png"
+    },
+    {
+      "file": "props/sensor.png",
+      "bytes": 2538,
+      "sha256": "c699947af57caeea5246de7a4e5e80c0a35fa1dab3dfe9bbea3e8bb353900332",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/data_console.png"
+    },
+    {
+      "file": "props/storage_box.png",
+      "bytes": 2556,
+      "sha256": "93afd2b63f41e8eabe85460dec4f21340ad70561ec89999511bfdf1989974781",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/ammo_pickup.png"
+    },
+    {
+      "file": "props/teleporter.png",
+      "bytes": 9877,
+      "sha256": "67dc68dfea8c9257ba73440869d757f1c2eaab4a4a90271186854bcf4733e66f",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/checkpoint.png"
+    },
+    {
+      "file": "props/terminal_off.png",
+      "bytes": 2526,
+      "sha256": "90c2c28b0d075045ec018cbd60f45a930da8d2656d931fa1f4dc395afa5d183b",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/terminal_on.png",
+      "bytes": 2554,
+      "sha256": "0e4e11eb5e9bc512cbc35ae35726bc0a5d98d13a285d5a557a0bc8310dd58c68",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/turret_pedestal.png",
+      "bytes": 3251,
+      "sha256": "9f318292178f48b8e21b5b7c2f324eb024acf1e27fc1d30fce662f1d2691c56c",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/forge_table.png"
+    },
+    {
+      "file": "props/vault_core.png",
+      "bytes": 7837,
+      "sha256": "068daef028ec0969a69896e2d71c36d468a9360f5d70f8669933187ef17da5c9",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/energy_cell.png"
+    },
+    {
+      "file": "props/vault_door.png",
+      "bytes": 4411,
+      "sha256": "62dbe1c1d1fea2353a1b55d0ae96e94988a9e11d9cb1cde206d5504fb71f3f5f",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true
+    },
+    {
+      "file": "props/warning_beacon.png",
+      "bytes": 4006,
+      "sha256": "2ca2ca6f6880911cc11e973be2595c2a753042a85386f315c8ae1df5c5850260",
+      "width": 96,
+      "height": 96,
+      "alphaChannel": true,
+      "duplicateOf": "props/hologram.png"
+    },
+    {
+      "file": "tiles/neon/floor_a.png",
+      "bytes": 1437,
+      "sha256": "84874b2f47447e019041dd946935606fbc2eba8edf10c8b5d147cc092b1821c4",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_b.png",
+      "bytes": 1649,
+      "sha256": "e8cadf36017f4bc878e13a48bbe00d89de7ea3e26bdb7c00c6f5a56a9b3c1af1",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_c.png",
+      "bytes": 2069,
+      "sha256": "2a800e476636a643ab8d970727ff138cf1881f02f93d94e737cd7cf448e86f5e",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_caution.png",
+      "bytes": 4017,
+      "sha256": "76677ff7b6243681dbf1d81416c87cd4f462ff966be7e916521ade018541a08c",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_circuit.png",
+      "bytes": 2980,
+      "sha256": "13bc2507d5c55e8af2474f3e5b06f30e68b67ab88774fcc8547ffdb01106c0b4",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_crack.png",
+      "bytes": 2877,
+      "sha256": "b4162024e3b17e0ebe196f85effb1499f81b3b697131128065e218a2c92d95ab",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_grate.png",
+      "bytes": 2793,
+      "sha256": "9976b076e210e324dcc59359f3804c1d8c6c74ffc19b1673c197b87792457fa9",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_grid.png",
+      "bytes": 3149,
+      "sha256": "3c3fb46936ea681240e477376e583378038c20cf558be4aead33edeee7664f16",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_holo.png",
+      "bytes": 5030,
+      "sha256": "e8b4b15459261e6e1595013883f7782ed58d286d84d4d55ca0252ccd37722423",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_reactor.png",
+      "bytes": 3984,
+      "sha256": "12675f54e243651ccba3282d9e8bee88825e4d3fe5e321f420cdc5b6b0e7df9e",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/floor_slats.png",
+      "bytes": 2647,
+      "sha256": "8ef6565cf3061a3917933f780df2823cab82f8374a41117f0df999890c575a71",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/wall_corner.png",
+      "bytes": 1413,
+      "sha256": "1464a14ecc30b97698792ffe0757bf8fb8ff9d268442e9202dd90fa010d46263",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/wall_glow.png",
+      "bytes": 2251,
+      "sha256": "e6a04e9a7716686f52b5c7c1cfe44752f7fe5c1cda4145c6bcf1625311147eff",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/wall_panel.png",
+      "bytes": 1839,
+      "sha256": "569101a58c82fa3fcc6eb3c43898c37898445dd421de80bc6f49c306bde94100",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/wall_reinforced.png",
+      "bytes": 1714,
+      "sha256": "3e2a97dd696aad6b415d2ee7fde49aaa434af2180385a6414e01bec5445b9bc9",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/neon/wall_solid.png",
+      "bytes": 1502,
+      "sha256": "a0ffb1cb596bf5ffa43b445b695fe5d152e9eda01215235fc10233d6d9ec43c2",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_a.png",
+      "bytes": 1464,
+      "sha256": "c88cf3170dbcdddb8c91c950e365bb37934696b8726691224001773c0683eb57",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_b.png",
+      "bytes": 1687,
+      "sha256": "507f79394a6ac3f21230b9a1c6cd0aafdbb6ba74556b95305c4ba99690c92d97",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_c.png",
+      "bytes": 2121,
+      "sha256": "573bd03fa9057e8a96d9276db064edeeac45c56b98343a847628e331e1fe7720",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_caution.png",
+      "bytes": 4081,
+      "sha256": "65bdb763196090d66a43af99834b570cd20f34baed3bd9d382ae1fc4576ec771",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_circuit.png",
+      "bytes": 3093,
+      "sha256": "62474f6a4a9ae250fadade0850852e95fe0adf9ad922bd88f69814d1c3c3752f",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_crack.png",
+      "bytes": 2946,
+      "sha256": "99f0bd8799eb5af19fb3b250e9e9a031b31ccfd1db375077f28b6ac19b894586",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_grate.png",
+      "bytes": 2826,
+      "sha256": "058f4e8624f232e4d3e63c01a9ca0dfd56e68a5b292019161ebbe32bc26fa9d1",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_grid.png",
+      "bytes": 3202,
+      "sha256": "99c626ecf40f4ece1eb6ccf30e8dd9e6e62baf02ae183e578cfcddc5c2c2d553",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_holo.png",
+      "bytes": 5244,
+      "sha256": "172a2d82dfc73644d36093604cbb471e05e56e0461f4da4aa91c5a02ef81075a",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_reactor.png",
+      "bytes": 4046,
+      "sha256": "97684e954763115b3940d19d416d2310d8d01b6dd71433d93dd662ac4535c80c",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/floor_slats.png",
+      "bytes": 2654,
+      "sha256": "e9397539d396d3875648eb51ed09b849649233066936197609523e2c94bf01b8",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/wall_corner.png",
+      "bytes": 1403,
+      "sha256": "ed7dd192c3919476ee82833228091b69df5b0bc4583842e172246ff6db6f7bc4",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/wall_glow.png",
+      "bytes": 2312,
+      "sha256": "d509ea60a2eb2d40bc07ce146b676d674ec9ecadbc99a4ec6957e674e6bf0cb9",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/wall_panel.png",
+      "bytes": 1874,
+      "sha256": "b69ea88d5c01c1e24dd6cdab7ddcc824bf3280d8171f19d17b22fcdc608e6e77",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/wall_reinforced.png",
+      "bytes": 1723,
+      "sha256": "26ea8a4c211f0dd867e2e7c330d4f70847e8dc17b27bd68657d9c88966e9c1e3",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/phantom/wall_solid.png",
+      "bytes": 1524,
+      "sha256": "2dc9a5796b8d5608da64c8863c10691a5fd9d9618aedf1f779556f462b0e4680",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_a.png",
+      "bytes": 1451,
+      "sha256": "b7468d23ee33ce7bc4785e1d42c526ae446ff988c80ee5fca394d783a789a81e",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_b.png",
+      "bytes": 1664,
+      "sha256": "f4071bcfeba4b4c129693162f046118ca060898a71825b60b745cc429cf2f8e9",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_c.png",
+      "bytes": 2120,
+      "sha256": "ad7fd5e1398b3df9c99dc6eec112bb4b90819acfe09501ee48afd0e29938ed1f",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_caution.png",
+      "bytes": 4007,
+      "sha256": "2ae59d52a5e735f815129b2a512172dce62dc4c05b75f37ebca6101cdbeb5d5d",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_circuit.png",
+      "bytes": 2940,
+      "sha256": "439126ce164b749142168f83057d530e87bfaeeec00f5474332fdcb6a829e8fa",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_crack.png",
+      "bytes": 2957,
+      "sha256": "5e7317814f8a3ff191aa08122b5a89407c087542cde65ae2339397bd736af36e",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_grate.png",
+      "bytes": 2781,
+      "sha256": "df89d850d2e28ecd49de5f50e3a1782e6225fd0b23feed6715cbf4c026a0a8cd",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_grid.png",
+      "bytes": 3161,
+      "sha256": "6d7090c04deb376dd492a71d1c85204d474136a0a600d4781c3530dd42a9e8d0",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_holo.png",
+      "bytes": 5195,
+      "sha256": "5ab8938c7d3a6cc0ad96fbc4b05d5761afd1cb73d0d01b6a64d3fad775a682f0",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_reactor.png",
+      "bytes": 3991,
+      "sha256": "486dfceb319086940ef027a93972c0889781276fee74e4033f4b647bc31ad544",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/floor_slats.png",
+      "bytes": 2656,
+      "sha256": "37015456ed5f3f6b49d8c8dc367802f800c1bad4c7b9d7e21794edb12e24f725",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/wall_corner.png",
+      "bytes": 1394,
+      "sha256": "d5ac8b03d1af036e29be2128b6d94882d7df8daff51f6aa5b8b06f56338dad25",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/wall_glow.png",
+      "bytes": 2258,
+      "sha256": "2ce81f8327dd4059b287c046b5109c8b2c29469a5e2d4fb46a0025afdd17c756",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/wall_panel.png",
+      "bytes": 1846,
+      "sha256": "9c54849f99d94b3d6e0ca46170ea78dc3b76957ccd112314a6bab3477403ab1e",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/wall_reinforced.png",
+      "bytes": 1675,
+      "sha256": "f48f6ebd93b9ab377b45f7d33bb573cc69e5c4bb0b85052a6ac7abee27e010a0",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tiles/reactor/wall_solid.png",
+      "bytes": 1508,
+      "sha256": "87306389288c984655e2dcc391a77037e76cc10efb0eed72f58755d6a92f94f3",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "tilesets/neon_atlas_4x4.png",
+      "bytes": 36439,
+      "sha256": "d11f259d5c90947afe6bcca5fddabc37673eea263d620419043b141a0117a1e3",
+      "width": 256,
+      "height": 256,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "tilesets/phantom_atlas_4x4.png",
+      "bytes": 37300,
+      "sha256": "01f98884e072ffc6f3a29b832d055fd433bb68625a161239e5a04baaf742dac7",
+      "width": 256,
+      "height": 256,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "tilesets/reactor_atlas_4x4.png",
+      "bytes": 36597,
+      "sha256": "efb17d858f85efd96b7b32b9863463ff859513794cf2cdcceaacda64b9e07154",
+      "width": 256,
+      "height": 256,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 4,
+        "rows": 4,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "file": "ui/chrome/danger_badge.png",
+      "bytes": 3616,
+      "sha256": "31e5cca771969d1b99cb4cabf6ca25af7dddac78789ea0476ec3e2162068e9f5",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/danger_button.png",
+      "bytes": 3602,
+      "sha256": "a10e29990bfc69a7f9fd5cd78848eaba9c00d0641e374352c5a8ae56b24f321e",
+      "width": 320,
+      "height": 72,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/danger_notification.png",
+      "bytes": 3965,
+      "sha256": "2acad016973f3066ffaa62f0b3d01f45da02739d42b59d9561ed839fd13c15c1",
+      "width": 580,
+      "height": 100,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/danger_panel.png",
+      "bytes": 4610,
+      "sha256": "e9711278425e2ee22b171fa892ae10e1c77e6b12b06d83511747b18cb462d17f",
+      "width": 480,
+      "height": 240,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/default_badge.png",
+      "bytes": 3599,
+      "sha256": "6ac73d02d58f1f4dfd50c858052ec6fc42f8c9690fb4080e322d00766bbd3dd7",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/default_button.png",
+      "bytes": 3594,
+      "sha256": "d82f80b84221333a7cf8101f2157aaacff0f39c1152846467a354bdffa76e0cb",
+      "width": 320,
+      "height": 72,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/default_notification.png",
+      "bytes": 3959,
+      "sha256": "bb82de3e02937209d179386e1b99e88fc2541d583e0edabf499d9f6d71fe7809",
+      "width": 580,
+      "height": 100,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/default_panel.png",
+      "bytes": 4604,
+      "sha256": "bf4f62a18246f5109adfd2ffe3de5e87933b9124b7abd07e1fa1cf017eec5072",
+      "width": 480,
+      "height": 240,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/guild_badge.png",
+      "bytes": 3725,
+      "sha256": "363e21fca488001d3437808202cda67d2cf61ba50983d0e77d60fa255bb3c87f",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/guild_button.png",
+      "bytes": 3716,
+      "sha256": "0ab13c5e38b1bbdf0d6e0cb2e4142fec218f9a2e58e42ead86d0b5a5fe3239e6",
+      "width": 320,
+      "height": 72,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/guild_notification.png",
+      "bytes": 4076,
+      "sha256": "a7a829fe39655151c982c6a975b83ed743cc3e90afc956516959805dbb9f6514",
+      "width": 580,
+      "height": 100,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/guild_panel.png",
+      "bytes": 4725,
+      "sha256": "2dcaf19bf9f0f2d19731dc326fc15c9213b2483fe4c94b5662b8a4c68327f0dd",
+      "width": 480,
+      "height": 240,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/premium_badge.png",
+      "bytes": 3675,
+      "sha256": "9b1fcb90b95725a8c00577d89334be547bf44ba85f9b9f86bd5d7656d746e2c0",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/premium_button.png",
+      "bytes": 3677,
+      "sha256": "0527cf9fa5b659e36d09442fc5989073dc8393c3954919caa8e65f8b00e6d1df",
+      "width": 320,
+      "height": 72,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/premium_notification.png",
+      "bytes": 4046,
+      "sha256": "8586100a7d4fb21785a2fe85f487cd21c3bde20f6ede698999ac6699c8cb74cc",
+      "width": 580,
+      "height": 100,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/chrome/premium_panel.png",
+      "bytes": 4692,
+      "sha256": "24dc6bb5866bd299d38c0eea8d858d5111b11dc5dbb38a92863617e385ceee1b",
+      "width": 480,
+      "height": 240,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/hud/action_button.png",
+      "bytes": 9110,
+      "sha256": "8c128e23652f5dadaaad8829184399faf3cb40b0901b2b8945b63ff14139b682",
+      "width": 100,
+      "height": 100,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/hud/health_bar_bg.png",
+      "bytes": 1327,
+      "sha256": "20525eb18c60a0654523604b5f1876425a6a0a05195c80822970e382eea08824",
+      "width": 280,
+      "height": 50,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/hud/health_bar_fill.png",
+      "bytes": 1847,
+      "sha256": "b76c6b59a84aae4a728627d424c316b43f89cbed4997edbe5668b01abf01f65c",
+      "width": 280,
+      "height": 50,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/hud/joystick_base.png",
+      "bytes": 16494,
+      "sha256": "a6dc5bfdd48f0476c031bd1a20ffb56478650b3bb24e361add979651b7b094f5",
+      "width": 160,
+      "height": 160,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/hud/joystick_knob.png",
+      "bytes": 16494,
+      "sha256": "a6dc5bfdd48f0476c031bd1a20ffb56478650b3bb24e361add979651b7b094f5",
+      "width": 160,
+      "height": 160,
+      "alphaChannel": true,
+      "duplicateOf": "ui/hud/joystick_base.png"
+    },
+    {
+      "file": "ui/hud/minimap_frame.png",
+      "bytes": 1753,
+      "sha256": "373b038119eb588c6a146d3f6304f0d1fbb67434923e2bc7dafd27029351e45c",
+      "width": 340,
+      "height": 140,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/hud/objective_panel.png",
+      "bytes": 1753,
+      "sha256": "373b038119eb588c6a146d3f6304f0d1fbb67434923e2bc7dafd27029351e45c",
+      "width": 340,
+      "height": 140,
+      "alphaChannel": true,
+      "duplicateOf": "ui/hud/minimap_frame.png"
+    },
+    {
+      "file": "ui/hud/xp_bar.png",
+      "bytes": 1871,
+      "sha256": "f5bccc08b79e95d404f22c874d58368200c7b6de8852ee76c4521d055c10c6ca",
+      "width": 280,
+      "height": 50,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/attack.png",
+      "bytes": 4152,
+      "sha256": "938b8fef73bdc8d0900102f9e53ab2f08e6de21d298a6840bf88f1ead7c4ed7a",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/back.png",
+      "bytes": 4374,
+      "sha256": "eec0c73242997efb4629633a137a4e6f51a35d94f4b3c52eaaf2b0f96743b340",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/boss.png",
+      "bytes": 4206,
+      "sha256": "31104ac2f0e11609d0c986316c75c0c4b34fb04c77fa0c97a65a7e2ba90f500f",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/camera.png",
+      "bytes": 4419,
+      "sha256": "392d318211741428bf5bf39022b8fd8717ae0094866ffe294d71058467b96cec",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/check.png",
+      "bytes": 4242,
+      "sha256": "e9001da7add162f54def90daa69ee9e6d926bb7c1a7ff5a145f1929d4e025cc3",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/close.png",
+      "bytes": 4116,
+      "sha256": "d83092dbe0cc7fa157fca7482fca71d1c915fc25fb94ad4437ee902d750ca9a4",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/crew.png",
+      "bytes": 4206,
+      "sha256": "31104ac2f0e11609d0c986316c75c0c4b34fb04c77fa0c97a65a7e2ba90f500f",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/boss.png"
+    },
+    {
+      "file": "ui/icons/crosshair.png",
+      "bytes": 4287,
+      "sha256": "f0af5f8b526190b5e705f27bace21a966f15611518235e3887348d5217d841ce",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/dash.png",
+      "bytes": 4220,
+      "sha256": "060efae86979af26fbe41018ad677e3414885096c24c1aa68366f02654da0de6",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/defend.png",
+      "bytes": 4831,
+      "sha256": "7c32922431020e65c0d4397dc040aa21777c8fe3b90ba7d653b37de895882088",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/duel.png",
+      "bytes": 4274,
+      "sha256": "8ec38caafe99cdf6a0dbc0d7167aa64d0acfef30adcec7ff82a8fe7a17bdfccf",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/edit.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/energy.png",
+      "bytes": 4844,
+      "sha256": "ba995b35a257a39c01f63ab9c1aa0ddc3b1861079898cf08022dcbd578ac4427",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/events.png",
+      "bytes": 4419,
+      "sha256": "392d318211741428bf5bf39022b8fd8717ae0094866ffe294d71058467b96cec",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/camera.png"
+    },
+    {
+      "file": "ui/icons/forge.png",
+      "bytes": 4374,
+      "sha256": "eec0c73242997efb4629633a137a4e6f51a35d94f4b3c52eaaf2b0f96743b340",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/back.png"
+    },
+    {
+      "file": "ui/icons/ghost.png",
+      "bytes": 4220,
+      "sha256": "060efae86979af26fbe41018ad677e3414885096c24c1aa68366f02654da0de6",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/dash.png"
+    },
+    {
+      "file": "ui/icons/gift.png",
+      "bytes": 4374,
+      "sha256": "eec0c73242997efb4629633a137a4e6f51a35d94f4b3c52eaaf2b0f96743b340",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/back.png"
+    },
+    {
+      "file": "ui/icons/heart.png",
+      "bytes": 4275,
+      "sha256": "2a10c10323be8b07abcd5b21bb5c45a051f40935e99c973fbabcb95d6ddcef35",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/info.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/edit.png"
+    },
+    {
+      "file": "ui/icons/interact.png",
+      "bytes": 4374,
+      "sha256": "eec0c73242997efb4629633a137a4e6f51a35d94f4b3c52eaaf2b0f96743b340",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/back.png"
+    },
+    {
+      "file": "ui/icons/inventory.png",
+      "bytes": 4206,
+      "sha256": "31104ac2f0e11609d0c986316c75c0c4b34fb04c77fa0c97a65a7e2ba90f500f",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/boss.png"
+    },
+    {
+      "file": "ui/icons/key.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/edit.png"
+    },
+    {
+      "file": "ui/icons/leaderboard.png",
+      "bytes": 3933,
+      "sha256": "46bf669599a73c7f6dfcfeb4a550d275e65bba8bac4bd1758ad5a8eb978e79a7",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/lock.png",
+      "bytes": 4754,
+      "sha256": "22b4f49fb16328400c39dae67320e9f5def1dab338e4cd82616d5a455cb35e38",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/map.png",
+      "bytes": 4374,
+      "sha256": "eec0c73242997efb4629633a137a4e6f51a35d94f4b3c52eaaf2b0f96743b340",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/back.png"
+    },
+    {
+      "file": "ui/icons/market.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/edit.png"
+    },
+    {
+      "file": "ui/icons/mine.png",
+      "bytes": 4864,
+      "sha256": "91f614f89ec70bba4dc31acd12dd2d72b36fabcc06ce295b751bdf0505713b86",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/mute.png",
+      "bytes": 4374,
+      "sha256": "eec0c73242997efb4629633a137a4e6f51a35d94f4b3c52eaaf2b0f96743b340",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/back.png"
+    },
+    {
+      "file": "ui/icons/nft.png",
+      "bytes": 4743,
+      "sha256": "d059bd0066432f4ba1210c74d9555053399306a33f5ff0a6f952c1147a59adb6",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/pause.png",
+      "bytes": 3423,
+      "sha256": "1d93b6a772036c804088c118275b4599d0706ba40b378dccc109a3b4a5e65ad7",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/play.png",
+      "bytes": 3627,
+      "sha256": "765637cb9b6e35a61e84bc0a97a57aef0a5b254bc368c8d275991c208a24df34",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/profile.png",
+      "bytes": 4419,
+      "sha256": "392d318211741428bf5bf39022b8fd8717ae0094866ffe294d71058467b96cec",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/camera.png"
+    },
+    {
+      "file": "ui/icons/publish.png",
+      "bytes": 4127,
+      "sha256": "fd8335c5be16a2ae74c17812f73592f6fd31ddd3b8abbcbb2739d4413668c426",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/quest.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/edit.png"
+    },
+    {
+      "file": "ui/icons/raid.png",
+      "bytes": 4287,
+      "sha256": "f0af5f8b526190b5e705f27bace21a966f15611518235e3887348d5217d841ce",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/crosshair.png"
+    },
+    {
+      "file": "ui/icons/resume.png",
+      "bytes": 3796,
+      "sha256": "683f66a8c2d337a23620c0f9f96e399f850a25003a40d4992e01e2c6ebb44ea2",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/season.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/edit.png"
+    },
+    {
+      "file": "ui/icons/settings.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/edit.png"
+    },
+    {
+      "file": "ui/icons/shard.png",
+      "bytes": 4864,
+      "sha256": "91f614f89ec70bba4dc31acd12dd2d72b36fabcc06ce295b751bdf0505713b86",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/mine.png"
+    },
+    {
+      "file": "ui/icons/share.png",
+      "bytes": 4007,
+      "sha256": "a7af510919df58153f349be25b14fff2b7ede749c3165a0c12e3cd2c18648c94",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/shield.png",
+      "bytes": 4988,
+      "sha256": "192e36c88257860e7e4d3b99b7b5cd103fb3e0562b5bce47fcf2d6ccda5b89fb",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/sound.png",
+      "bytes": 4263,
+      "sha256": "f11411415f10e99297c3330f02a77fd80e3b9e58336f062d0e20d74b9d8ffc95",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/edit.png"
+    },
+    {
+      "file": "ui/icons/star.png",
+      "bytes": 4844,
+      "sha256": "ba995b35a257a39c01f63ab9c1aa0ddc3b1861079898cf08022dcbd578ac4427",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/energy.png"
+    },
+    {
+      "file": "ui/icons/terminal.png",
+      "bytes": 4206,
+      "sha256": "31104ac2f0e11609d0c986316c75c0c4b34fb04c77fa0c97a65a7e2ba90f500f",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/boss.png"
+    },
+    {
+      "file": "ui/icons/test.png",
+      "bytes": 4374,
+      "sha256": "eec0c73242997efb4629633a137a4e6f51a35d94f4b3c52eaaf2b0f96743b340",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/back.png"
+    },
+    {
+      "file": "ui/icons/timer.png",
+      "bytes": 4812,
+      "sha256": "e7c6a76d67900f707164cd595b21b93bd3c9a2532c337937f653ebfd6d9dcad2",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/trophy.png",
+      "bytes": 3933,
+      "sha256": "46bf669599a73c7f6dfcfeb4a550d275e65bba8bac4bd1758ad5a8eb978e79a7",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/leaderboard.png"
+    },
+    {
+      "file": "ui/icons/vault.png",
+      "bytes": 4928,
+      "sha256": "eee68b24abf78c798110496380076476a531ef07f859ab4fdbfc33ffe2a8a5ba",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/wallet.png",
+      "bytes": 4419,
+      "sha256": "392d318211741428bf5bf39022b8fd8717ae0094866ffe294d71058467b96cec",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true,
+      "duplicateOf": "ui/icons/camera.png"
+    },
+    {
+      "file": "ui/icons/warning.png",
+      "bytes": 4210,
+      "sha256": "89ab79ef2a86bedf28e6bff839a2808ba2494b31852652628d2eef7baa12c21f",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "ui/icons/xp.png",
+      "bytes": 4703,
+      "sha256": "471424bb01bca3405e614e8ae99e0e0a20c50aadf7d7ad173535050678be61bd",
+      "width": 64,
+      "height": 64,
+      "alphaChannel": true
+    },
+    {
+      "file": "vfx/alert_8x1.png",
+      "bytes": 17860,
+      "sha256": "06baee1f7fe8eb67a4eddb693e4b5a1fe93112e3dfc7fbffd95f36f9ad30764d",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/boss_charge_8x1.png",
+      "bytes": 17860,
+      "sha256": "06baee1f7fe8eb67a4eddb693e4b5a1fe93112e3dfc7fbffd95f36f9ad30764d",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/alert_8x1.png"
+    },
+    {
+      "file": "vfx/collect_8x1.png",
+      "bytes": 19175,
+      "sha256": "f63e4178a6d356fdc7f62e644b15d7aa8bb75a7434207a048e77682b9a046ebb",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/dash_trail_8x1.png",
+      "bytes": 2917,
+      "sha256": "fbb56dddd273e6d5e5cb208cda0f989f02c725cbbacc830f503cb4b1052c8868",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/explosion_8x1.png",
+      "bytes": 34232,
+      "sha256": "cab4bfefa9a4266814ebe617c0a0a8ef856f304ed661960f824254386e779ca9",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/heal_8x1.png",
+      "bytes": 21176,
+      "sha256": "f046200f668e17b45a89c761f69fbf4a69c2d68be58c350199f5989a967a29fe",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/laser_beam_8x1.png",
+      "bytes": 672,
+      "sha256": "0c333c17b2f066bc7afed81b9378d43e36d841245bce5f8c0c0c57d8a3d0663b",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/level_up_8x1.png",
+      "bytes": 35753,
+      "sha256": "68aa390864543c232073c0b90f7db4ebb60c07cbae7e077bac821d3202a20a9f",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/muzzle_8x1.png",
+      "bytes": 34232,
+      "sha256": "cab4bfefa9a4266814ebe617c0a0a8ef856f304ed661960f824254386e779ca9",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/explosion_8x1.png"
+    },
+    {
+      "file": "vfx/shield_hit_8x1.png",
+      "bytes": 19175,
+      "sha256": "f63e4178a6d356fdc7f62e644b15d7aa8bb75a7434207a048e77682b9a046ebb",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/collect_8x1.png"
+    },
+    {
+      "file": "vfx/slash_8x1.png",
+      "bytes": 2946,
+      "sha256": "697195541ed735812bda18fb9519a83ded025da50485b67940acb2c5ad73b9cd",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "file": "vfx/smoke_8x1.png",
+      "bytes": 2917,
+      "sha256": "fbb56dddd273e6d5e5cb208cda0f989f02c725cbbacc830f503cb4b1052c8868",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/dash_trail_8x1.png"
+    },
+    {
+      "file": "vfx/spark_8x1.png",
+      "bytes": 34232,
+      "sha256": "cab4bfefa9a4266814ebe617c0a0a8ef856f304ed661960f824254386e779ca9",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/explosion_8x1.png"
+    },
+    {
+      "file": "vfx/teleport_8x1.png",
+      "bytes": 19175,
+      "sha256": "f63e4178a6d356fdc7f62e644b15d7aa8bb75a7434207a048e77682b9a046ebb",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/collect_8x1.png"
+    },
+    {
+      "file": "vfx/terminal_hack_8x1.png",
+      "bytes": 19175,
+      "sha256": "f63e4178a6d356fdc7f62e644b15d7aa8bb75a7434207a048e77682b9a046ebb",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/collect_8x1.png"
+    },
+    {
+      "file": "vfx/vault_unlock_8x1.png",
+      "bytes": 35753,
+      "sha256": "68aa390864543c232073c0b90f7db4ebb60c07cbae7e077bac821d3202a20a9f",
+      "width": 768,
+      "height": 96,
+      "alphaChannel": true,
+      "frames": {
+        "columns": 8,
+        "rows": 1,
+        "width": 96,
+        "height": 96
+      },
+      "duplicateOf": "vfx/level_up_8x1.png"
+    },
+    {
+      "file": "weapons/arc_bow.png",
+      "bytes": 1379,
+      "sha256": "b90131df205366232a367d025009b1e3f54ab3a6d99826352e756bc700b6d0bc",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/crimson_pistol.png",
+      "bytes": 1173,
+      "sha256": "c6f1e88f1cce60472bca51b5ed4dd600fb7ec361f3343d90e20ff13448b16ed2",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/data_hacker.png",
+      "bytes": 1098,
+      "sha256": "6ad9aa43cc2a972c7c66a27333508009748b8f020b0aebfe4716003411cbe2ff",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/energy_shield.png",
+      "bytes": 1464,
+      "sha256": "de756110daf60fd613a1b745df0cd9925d5e8fae54b2a207c614271d7a622688",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/ion_staff.png",
+      "bytes": 1427,
+      "sha256": "408681a7dc829edd4000981a82c27faa8453701040b90dae1b2e1dc76e257dca",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/med_patch.png",
+      "bytes": 1135,
+      "sha256": "34f5bdfb1fc54ecd4ac13d05295a9c2e15c9c035ac45316f16ece7b0f64244ab",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/neon_blade.png",
+      "bytes": 1281,
+      "sha256": "ebb98f43bf0e28fe9bb97713060817eb4d2c0c7d9c6821fe07ee009012ecf1ab",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/phantom_blade.png",
+      "bytes": 1275,
+      "sha256": "5fd32a79a285d0f1d4c1266b38c20728d10a9f5744c33b7387d773fbc7dea0a6",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/plasma_pistol.png",
+      "bytes": 1179,
+      "sha256": "4c8a7a9e42bed2b44b234713d1904c6dddbc105e69f40c3a3e8fc6e923119f01",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/pulse_grenade.png",
+      "bytes": 1321,
+      "sha256": "84fe80d94165a390e9b9502294484566dae9d030db873de181d93df35c21eb01",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/pulse_rifle.png",
+      "bytes": 1176,
+      "sha256": "44950c21aff6889743f01fc1ef768bc8dc32cb9e2da1d8c5f87910b0f2ffa6e9",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/rail_rifle.png",
+      "bytes": 1185,
+      "sha256": "a2c8a5a127b639ca064389b586c4ec4d3d3d87988f79f5d24a8b41ea5135d1cd",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/reactor_wrench.png",
+      "bytes": 1439,
+      "sha256": "170416abee799f7aac9897ffdd155328f0990d83697fdc1b8e0fc0c21c018139",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    },
+    {
+      "file": "weapons/solar_blade.png",
+      "bytes": 1276,
+      "sha256": "0c296b02606bca5e9cbb68c2bff05e2fdbadf740f08a9451c5ee350a87278907",
+      "width": 144,
+      "height": 144,
+      "alphaChannel": true
+    }
+  ],
+  "summary": {
+    "files": 359,
+    "bytes": 11287424,
+    "duplicateFiles": 57
+  },
+  "rugfireModels": [
+    {
+      "file": "FAKE_KOL_INFLUENCER.glb",
+      "meshes": 106,
+      "nodes": 119,
+      "skinned": 0,
+      "animationClips": [
+        "Idle_Breathe",
+        "Walk_Forward",
+        "Sprint_Forward",
+        "Combat_Aim",
+        "Shoot_Recoil",
+        "Reload",
+        "Crouch_Aim",
+        "Hit_React",
+        "Death_Fall"
+      ]
+    },
+    {
+      "file": "KAI_BELMONT_PLAYER.glb",
+      "meshes": 102,
+      "nodes": 115,
+      "skinned": 0,
+      "animationClips": [
+        "Idle_Breathe",
+        "Walk_Forward",
+        "Sprint_Forward",
+        "Combat_Aim",
+        "Shoot_Recoil",
+        "Reload",
+        "Crouch_Aim",
+        "Hit_React",
+        "Death_Fall"
+      ]
+    },
+    {
+      "file": "MEGA_RUGGER_BOSS.glb",
+      "meshes": 108,
+      "nodes": 121,
+      "skinned": 0,
+      "animationClips": [
+        "Idle_Breathe",
+        "Walk_Forward",
+        "Sprint_Forward",
+        "Combat_Aim",
+        "Shoot_Recoil",
+        "Reload",
+        "Crouch_Aim",
+        "Hit_React",
+        "Death_Fall"
+      ]
+    },
+    {
+      "file": "operator.glb",
+      "meshes": 1,
+      "nodes": 86,
+      "skinned": 1,
+      "animationClips": [
+        "Idle",
+        "Walk",
+        "Run",
+        "Back",
+        "Left",
+        "Right",
+        "Fire",
+        "Reload",
+        "Hit",
+        "Evade"
+      ]
+    },
+    {
+      "file": "RUG_PULLER_RAIDER.glb",
+      "meshes": 105,
+      "nodes": 118,
+      "skinned": 0,
+      "animationClips": [
+        "Idle_Breathe",
+        "Walk_Forward",
+        "Sprint_Forward",
+        "Combat_Aim",
+        "Shoot_Recoil",
+        "Reload",
+        "Crouch_Aim",
+        "Hit_React",
+        "Death_Fall"
+      ]
+    },
+    {
+      "file": "WHALE_ENFORCER.glb",
+      "meshes": 107,
+      "nodes": 120,
+      "skinned": 0,
+      "animationClips": [
+        "Idle_Breathe",
+        "Walk_Forward",
+        "Sprint_Forward",
+        "Combat_Aim",
+        "Shoot_Recoil",
+        "Reload",
+        "Crouch_Aim",
+        "Hit_React",
+        "Death_Fall"
+      ]
+    }
+  ],
+  "notes": [
+    "PNG metadata validates frame division, not pose quality; alpha coverage is validated by the runtime export tool.",
+    "The standalone prototypes and V3 copies are retained as references, not imported application code.",
+    "No native run sheets exist in the V4 character pack; walk-at-speed is an explicit fallback."
+  ]
+}

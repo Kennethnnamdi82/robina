@@ -1,0 +1,97 @@
+{
+  "player": {
+    "startingHP": 100,
+    "moveSpeedPxPerSecond": 205,
+    "dashSpeedMultiplier": 2.8,
+    "dashDurationMs": 210,
+    "dashCooldownMs": 1900,
+    "invulnerabilityAfterHitMs": 900,
+    "attackDamage": 25,
+    "attackCooldownMs": 450
+  },
+  "enemies": {
+    "drone": {
+      "hp": 60,
+      "damage": 12,
+      "speed": 110,
+      "detectionRange": 280
+    },
+    "sentinel": {
+      "hp": 90,
+      "damage": 17,
+      "speed": 85,
+      "detectionRange": 300
+    },
+    "spider": {
+      "hp": 45,
+      "damage": 9,
+      "speed": 145,
+      "detectionRange": 260
+    },
+    "turret": {
+      "hp": 75,
+      "damage": 15,
+      "speed": 0,
+      "detectionRange": 330
+    }
+  },
+  "bosses": {
+    "guardian": {
+      "hp": 600,
+      "damage": 22
+    },
+    "wraith": {
+      "hp": 525,
+      "damage": 21
+    },
+    "reactor_behemoth": {
+      "hp": 700,
+      "damage": 24
+    }
+  },
+  "scoring": {
+    "completion": 1000,
+    "perSecondRemaining": 15,
+    "terminalBonus": 250,
+    "coreBonus": 450,
+    "damagePenaltyPerHP": 3,
+    "retryPenalty": 0,
+    "verifiedResultRequired": true
+  },
+  "rewards": {
+    "xpBase": 100,
+    "shardBase": 12,
+    "firstClearBonusXP": 75,
+    "currency": "NON_TRANSFERABLE_CRAFTING_SHARDS",
+    "cashEquivalent": false
+  },
+  "vaultEditor": {
+    "width": 32,
+    "height": 20,
+    "maxEnemies": 8,
+    "maxTraps": 12,
+    "maxInteractiveTerminals": 3,
+    "maxObjects": 90,
+    "mustHaveReachableExit": true,
+    "mustPassCreatorRun": true,
+    "serverValidationRequired": true
+  },
+  "competitive": {
+    "mode": "asynchronous",
+    "serverVerifiesScore": true,
+    "playerCreatedVaultRatingEligibleAfterReview": true,
+    "premiumCosmeticsGiveGameplayAdvantage": false
+  },
+  "mining": {
+    "status": "LEGACY_UNCHANGED",
+    "doNotModify": [
+      "mining timer",
+      "BD Points rate",
+      "claims",
+      "balances",
+      "mining history",
+      "auto-claim",
+      "mining reward formulas"
+    ]
+  }
+}

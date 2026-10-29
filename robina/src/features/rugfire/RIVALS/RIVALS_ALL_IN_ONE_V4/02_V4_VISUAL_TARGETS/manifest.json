@@ -1,0 +1,25 @@
+{
+  "reference_file": "visual_reference/RIVALS_ORIGINAL_MASTER_REFERENCE.png",
+  "reference_crops": [
+    "01_lobby_and_navigation",
+    "02_rivals_world_map",
+    "03_exploration_gameplay",
+    "04_terminal_puzzle_gameplay",
+    "05_boss_combat",
+    "06_mission_results",
+    "07_vault_architect",
+    "08_nft_wardrobe"
+  ],
+  "playable_demo": "playable_game/index.html",
+  "artwork_types": {
+    "reference_panels": 8,
+    "enhanced_tile_atlases": 3,
+    "existing_usable_animation_sheets": "preserved in playable_game/assets/characters",
+    "new_dynamic_lighting": true,
+    "interactive_world_nav": true
+  },
+  "note": "Reference crops are flattened artwork. Tile atlases are usable 64px 4x4 game textures. Mining untouched.",
+  "new_original_character_sprite_sheets": 18,
+  "new_original_boss_sprite_sheet": "guardian_idle_6x1.png",
+  "new_original_drone_sprite_sheet": "drone_idle_4x1.png"
+}

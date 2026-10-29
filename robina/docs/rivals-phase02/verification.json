@@ -1,0 +1,19 @@
+{
+  "phase": "Prompt 02 visual foundation",
+  "unit": { "command": "npm test", "exitCode": 0, "passedFiles": 15, "passedTests": 44, "durationSeconds": 36.49 },
+  "typecheck": { "command": "npm run typecheck", "exitCode": 0, "afterInputFix": true },
+  "lint": { "scope": ["src/features/rivals", "src/pages/GamingPage.tsx", "tests/rivals", "playwright.rivals.config.ts", "vite.rivals.config.ts", "vitest.config.ts"], "exitCode": 0 },
+  "standaloneMinifiedBuild": { "command": "npm run build:rivals:preview", "exitCode": 0, "durationSeconds": 39.41, "afterInputFix": true },
+  "frontendDevelopmentBuild": { "command": "npm run build:dev", "exitCode": 0, "durationSeconds": 126, "afterInputFix": true },
+  "productionBuild": { "command": "npm run build", "exitCode": 1, "reason": "Existing configuration gate: missing VITE_API_URL", "verifiedForDeployment": false },
+  "browser": {
+    "baseURL": "http://127.0.0.1:8083",
+    "mainRun": { "passed": 9, "failed": 1, "durationMinutes": 8.1 },
+    "finalFocusedRegression": { "passed": 2, "failed": 0, "durationMinutes": 1, "scenarios": ["pause freezes physics and timer, resume works, and repeated exits clean up", "equipment highlights support real local interaction without mission rewards"] },
+    "distinctScenariosVerifiedAcrossRuns": 10,
+    "singleCleanTenTestRunClaimed": false,
+    "physicalAndroidTested": false
+  },
+  "performance": { "report": "performance.json", "desktopTargetAchieved": false, "physicalMobileTargetVerified": false },
+  "scope": { "backendModified": false, "databaseMigration": false, "historicalDataModified": false, "prompt03Implemented": false }
+}

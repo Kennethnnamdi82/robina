@@ -1,0 +1,26 @@
+{
+  "totalManifestEntries": 351,
+  "types": {
+    "tile": 48,
+    "tileset": 3,
+    "character_animation": 54,
+    "portrait": 9,
+    "enemy_animation": 16,
+    "boss_animation": 9,
+    "prop": 36,
+    "vfx_animation": 16,
+    "ui_icon": 51,
+    "ui_chrome": 16,
+    "ui_hud": 8,
+    "nft_art": 9,
+    "audio_sfx": 38,
+    "audio_music": 3,
+    "tiled_map": 4,
+    "weapon": 14,
+    "parallax_background": 9,
+    "projectile_animation": 8
+  },
+  "generatedOriginal": true,
+  "browserDemoVerified": false,
+  "qualityStatement": "Feature coverage and file integrity checked; final gameplay quality requires real devices, production art and user testing."
+}

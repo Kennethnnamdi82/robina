@@ -1,0 +1,58 @@
+[
+  {
+    "id": "training_vault",
+    "zone": "neon",
+    "difficulty": 1,
+    "name": "Training Vault",
+    "mission": {
+      "disableTerminals": 2,
+      "captureCore": true,
+      "reachExtraction": true
+    },
+    "recommendedDurationSeconds": 180,
+    "bossRequired": false,
+    "map": "public/assets/maps/training_vault.json"
+  },
+  {
+    "id": "neon_district",
+    "zone": "neon",
+    "difficulty": 2,
+    "name": "Neon District",
+    "mission": {
+      "disableTerminals": 2,
+      "captureCore": true,
+      "reachExtraction": true
+    },
+    "recommendedDurationSeconds": 210,
+    "bossRequired": false,
+    "map": "public/assets/maps/neon_district.json"
+  },
+  {
+    "id": "phantom_fortress",
+    "zone": "phantom",
+    "difficulty": 3,
+    "name": "Phantom Fortress",
+    "mission": {
+      "disableTerminals": 2,
+      "captureCore": true,
+      "reachExtraction": true
+    },
+    "recommendedDurationSeconds": 240,
+    "bossRequired": true,
+    "map": "public/assets/maps/phantom_fortress.json"
+  },
+  {
+    "id": "reactor_siege",
+    "zone": "reactor",
+    "difficulty": 4,
+    "name": "Reactor Siege",
+    "mission": {
+      "disableTerminals": 2,
+      "captureCore": true,
+      "reachExtraction": true
+    },
+    "recommendedDurationSeconds": 270,
+    "bossRequired": true,
+    "map": "public/assets/maps/reactor_siege.json"
+  }
+]

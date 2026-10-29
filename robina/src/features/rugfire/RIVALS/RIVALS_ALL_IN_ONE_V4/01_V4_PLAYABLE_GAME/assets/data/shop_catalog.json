@@ -1,0 +1,28 @@
+{
+  "notice": "Design hypotheses; prices need testing, compliance and product approval",
+  "currency": "USDC",
+  "chain": "Base",
+  "products": [
+    {
+      "id": "pass_s01",
+      "name": "Rivals Season Pass",
+      "type": "season_entitlement",
+      "priceUSDC": "4.99",
+      "competitiveBoost": false
+    },
+    {
+      "id": "skin_shadow_vex",
+      "name": "Shadow VEX",
+      "type": "fixed_content_cosmetic_nft",
+      "priceUSDC": "4.99",
+      "competitiveBoost": false
+    },
+    {
+      "id": "theme_neon_vault",
+      "name": "Neon Vault Theme",
+      "type": "fixed_content_vault_cosmetic",
+      "priceUSDC": "2.99",
+      "competitiveBoost": false
+    }
+  ]
+}

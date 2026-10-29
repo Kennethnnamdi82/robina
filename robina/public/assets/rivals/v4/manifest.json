@@ -1,0 +1,90 @@
+{
+  "version": 4,
+  "pack": "RIVALS_ALL_IN_ONE_V4",
+  "files": [
+    {
+      "file": "art/chamber-reference.png",
+      "source": "02_V4_VISUAL_TARGETS/visual_showroom/01_lobby_and_navigation.png",
+      "bytes": 633955,
+      "sha256": "5f790d2d582482140e4da4418d035a004cab5b916326383927a04ac6409652ef"
+    },
+    {
+      "file": "characters/vex_idle_4x4.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/characters/vex_base_idle_4x4.png",
+      "bytes": 137282,
+      "sha256": "8ed59b14006f97c37cdebe5747dc69136f3b14e09a850ea7faea82f46fdf0f2e"
+    },
+    {
+      "file": "characters/vex_walk_6x4.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/characters/vex_base_walk_6x4.png",
+      "bytes": 78985,
+      "sha256": "9d366100db3736f006c4af5a6ba7301cb79b9a0af37f1de8a255386339b2a802"
+    },
+    {
+      "file": "characters/vex_portrait.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/characters/vex_base_portrait.png",
+      "bytes": 6871,
+      "sha256": "d795ee65b2cf225d3b6a5e045c8ae9070bb46d633bc7c1066804c082565f64c3"
+    },
+    {
+      "file": "tiles/neon.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/tilesets/neon_atlas_4x4.png",
+      "bytes": 36439,
+      "sha256": "d11f259d5c90947afe6bcca5fddabc37673eea263d620419043b141a0117a1e3"
+    },
+    {
+      "file": "props/vault_door.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/vault_door.png",
+      "bytes": 4411,
+      "sha256": "62dbe1c1d1fea2353a1b55d0ae96e94988a9e11d9cb1cde206d5504fb71f3f5f"
+    },
+    {
+      "file": "props/light_column.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/light_column.png",
+      "bytes": 4006,
+      "sha256": "2ca2ca6f6880911cc11e973be2595c2a753042a85386f315c8ae1df5c5850260"
+    },
+    {
+      "file": "props/storage_box.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/storage_box.png",
+      "bytes": 2556,
+      "sha256": "93afd2b63f41e8eabe85460dec4f21340ad70561ec89999511bfdf1989974781"
+    },
+    {
+      "file": "props/crate.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/crate.png",
+      "bytes": 2556,
+      "sha256": "93afd2b63f41e8eabe85460dec4f21340ad70561ec89999511bfdf1989974781"
+    },
+    {
+      "file": "props/data_console.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/data_console.png",
+      "bytes": 2538,
+      "sha256": "c699947af57caeea5246de7a4e5e80c0a35fa1dab3dfe9bbea3e8bb353900332"
+    },
+    {
+      "file": "props/extraction_portal.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/extraction_portal.png",
+      "bytes": 9877,
+      "sha256": "67dc68dfea8c9257ba73440869d757f1c2eaab4a4a90271186854bcf4733e66f"
+    },
+    {
+      "file": "props/power_generator.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/power_generator.png",
+      "bytes": 3251,
+      "sha256": "9f318292178f48b8e21b5b7c2f324eb024acf1e27fc1d30fce662f1d2691c56c"
+    },
+    {
+      "file": "props/terminal_on.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/props/terminal_on.png",
+      "bytes": 2554,
+      "sha256": "0e4e11eb5e9bc512cbc35ae35726bc0a5d98d13a285d5a557a0bc8310dd58c68"
+    },
+    {
+      "file": "audio/neon_ambient.wav",
+      "source": "01_V4_PLAYABLE_GAME/assets/audio/music/neon_ambient.wav",
+      "bytes": 264644,
+      "sha256": "215fa11ff24ce013da1ce60105ce4215e6768c63338b50bd687540b2f0f7fe60"
+    }
+  ]
+}
