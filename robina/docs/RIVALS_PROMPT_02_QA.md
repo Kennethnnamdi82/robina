@@ -1,5 +1,7 @@
 # RIVALS Prompt 02 — verification
 
+Historical phase report: the later [combined prompt 1 handoff](RIVALS_COMBINED_01.md) resolves the frontend environment location and records newer build, controller and performance results.
+
 Tests were run on the available Windows host using local Chrome 155.0.8059.85. Desktop and mobile layouts use the same GamingPage, Phaser scene, artwork and controls as the integrated `/gaming` route. The isolated QA entry omits authentication/backend setup. It does not establish end-to-end production authentication or physical Android compatibility.
 
 ## Functional verification

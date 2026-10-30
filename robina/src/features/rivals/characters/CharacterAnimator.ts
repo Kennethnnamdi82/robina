@@ -25,5 +25,5 @@ export class CharacterAnimator {
     this.sprite.setScale(2 / 3, (2 / 3) * (1 + breath));
   }
 
-  dispose() { if (this.sprite.scene) this.sprite.stop(); this.keys.forEach(key => this.manager.remove(key)); this.keys.length = 0; }
+  dispose() { if (this.sprite.scene && this.sprite.anims) this.sprite.stop(); this.keys.forEach(key => { if (this.manager.exists(key)) this.manager.remove(key); }); this.keys.length = 0; }
 }

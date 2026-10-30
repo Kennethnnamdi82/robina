@@ -15,6 +15,13 @@ export function preloadVisuals(scene: Phaser.Scene, session: ArenaSession) {
   for (const [key, entry] of [['rv-props', VISUAL_MANIFEST.props], ['rv-walls', VISUAL_MANIFEST.walls], ['rv-character', character]] as const) {
     scene.load.atlas(key, visualUrl(entry.file), visualUrl(entry.atlasFile));
   }
+  for (const id of ['vex','nyx','rook'] as const) if (id !== session.getSnapshot().characterId) {
+    const enemy = VISUAL_MANIFEST.characters[id]; scene.load.atlas('rv-enemy-' + id,visualUrl(enemy.file),visualUrl(enemy.atlasFile));
+  }
+  const combat = import.meta.env.BASE_URL + 'assets/rivals/combat/';
+  scene.load.image('rv-carbine', combat + 'carbine.png');
+  scene.load.spritesheet('rv-muzzle', combat + 'muzzle.png', { frameWidth: 96, frameHeight: 96 });
+  scene.load.spritesheet('rv-pulse', combat + 'pulse.png', { frameWidth: 64, frameHeight: 64 });
 }
 
 /** Do not let a corrupt/mismatched atlas silently render the wrong rectangle. */
@@ -23,6 +30,7 @@ export function validateLoadedVisuals(scene: Phaser.Scene, session: ArenaSession
     ['rv-character', FACINGS.flatMap(direction => Array.from({ length: 6 }, (_, i) => `walk/${direction}/${i}`))],
     ['rv-props', ['crate', 'console', 'vault-door', 'reactor', 'camera', 'hologram', 'light-column']],
     ['rv-walls', ['horizontal', 'vertical', 'corner', 'junction', 'lamp', 'glass', 'vent', 'end']],
+    ...(['vex','nyx','rook'] as const).filter(id => id !== session.getSnapshot().characterId).map(id => ['rv-enemy-' + id,FACINGS.flatMap(direction => Array.from({ length: 6 },(_,i) => `walk/${direction}/${i}`))] as const),
   ] as const) {
     const texture = scene.textures.get(key);
     if (!texture || texture.key === '__MISSING') throw new Error(`Missing texture: ${key}`);

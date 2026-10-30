@@ -1,0 +1,44 @@
+.rv-security-status { position:absolute; top:238px; left:max(24px,env(safe-area-inset-left)); width: min(450px,60%); padding:9px 12px; color:#aacbd9; background:#07121ee6; border:1px solid #39576b; border-radius:3px; pointer-events:none; font:10px/1.5 monospace; }
+.rv-security-status strong { display:flex; justify-content:space-between; gap:10px; color:#9ee6d7; font-weight:600; letter-spacing:.04em; }
+.rv-security-status strong span { color:#b6c7db; font-size:9px; }
+.rv-security-status p { margin:5px 0 2px; color:#ffe0a2; }
+.rv-security-status small { font-size:9px; color:#8faebe; }
+.rv-security-status[data-alarm=true] { border-color:#b97166; background:#30141de8; }.rv-security-status[data-alarm=true] strong { color:#ffc4b0; }
+.rv-hack-overlay { position:absolute; inset:0; z-index:40; display:grid; place-items:center; background:#020814e8; backdrop-filter:blur(7px); padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom)); overflow:auto; }
+.rv-hack-panel { width:min(590px,100%); max-height:100%; overflow:auto; padding:25px 30px; border:1px solid #517b91; border-radius:10px; color:#c9e2eb; background:radial-gradient(ellipse at 50% 0,#13465866,transparent 65%),linear-gradient(145deg,#0d1c31,#060e1d); box-shadow:0 30px 100px #000a,inset 0 1px 0 #8ddfee33; }
+.rv-hack-panel header { display:flex; align-items:center; justify-content:space-between; gap:16px; }.rv-hack-panel header .rivals-overline { display:flex; align-items:center; gap:8px; color:#80d7d9; }
+.rv-hack-emblem { width:64px; height:64px; margin:20px auto 16px; display:grid; place-items:center; border:1px solid #60bfc777; border-radius:14px; background:#163b4c88; color:#8af2e5; box-shadow:0 0 30px #39d4db17; }
+.rv-hack-panel h2 { font-size:30px; font-weight:650; color:#edf9fc; text-align:center; letter-spacing:-.035em; }.rv-hack-panel > p { font-size:13px; line-height:1.65; color:#a7c2d2; text-align:center; margin:12px auto; max-width:450px; }
+.rv-hack-code { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:23px 0 10px; }.rv-hack-code > span { position:relative; display:grid; place-items:center; gap:4px; padding:10px; border:1px solid #3f6075; border-radius:5px; background:#050c19aa; }
+.rv-hack-code small { font:9px monospace; color:#668b9f; }.rv-hack-code b { font:26px monospace; color:#e2d2a2; }.rv-hack-code svg { position:absolute; right:7px; bottom:8px; color:#91efca; }.rv-hack-code [data-complete=true] { border-color:#65ceac; background:#13564a44; }.rv-hack-code [data-complete=true] b { color:#94f4cc; }
+.rv-hack-progress { text-align:center; color:#91b4c5; font:11px monospace; margin-bottom:18px; }
+.rv-hack-pads { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }.rv-hack-pads button { position:relative; min-height:92px; display:grid; place-items:center; gap:4px; padding:12px 6px; border:1px solid #558da8; border-radius:6px; background:linear-gradient(#1a3a50,#0c2034); color:#c5f3f6; transition:background .15s,border-color .15s; touch-action:manipulation; }.rv-hack-pads button:hover { background:#254e61; border-color:#a7f5ed; }.rv-hack-pads button:active { background:#326c76; }.rv-hack-pads span { font:8px monospace; letter-spacing:.03em; }.rv-hack-pads b { font:25px monospace; }.rv-hack-pads i { display:block; width:20px; height:2px; background:#7dded9; }
+.rv-hack-panel .rivals-primary { width:100%; margin-top:18px; min-height:48px; justify-content:center; }.rv-hack-panel footer { border-top:1px solid #2c455c; padding-top:16px; margin-top:22px; font:10px/1.6 monospace; color:#7295ab; }
+.rv-hack-panel [role=alert] { color:#ffbdab; }.rv-hack-panel [role=status] { color:#a2efce; }
+@media(max-width:600px) { .rv-security-status { top:276px; left:12px; width:calc(100% - 24px); font-size:9px; padding:7px 10px; }.rv-security-status small,.rv-security-status strong span { font-size:8px; }.rv-hack-panel { padding:18px; }.rv-hack-panel h2 { font-size:25px; }.rv-hack-pads { gap:7px; }.rv-hack-pads span { font-size:7px; }.rv-hack-code { gap:7px; }.rv-hack-emblem { margin-top:15px; } }
+@media(max-height:500px) and (orientation:landscape) { .rv-security-status { top:211px; left:14px; width:38%; font-size:9px; padding:6px 10px; }.rv-security-status p { margin-top:2px; }.rv-hack-panel { padding:14px 22px; max-height:calc(100dvh - 24px); }.rv-hack-emblem { display:none; }.rv-hack-panel h2 { font-size:23px; }.rv-hack-panel > p { margin:6px auto; font-size:11px; }.rv-hack-code { margin:12px 0 6px; }.rv-hack-code > span { padding:4px; }.rv-hack-pads button { min-height:60px; padding:7px; }.rv-hack-panel footer { margin-top:12px; padding-top:9px; } }
+
+/* Keep the central playfield clear; compact feedback stays above the touch controls. */
+@media(max-width:600px) and (orientation:portrait) {
+  .rivals-game-view .rv-security-status { top:156px; }
+  .rivals-game-view .rv-field-status { top:226px; }
+  .rivals-game-view .rv-field-status small { display:none; }
+}
+@media(max-height:500px) and (orientation:landscape) {
+  .rivals-game-view .rv-game-hud .rv-hud-left { width:210px; max-width:32%; }
+  .rivals-game-view .rv-vitals { padding:6px 10px; }
+  .rivals-game-view .rv-health-title strong,.rivals-game-view .rv-health-title > span { font-size:10px; }
+  .rivals-game-view .rv-health-track { height:4px; margin:5px 0; }
+  .rivals-game-view .rv-weapon { font-size:8px; }
+  .rivals-game-view .rv-objective { padding:4px 0; gap:6px; }
+  .rivals-game-view .rv-objective small { font-size:6px; }
+  .rivals-game-view .rv-objective strong { font-size:9px; margin-top:2px; }
+  .rivals-game-view .rv-objective b { font-size:8px; }
+  .rivals-game-view .rv-security-status { top:8px; left:34%; width:29%; padding:5px 8px; font-size:8px; }
+  .rivals-game-view .rv-security-status strong { gap:4px; }
+  .rivals-game-view .rv-security-status strong span,.rivals-game-view .rv-security-status small { font-size:7px; }
+  .rivals-game-view .rv-security-status p { margin:2px 0; }
+  .rivals-game-view .rv-field-status { top:auto; bottom:108px; left:50%; transform:translateX(-50%); width:50%; max-width:440px; padding:5px 8px; font-size:8px; text-align:center; }
+  .rivals-game-view .rv-field-status small { display:none; }
+  .rivals-game-view:has(.rv-equipment-prompt) .rv-field-status { display:none; }
+}

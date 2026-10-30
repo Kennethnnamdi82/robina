@@ -101,7 +101,7 @@ export class CinematicEffects implements SceneSystem {
     const preset = QUALITY_PRESETS[this.quality], view = this.scene.cameras.main.worldView;
     let closest: LightPool | undefined, closestDistance = Infinity;
     for (const light of this.lights) {
-      const visible = light.essential || view.contains(light.x, light.y);
+      const visible = light.x > view.left - 180 && light.x < view.right + 180 && light.y > view.top - 180 && light.y < view.bottom + 180;
       light.sprite.setVisible(visible && (this.quality !== 'low' || light.essential));
       if (!visible) continue;
       const pulse = this.reduced || this.quality === 'low' ? 1 : 1 + Math.sin(this.elapsed * 1.2 + light.phase) * .09;
@@ -114,7 +114,11 @@ export class CinematicEffects implements SceneSystem {
     this.contact.setDisplaySize(55 + Math.min(12, length / 60), 25);
     this.aura.setPosition(this.actor.x, this.actor.y - 8).setAlpha(this.quality === 'low' ? .15 : .24);
     this.ring.setPosition(this.actor.x, this.actor.y + 4);
-    if (!this.reduced) this.scanners.forEach((scanner, i) => scanner.setRotation(.5 + Math.sin(this.elapsed * .45 + i) * .6));
+    this.shadows.forEach(shadow => shadow.setVisible(preset.shadows && view.contains(shadow.x, shadow.y)));
+    this.scanners.forEach((scanner, i) => {
+      scanner.setVisible(this.quality !== 'low' && scanner.x > view.left - 250 && scanner.x < view.right + 250 && scanner.y > view.top - 250 && scanner.y < view.bottom + 250);
+      if (!this.reduced) scanner.setRotation(.5 + Math.sin(this.elapsed * .45 + i) * .6);
+    });
   }
 
   dispose() { this.dust.destroy(); this.lights.length = 0; this.shadows.length = 0; this.scanners.length = 0; }

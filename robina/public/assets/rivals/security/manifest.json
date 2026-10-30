@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "file": "drone_alert.wav",
+      "source": "src/features/rugfire/RIVALS/RIVALS_ALL_IN_ONE_V4/01_V4_PLAYABLE_GAME/assets/audio/sfx/drone_alert.wav",
+      "bytes": 7100,
+      "sha256": "bb02428955c31400eb4edbd293c8a4e1a29df822ddd2cb9bcaf027c154d6931f"
+    },
+    {
+      "file": "terminal_fail.wav",
+      "source": "src/features/rugfire/RIVALS/RIVALS_ALL_IN_ONE_V4/01_V4_PLAYABLE_GAME/assets/audio/sfx/terminal_fail.wav",
+      "bytes": 13274,
+      "sha256": "232264d651f4e04ccaf799e980e97f5611673515f9ab1ed0f1690e1a75f49b95"
+    },
+    {
+      "file": "vault_open.wav",
+      "source": "src/features/rugfire/RIVALS/RIVALS_ALL_IN_ONE_V4/01_V4_PLAYABLE_GAME/assets/audio/sfx/vault_open.wav",
+      "bytes": 10186,
+      "sha256": "c450da2eaad987508ea9d9690adc2ab4fdb7d3cc30d764235c2fceb57b7068ab"
+    }
+  ]
+}

@@ -1,0 +1,345 @@
+{
+  "measuredAt": "2026-10-29T22:11:10.353Z",
+  "baseURL": "http://127.0.0.1:8083",
+  "methodology": "Local Chrome Canvas renderer; minified isolated QA build; mobile uses 4x CPU throttling and browser emulation, not physical Android hardware. JS heap excludes GPU/native memory. Active frame stalls are retained.",
+  "reports": [
+    {
+      "scenario": {
+        "name": "desktop-high",
+        "width": 1440,
+        "height": 1000,
+        "quality": "high",
+        "character": "vex"
+      },
+      "browser": "155.0.8059.85",
+      "metrics": {
+        "testid": "arena-position",
+        "character": "vex",
+        "quality": "high",
+        "animation": "idle",
+        "frame": "walk/down/2",
+        "facing": "down",
+        "reducedMotion": "false",
+        "fps": "9.21",
+        "p95": "220.60",
+        "startupMs": "2770.7",
+        "textureBytes": "10878976",
+        "essentialBytes": "767158",
+        "renderScale": "1",
+        "x": "288.00",
+        "y": "473.94",
+        "cameraX": "-180.00",
+        "cameraY": "-26.06",
+        "collisions": "0",
+        "health": "100",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "false",
+        "aimAngle": "1.571",
+        "speed": "0.00",
+        "runId": "7134"
+      },
+      "canvas": {
+        "width": 1440,
+        "height": 1000,
+        "cssWidth": 1440,
+        "cssHeight": 1000
+      },
+      "visualTransferBytes": 795488,
+      "visualDecodedFileBytes": 1009384,
+      "totalTransferBytes": 1877979,
+      "jsHeapBytes": 10185936,
+      "resources": [
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 210036,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 7822,
+          "decodedBytes": 7522
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8694,
+          "decodedBytes": 8394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8436,
+          "decodedBytes": 8136
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-floor.webp?v=efe5d07d1b81",
+          "transferBytes": 116694,
+          "decodedBytes": 116394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.webp?v=efe5d07d1b81",
+          "transferBytes": 278446,
+          "decodedBytes": 278146
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.json?v=efe5d07d1b81",
+          "transferBytes": 670,
+          "decodedBytes": 2802
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.webp?v=efe5d07d1b81",
+          "transferBytes": 163182,
+          "decodedBytes": 162882
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.json?v=efe5d07d1b81",
+          "transferBytes": 572,
+          "decodedBytes": 1445
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        }
+      ],
+      "errors": [],
+      "teardown": {
+        "firstPostExitHeapBytes": 7410504,
+        "afterThreeMoreExitsHeapBytes": 8032760,
+        "differenceBytes": 622256,
+        "remainingCanvases": 0
+      }
+    },
+    {
+      "scenario": {
+        "name": "mobile-balanced",
+        "width": 390,
+        "height": 844,
+        "quality": "balanced",
+        "character": "nyx",
+        "mobile": true,
+        "throttle": 4
+      },
+      "browser": "155.0.8059.85",
+      "metrics": {
+        "testid": "arena-position",
+        "character": "nyx",
+        "quality": "balanced",
+        "animation": "idle",
+        "frame": "walk/down/2",
+        "facing": "down",
+        "reducedMotion": "false",
+        "fps": "30.78",
+        "p95": "57.60",
+        "startupMs": "3856.7",
+        "textureBytes": "10878976",
+        "essentialBytes": "790878",
+        "renderScale": "1",
+        "x": "288.00",
+        "y": "470.02",
+        "cameraX": "93.00",
+        "cameraY": "68.70",
+        "collisions": "0",
+        "health": "100",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "false",
+        "aimAngle": "1.571",
+        "speed": "0.00",
+        "runId": "4415.699999809265"
+      },
+      "canvas": {
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "visualTransferBytes": 1029244,
+      "visualDecodedFileBytes": 1266560,
+      "totalTransferBytes": 2111735,
+      "jsHeapBytes": 9495736,
+      "resources": [
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 210036,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 7822,
+          "decodedBytes": 7522
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8694,
+          "decodedBytes": 8394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8436,
+          "decodedBytes": 8136
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 233756,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-floor.webp?v=efe5d07d1b81",
+          "transferBytes": 116694,
+          "decodedBytes": 116394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.webp?v=efe5d07d1b81",
+          "transferBytes": 278446,
+          "decodedBytes": 278146
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.json?v=efe5d07d1b81",
+          "transferBytes": 670,
+          "decodedBytes": 2802
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.webp?v=efe5d07d1b81",
+          "transferBytes": 163182,
+          "decodedBytes": 162882
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.json?v=efe5d07d1b81",
+          "transferBytes": 572,
+          "decodedBytes": 1445
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        }
+      ],
+      "errors": []
+    },
+    {
+      "scenario": {
+        "name": "mobile-low",
+        "width": 390,
+        "height": 844,
+        "quality": "low",
+        "character": "rook",
+        "mobile": true,
+        "throttle": 4
+      },
+      "browser": "155.0.8059.85",
+      "metrics": {
+        "testid": "arena-position",
+        "character": "rook",
+        "quality": "low",
+        "animation": "idle",
+        "frame": "walk/down/2",
+        "facing": "down",
+        "reducedMotion": "false",
+        "fps": "31.50",
+        "p95": "59.00",
+        "startupMs": "3954.7",
+        "textureBytes": "10878976",
+        "essentialBytes": "787068",
+        "renderScale": "1",
+        "x": "288.00",
+        "y": "466.11",
+        "cameraX": "93.00",
+        "cameraY": "68.70",
+        "collisions": "0",
+        "health": "100",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "false",
+        "aimAngle": "1.571",
+        "speed": "0.00",
+        "runId": "4119"
+      },
+      "canvas": {
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "visualTransferBytes": 1025434,
+      "visualDecodedFileBytes": 1258940,
+      "totalTransferBytes": 2107925,
+      "jsHeapBytes": 8969700,
+      "resources": [
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 210036,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 7822,
+          "decodedBytes": 7522
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8694,
+          "decodedBytes": 8394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8436,
+          "decodedBytes": 8136
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.webp?v=efe5d07d1b81",
+          "transferBytes": 229946,
+          "decodedBytes": 229646
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-floor.webp?v=efe5d07d1b81",
+          "transferBytes": 116694,
+          "decodedBytes": 116394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.webp?v=efe5d07d1b81",
+          "transferBytes": 278446,
+          "decodedBytes": 278146
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.json?v=efe5d07d1b81",
+          "transferBytes": 670,
+          "decodedBytes": 2802
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.webp?v=efe5d07d1b81",
+          "transferBytes": 163182,
+          "decodedBytes": 162882
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.json?v=efe5d07d1b81",
+          "transferBytes": 572,
+          "decodedBytes": 1445
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 229646
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

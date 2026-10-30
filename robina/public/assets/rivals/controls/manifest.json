@@ -1,0 +1,25 @@
+{
+  "source": "RIVALS_ALL_IN_ONE_V4/01_V4_PLAYABLE_GAME/assets/audio/sfx",
+  "files": [
+    {
+      "file": "player_dash.wav",
+      "bytes": 10186,
+      "sha256": "2f890e50e4e2d9a947bcd805c1a43aef7e078f53cd6fb6e5c3f5a676f78e0619"
+    },
+    {
+      "file": "player_hit.wav",
+      "bytes": 16360,
+      "sha256": "a79f2545865a316d655b19655635e4292880d78c53b8cac6fe843ed9769d9d9d"
+    },
+    {
+      "file": "terminal_success.wav",
+      "bytes": 10186,
+      "sha256": "ee063af97b2bf74acb38dce8b2906d20a7c2c73cdae578ae852283c5cee19ebb"
+    },
+    {
+      "file": "ui_confirm.wav",
+      "bytes": 13274,
+      "sha256": "2a6f324319f9ea7b5bb833883ffca4a7f4cf43cff4db2fa69a6dbd8be59c7979"
+    }
+  ]
+}

@@ -1,88 +1,97 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowLeft, ArrowUpRight, LoaderCircle, Pause, Play, Radio, RotateCcw, Volume2, VolumeX } from 'lucide-react';
-import { ArenaSession } from '../core/session';
-import { MiniMap } from './MiniMap';
-import { TouchStick } from './TouchStick';
-import { CHARACTERS } from '../characters/definitions';
-import { isQuality, QUALITY_PRESETS, type CharacterId, type QualityId } from '../core/presentation';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, LoaderCircle, Play, RotateCcw, Settings2 } from 'lucide-react';
+import type { ArenaSession } from '../core/session';
+import type { GameSettings } from '../core/settings';
+import { SettingsPanel } from './SettingsPanel';
+import { ArenaHUD, ArenaTelemetry } from './ArenaHUD';
+import { useArenaValue } from './useArenaValue';
+import { ActionControls } from './ActionControls';
+import { InputManager } from '../input/InputManager';
+import { ConfirmDialog } from './ConfirmDialog';
+import { trapFocus } from './trapFocus';
+import { HackPanel } from './HackPanel';
+import { MissionResults } from './MissionResults';
+import { BossHUD } from './BossHUD';
+import '../missions.css';
 
-export function ArenaView({ onExit, characterId, quality, reducedMotion, onQuality }: { onExit: () => void; characterId: CharacterId; quality: QualityId; reducedMotion: boolean; onQuality: (id: QualityId) => void }) {
-  const [session] = useState(() => new ArenaSession({ characterId, quality, reducedMotion }));
-  const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
-  const host = useRef<HTMLDivElement>(null);
-  const resumeButton = useRef<HTMLButtonElement>(null);
-  const pauseButton = useRef<HTMLButtonElement>(null);
-  const paused = snapshot.status === 'paused';
-
+export function ArenaView({ session, active, settings, reducedMotion, persisted, onSettingsChange, onMenu, onRestart, onEnd, validation = false }: {
+  session: ArenaSession; active: boolean; settings: GameSettings; reducedMotion: boolean; persisted: boolean;
+  onSettingsChange: (patch: Partial<GameSettings>) => void; onMenu: () => void; onRestart: () => void; onEnd: () => void; validation?: boolean;
+}) {
+  const status = useArenaValue(session, s => s.status), health = useArenaValue(session, s => s.health);
+  const nearby = useArenaValue(session, s => s.nearby);
+  const hacking = useArenaValue(session,s => Boolean(s.hack));
+  const encounter = useArenaValue(session,s => Boolean(s.boss && !['DORMANT','DEFEATED'].includes(s.boss.state)));
+  const wasHacking = useRef(false);
+  const [panel, setPanel] = useState<'pause' | 'settings'>('pause'), [confirmRestart, setConfirmRestart] = useState(false);
+  const host = useRef<HTMLDivElement>(null), resume = useRef<HTMLButtonElement>(null), pause = useRef<HTMLButtonElement>(null);
+  const pausePanel = useRef<HTMLElement>(null);
+  const activeRef = useRef(active); activeRef.current = active;
   useEffect(() => {
-    let cancelled = false;
-    let destroy: (() => void) | undefined;
+    let cancelled = false, destroy: (() => void) | undefined;
     const target = host.current;
     const startupTimeout = window.setInterval(() => {
-      if (session.getSnapshot().status === 'loading' && performance.now() - session.lastLoadActivity > 45000) session.fail('Loading stopped responding. Check your connection and return to the lobby to retry.');
+      if (session.getSnapshot().status === 'loading' && performance.now() - session.lastLoadActivity > 45000) session.fail('Loading stopped responding. Return to the main menu and retry.');
     }, 1000);
-    const stopLoadingWatch = session.subscribe(() => { if (session.getSnapshot().status !== 'loading') window.clearInterval(startupTimeout); });
+    const stopWatch = session.subscribe(() => { if (session.getSnapshot().status !== 'loading') clearInterval(startupTimeout); });
     import('../game/createGame').then(({ createArena }) => {
       if (!cancelled && target && session.getSnapshot().status === 'loading') { session.loading('Starting the game renderer'); destroy = createArena(target, session); }
-    }).catch(() => session.fail('The game engine could not load. Check your connection and return to the lobby to retry.'));
-    const keydown = (event: KeyboardEvent) => {
-      if (event.code !== 'Escape' || event.repeat) return;
-      event.preventDefault();
-      if (session.getSnapshot().status === 'paused') session.resume(); else session.pause();
-    };
-    const blur = () => session.pause();
-    const visibility = () => { if (document.hidden) session.pause(); };
-    window.addEventListener('keydown', keydown);
-    window.addEventListener('blur', blur);
-    document.addEventListener('visibilitychange', visibility);
-    return () => {
-      cancelled = true; window.clearInterval(startupTimeout); stopLoadingWatch(); destroy?.();
-      window.removeEventListener('keydown', keydown);
-      window.removeEventListener('blur', blur);
-      document.removeEventListener('visibilitychange', visibility);
-    };
+    }).catch(() => session.fail('The game engine could not load. Return to the main menu and retry.'));
+    const input = target ? new InputManager(session, target, () => activeRef.current) : null;
+    const blur = () => session.pause(), visibility = () => { if (document.hidden) session.pause(); };
+    window.addEventListener('blur', blur); document.addEventListener('visibilitychange', visibility);
+    return () => { cancelled = true; clearInterval(startupTimeout); stopWatch(); input?.dispose(); destroy?.(); window.removeEventListener('blur', blur); document.removeEventListener('visibilitychange', visibility); };
   }, [session]);
-
+  useEffect(() => { session.setSettings(settings); }, [session, settings]);
+  useEffect(() => { if (wasHacking.current && !hacking && status === 'playing') host.current?.querySelector('canvas')?.focus(); wasHacking.current = hacking; },[hacking,status]);
+  useEffect(() => { session.setReducedMotion(reducedMotion); }, [session, reducedMotion]);
+  useEffect(() => { if (!active) session.pause(); else if (session.getSnapshot().status === 'paused') session.resume(); }, [active, session]);
+  useEffect(() => { if (!active && status === 'playing') session.pause(); }, [active, status, session]);
+  useEffect(() => { if (status === 'paused') { setPanel('pause'); resume.current?.focus(); } }, [status]);
+  useEffect(() => { if (status === 'paused' && panel === 'settings') pausePanel.current?.querySelector<HTMLButtonElement>('button')?.focus(); }, [panel, status]);
   useEffect(() => {
-    const preference = matchMedia('(prefers-reduced-motion: reduce)');
-    const change = () => session.setReducedMotion(preference.matches);
-    preference.addEventListener('change', change);
-    return () => preference.removeEventListener('change', change);
-  }, [session]);
-
-  useEffect(() => { if (paused) resumeButton.current?.focus(); }, [paused]);
-
-  const clock = `${Math.floor(snapshot.elapsed / 60).toString().padStart(2, '0')}:${Math.floor(snapshot.elapsed % 60).toString().padStart(2, '0')}`;
-  return <section className="rivals-game-view" aria-label="RIVALS playable arena" data-status={snapshot.status}>
-    <div ref={host} className="rivals-engine-host" data-testid="arena-host" />
-    <div className="rivals-game-vignette" />
-    <header className="rivals-arena-hud">
-      <div className="rivals-sector"><span className="rivals-overline">SOLO RECON / {CHARACTERS[snapshot.characterId].name}</span><strong>NEON VAULT</strong><span className="rivals-hud-subtitle">Explore the district. Learn the routes.</span></div>
-      <div className="rivals-arena-tools"><span className="rivals-timer" aria-label="Session time">{clock}</span>
-        <button className="rivals-icon-button" disabled={snapshot.status !== 'playing'} aria-label={snapshot.muted ? 'Enable ambient audio' : 'Mute ambient audio'} onClick={session.toggleMute}>{snapshot.muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
-        <button ref={pauseButton} className="rivals-icon-button" aria-label="Pause game" disabled={snapshot.status !== 'playing'} onClick={session.pause}><Pause size={19} /></button>
-      </div>
-    </header>
-    <MiniMap player={snapshot.player} />
-    <div className="rivals-field-note"><i /><span>RECONNAISSANCE ONLY<strong>No hostiles in this sector</strong></span></div>
-    <div className="rivals-desktop-controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / ARROWS TO MOVE</span><span><kbd>ESC</kbd> PAUSE</span></div>
-    {snapshot.status === 'playing' && <TouchStick disabled={false} onMove={vector => session.setMovement(vector)} />}
-    {snapshot.nearby && <aside className="rivals-equipment" aria-label="Nearby equipment"><div><span>{snapshot.nearby.name}</span><p role="status">{snapshot.nearby.description}</p></div><button aria-label="Inspect nearby equipment" onClick={session.interact} disabled={snapshot.status !== 'playing'}><Radio size={23} /><small>INSPECT / E</small></button></aside>}
-    <output className="rivals-telemetry" data-testid="arena-position" data-character={snapshot.characterId} data-quality={snapshot.quality} data-animation={snapshot.animation} data-frame={snapshot.animationFrame} data-facing={snapshot.facing} data-reduced-motion={snapshot.reducedMotion} data-fps={snapshot.metrics.fps.toFixed(2)} data-p95={snapshot.metrics.p95FrameMs.toFixed(2)} data-startup-ms={snapshot.metrics.startupMs.toFixed(1)} data-texture-bytes={snapshot.metrics.textureBytes} data-essential-bytes={snapshot.metrics.essentialBytes} data-render-scale={snapshot.metrics.renderScale} data-x={snapshot.player.x.toFixed(2)} data-y={snapshot.player.y.toFixed(2)} data-camera-x={snapshot.camera.x.toFixed(2)} data-camera-y={snapshot.camera.y.toFixed(2)} data-collisions={snapshot.collisions} aria-label="Player coordinates">{Math.round(snapshot.player.x)} : {Math.round(snapshot.player.y)}</output>
-    {snapshot.status === 'loading' && <div className="rivals-arena-overlay" role="status"><div className="rivals-loading-mark"><LoaderCircle size={28} className="rivals-spin" /><span className="rivals-overline">ESTABLISHING UPLINK</span><h2>Entering the vault</h2><p>{snapshot.loadingStage} · {Math.round(snapshot.progress * 100)}%</p><div className="rivals-progress"><span style={{ width: `${snapshot.progress * 100}%` }} /></div><button className="rivals-text-button" onClick={onExit}><ArrowLeft size={15} /> Return to lobby</button></div></div>}
-    {paused && <div className="rivals-arena-overlay"><section className="rivals-pause-panel" role="dialog" aria-modal="true" aria-labelledby="rivals-pause-title" onKeyDown={event => {
-      if (event.key !== 'Tab') return;
-      const buttons = event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), select, [href], [tabindex="0"]');
-      if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); }
-      else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); }
+    if (!active) return;
+    const nav = host.current?.closest('main.rivals-shell')?.nextElementSibling;
+    if (!(nav instanceof HTMLElement) || nav.tagName !== 'NAV') return;
+    const previousInert = nav.getAttribute('inert'), previousHidden = nav.getAttribute('aria-hidden');
+    nav.setAttribute('inert', ''); nav.setAttribute('aria-hidden', 'true');
+    return () => { if (previousInert === null) nav.removeAttribute('inert'); else nav.setAttribute('inert', previousInert); if (previousHidden === null) nav.removeAttribute('aria-hidden'); else nav.setAttribute('aria-hidden', previousHidden); };
+  }, [active]);
+  const resumeGame = () => { session.resume(); pause.current?.focus(); };
+  return <section hidden={!active} className="rivals-game-view" data-active={active} data-status={status} data-contrast={settings.highContrast} data-motion={reducedMotion ? 'reduced' : 'full'} aria-label="RIVALS playable arena">
+    <div ref={host} className="rivals-engine-host" data-testid="arena-host" /><div className="rivals-game-vignette" />
+    <ArenaHUD session={session} onAudio={() => onSettingsChange({ muted: !settings.muted })} pauseRef={pause} />
+    {status !== 'finished' && <BossHUD session={session} />}
+    <div className="rivals-desktop-controls"><span><kbd>WASD</kbd> MOVE <kbd>SHIFT</kbd> SPRINT <kbd>SPACE</kbd> DODGE</span><span><kbd>CLICK</kbd> FIRE <kbd>R</kbd> RELOAD <kbd>E</kbd> INTERACT <kbd>ESC</kbd> PAUSE</span></div>
+    {status === 'playing' && health > 0 && !hacking && <ActionControls session={session} visibility={settings.mobileControls} />}
+    <HackPanel session={session} />
+    {nearby && status !== 'finished' && (!encounter || nearby.id === 'vault-gate') && <aside className="rv-equipment-prompt" aria-label="Nearby equipment"><strong>{nearby.name}</strong><p role="status">{nearby.description}</p></aside>}
+    <ArenaTelemetry session={session} />
+    {status === 'loading' && <Loading session={session} onEnd={onEnd} />}
+    {status === 'paused' && <div className="rivals-arena-overlay"><section ref={pausePanel} className="rivals-pause-panel rv-pause" role="dialog" aria-modal="true" aria-labelledby="rivals-pause-title" onKeyDown={event => {
+      if (event.key === 'Escape' && panel === 'settings') { event.preventDefault(); setPanel('pause'); }
+      trapFocus(event);
     }}>
-      <span className="rivals-overline">UPLINK ON HOLD</span><h2 id="rivals-pause-title">Take a breath.</h2><p>Your operative is safe. Resume when you’re ready.</p>
-      <div className="rivals-pause-stats"><div><span>FIELD TIME</span><b>{clock}</b></div><div><span>DISTANCE</span><b>{Math.round(snapshot.distance / 64)} <small>tiles</small></b></div></div>
-      <div className="rivals-graphics-panel"><label htmlFor="rivals-graphics">Graphics quality</label><select id="rivals-graphics" value={snapshot.quality} onChange={event => { if (isQuality(event.target.value)) { session.setQuality(event.target.value); onQuality(event.target.value); } }}>{Object.entries(QUALITY_PRESETS).map(([id, preset]) => <option key={id} value={id}>{preset.label}</option>)}</select><span>{snapshot.metrics.fps > 0 ? `${Math.round(snapshot.metrics.fps)} fps` : 'Measuring performance…'}{snapshot.reducedMotion ? ' · Reduced motion' : ''}</span></div>
-      <button ref={resumeButton} className="rivals-primary" onClick={() => { session.resume(); pauseButton.current?.focus(); }}><Play size={17} fill="currentColor" /> RESUME RECON <ArrowUpRight size={18} /></button>
-      <button className="rivals-secondary" onClick={onExit}><ArrowLeft size={16} /> RETURN TO LOBBY</button>
-      <small className="rivals-pause-hint">WASD / ARROWS · MOVE &nbsp; ESC · RESUME</small>
+      {panel === 'settings' ? <><button className="rivals-text-button" onClick={() => setPanel('pause')}><ArrowLeft size={15} />Back to pause menu</button><h2 id="rivals-pause-title">Field settings</h2><SettingsPanel settings={settings} onChange={onSettingsChange} persisted={persisted} /></> : <>
+        <span className="rivals-overline">OPERATION ON HOLD</span><h2 id="rivals-pause-title">Take a breath.</h2><p>Your run is paused. All movement and mission time are suspended.</p>
+        <button ref={resume} className="rivals-primary" onClick={resumeGame}><Play size={17} fill="currentColor" />RESUME GAME</button>
+        <button className="rivals-secondary" onClick={() => setConfirmRestart(true)}><RotateCcw size={16} />RESTART MISSION</button>
+        <button className="rivals-secondary" onClick={() => setPanel('settings')}><Settings2 size={16} />SETTINGS</button>
+        <button className="rivals-secondary" onClick={onMenu}><ArrowLeft size={16} />RETURN TO MAIN MENU</button>
+        <small className="rivals-pause-hint">Continue from the main menu to return to this paused run.</small>
+      </>}
     </section></div>}
-    {snapshot.status === 'error' && <div className="rivals-arena-overlay"><div className="rivals-pause-panel" role="alert"><span className="rivals-overline">UPLINK INTERRUPTED</span><h2>Let’s reconnect.</h2><p>{snapshot.error}</p><button className="rivals-primary" onClick={onExit}><RotateCcw size={17} /> RETURN & RETRY</button></div></div>}
+    {status === 'finished' && <MissionResults session={session} onRestart={() => setConfirmRestart(true)} onLobby={onEnd} />}
+    {status === 'error' && <ErrorPanel session={session} onEnd={onEnd} />}
+    {confirmRestart && <ConfirmDialog title="Restart this mission?" description="This resets your position, health, timer and local objective progress. Your account records are unaffected." confirmLabel="RESTART" onConfirm={() => { setConfirmRestart(false); onRestart(); }} onCancel={() => setConfirmRestart(false)} />}
+    {validation && status === 'playing' && <details className="rv-validation"><summary>QA controls</summary><button onClick={() => session.applyDamage(25)}>Apply 25 damage</button><button onClick={() => session.applyDamage(100)}>Defeat operative</button><input aria-label="Input focus check" placeholder="Test input focus" /><label><input type="checkbox" onChange={event => session.setDebug(event.target.checked)} />AI diagnostics</label></details>}
   </section>;
+}
+function Loading({ session, onEnd }: { session: ArenaSession; onEnd: () => void }) {
+  const stage = useArenaValue(session, s => s.loadingStage), progress = useArenaValue(session, s => s.progress);
+  return <div className="rivals-arena-overlay" role="status"><div className="rivals-loading-mark"><LoaderCircle size={28} className="rivals-spin" /><span className="rivals-overline">ESTABLISHING UPLINK</span><h2>Entering the vault</h2><p>{stage} · {Math.round(progress * 100)}%</p><div className="rivals-progress"><span style={{ width: (progress * 100) + '%' }} /></div><button className="rivals-text-button" onClick={onEnd}>Return to main menu</button></div></div>;
+}
+function ErrorPanel({ session, onEnd }: { session: ArenaSession; onEnd: () => void }) {
+  const error = useArenaValue(session, s => s.error);
+  return <div className="rivals-arena-overlay"><div className="rivals-pause-panel" role="alert"><span className="rivals-overline">UPLINK INTERRUPTED</span><h2>Let's reconnect.</h2><p>{error}</p><button className="rivals-primary" onClick={onEnd}><RotateCcw size={17} />RETURN & RETRY</button></div></div>;
 }

@@ -25,3 +25,14 @@ for (const [source, target] of files) {
 }
 await writeFile(path.join(destination, 'manifest.json'), JSON.stringify({ version: 4, pack: 'RIVALS_ALL_IN_ONE_V4', files: manifest }, null, 2) + '\n');
 console.log(`Prepared ${manifest.length} RIVALS assets (${(manifest.reduce((sum, file) => sum + file.bytes, 0) / 1048576).toFixed(2)} MiB).`);
+const controls = path.join(root, 'public/assets/rivals/controls');
+await mkdir(controls, { recursive: true });
+const sounds = [];
+for (const name of ['player_dash', 'player_hit', 'terminal_success', 'ui_confirm']) {
+  const file = name + '.wav', source = path.join(pack, '01_V4_PLAYABLE_GAME/assets/audio/sfx', file);
+  await copyFile(source, path.join(controls, file));
+  const bytes = await readFile(source);
+  sounds.push({ file, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
+}
+await writeFile(path.join(controls, 'manifest.json'), JSON.stringify({ source: 'RIVALS_ALL_IN_ONE_V4/01_V4_PLAYABLE_GAME/assets/audio/sfx', files: sounds }, null, 2) + '\n');
+console.log('Prepared four optional movement/interaction audio cues.');

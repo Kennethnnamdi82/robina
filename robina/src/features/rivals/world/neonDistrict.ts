@@ -9,7 +9,7 @@ export const NEON_PROPS: NeonProp[] = [
   { id: 'cover-a', frame: 'crate', x: 480, y: 288, size: 91, solid: { width: 46, height: 40 } },
   { id: 'cover-b', frame: 'equipment-case', x: 480, y: 352, size: 90, solid: { width: 46, height: 40 }, light: 0xbc63db },
   { id: 'auxiliary-console', frame: 'console', x: 160, y: 640, size: 124, solid: { width: 46, height: 40 }, light: 0x33cbef, inspect: { name: 'Auxiliary console', description: 'Switch the local diagnostic uplink on or off.', toggle: true } },
-  { id: 'sector-console', frame: 'console', x: 1056, y: 288, size: 124, solid: { width: 46, height: 40 }, light: 0x33cbef, inspect: { name: 'Sector console', description: 'Switch the local diagnostic uplink on or off.', toggle: true } },
+  { id: 'sector-console', frame: 'console', x: 1056, y: 672, size: 124, solid: { width: 46, height: 40 }, light: 0x33cbef },
   { id: 'reactor', frame: 'reactor', x: 1440, y: 1056, size: 178, solid: { width: 78, height: 52 }, light: 0x36caff, inspect: { name: 'Auxiliary reactor', description: 'Power stable. Core access remains sealed.', toggle: false } },
   { id: 'vault', frame: 'vault-door', x: 1536, y: 192, size: 235, solid: { width: 140, height: 44 }, light: 0xffb34a, inspect: { name: 'Central vault', description: 'Access sealed. Vault missions arrive in a later phase.', toggle: false } },
   { id: 'optics-a', frame: 'camera', x: 568, y: 176, size: 105, scanner: true, light: 0xff704f },

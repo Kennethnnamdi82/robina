@@ -16,7 +16,6 @@ import { Web3Provider } from "./providers/Web3Provider";
 import { PrivyProvider } from "@privy-io/react-auth";
 
 import SnapshotEventBanner from "@/components/SnapshotEventBanner";
-import BottomNav from "@/components/BottomNav";
 import HomePage from "@/pages/HomePage";
 import TasksPage from "@/pages/TasksPage";
 import RankPage from "@/pages/LeaderboardPage";
@@ -129,13 +128,6 @@ function AppRoutes() {
         )}
       </Routes>
 
-      {/* Navigation bar only for logged in users */}
-      {isLoggedIn && (
-        <Routes>
-          <Route path="/admin/*" element={null} />
-          <Route path="*" element={<BottomNav />} />
-        </Routes>
-      )}
     </>
   );
 }

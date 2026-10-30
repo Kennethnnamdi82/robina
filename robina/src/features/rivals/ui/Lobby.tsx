@@ -1,50 +1,42 @@
 import { useRef } from 'react';
-import { ArrowLeft, ArrowUpRight, Crosshair, Keyboard, LockKeyhole, MoveUpRight, Radio, Shield, Swords, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Crosshair, Settings2, Shield, Swords, UserRound, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { assetUrl, VISUAL_MANIFEST, visualUrl } from '../assets';
-import { CHARACTERS } from '../characters/definitions';
-import type { CharacterId, QualityId } from '../core/presentation';
-import { OperativeSelector } from './OperativeSelector';
+import { assetUrl } from '../assets';
+import { ControlHelp } from './ControlHelp';
 
-export function Lobby({ onEnter, characterId, onCharacter, quality, onQuality }: { onEnter: () => void; characterId: CharacterId; onCharacter: (id: CharacterId) => void; quality: QualityId; onQuality: (id: QualityId) => void }) {
+export function Lobby({ onPlay, onContinue, canContinue, onMissions, onCustomise, onSettings, onRankings, onBack, onProfile }: {
+  onPlay: () => void; onContinue: () => void; canContinue: boolean; onMissions: () => void;
+  onCustomise: () => void; onSettings: () => void; onRankings: () => void; onBack: () => void;
+  onProfile: () => void;
+}) {
   const guide = useRef<HTMLDialogElement>(null);
-  const operative = CHARACTERS[characterId];
-  return <div className="rivals-lobby">
-    <header className="rivals-topbar">
-      <div className="rivals-brand"><span className="rivals-crest"><Swords size={25} /></span><div><strong>RIVALS</strong><span>RIVAL HEIST</span></div></div>
-      <nav className="rivals-topnav" aria-label="RIVALS navigation"><span className="rivals-active-tab" aria-current="page">Arena</span><button onClick={() => guide.current?.showModal()}>Field guide <ArrowUpRight size={13} /></button></nav>
-      <span className="rivals-system-status"><i /> SYSTEMS ONLINE</span>
-      <Link to="/" className="rivals-icon-button" aria-label="Return to website home"><ArrowLeft size={18} /></Link>
+  return <div className="rv-command-menu">
+    <header className="rivals-topbar"><div className="rivals-brand"><span className="rivals-crest"><Swords size={25} /></span><div><strong>RIVALS</strong><span>RIVAL HEIST</span></div></div>
+      <span className="rv-menu-mode">SOLO HEIST / NEON DISTRICT</span>
+      <button className="rivals-icon-button" aria-label="Exit to website" onClick={onBack}><ArrowLeft size={18} /></button>
     </header>
-
-    <div className="rivals-lobby-heading"><div><p className="rivals-overline">THE CITY KEEPS ITS SECRETS. TAKE THEM.</p><h1>Welcome to the <em>Arena.</em></h1></div><span className="rivals-build-label">RIVAL HEIST / RECON ACCESS</span></div>
-    <OperativeSelector selected={characterId} onSelect={onCharacter} quality={quality} onQuality={onQuality} />
-
-    <div className="rivals-lobby-grid">
-      <aside className="rivals-operative-panel">
-        <div className="rivals-profile"><img src={visualUrl(VISUAL_MANIFEST.characters[characterId].portraitFile)} alt={`${operative.name} operative portrait`} /><div><span className="rivals-overline">YOUR OPERATIVE</span><h2>{operative.name}</h2><span>{operative.role}</span></div></div>
-        <div className="rivals-readiness"><Shield size={24} /><div><span>OPERATIVE STATUS</span><strong>Ready for insertion</strong></div><i /></div>
-        <div className="rivals-panel-section"><span className="rivals-overline">FIELD BRIEFING</span><h3>Know your way out.</h3><p>Every heist starts with knowing the terrain. Step inside the Neon Vault and find your footing.</p></div>
-        <ol className="rivals-briefing-list"><li><b>01</b><div><strong>Enter the district</strong><span>A private training sector.</span></div></li><li><b>02</b><div><strong>Find your flow</strong><span>Move through the vault’s passages.</span></div></li><li><b>03</b><div><strong>Return on your terms</strong><span>Pause and leave at any time.</span></div></li></ol>
-        <div className="rivals-input-note"><Keyboard size={19} /><span>KEYBOARD OR TOUCH<strong>Built for your browser</strong></span></div>
-      </aside>
-
-      <section className="rivals-operation" aria-label="Rival Heist operation">
-        <div className="rivals-operative-stage" role="img" aria-label="Illustrated operative standing in a neon-lit vault chamber">
-          <div className="rivals-chamber-art" style={{ backgroundImage: `url(${assetUrl('art/chamber-reference.png')})` }} />
-          <div className="rivals-chamber-glow" /><div className="rivals-operative-caption"><span className="rivals-overline">OPERATIVE / 001</span><strong>VEX<span>THE INFILTRATOR</span></strong><span className="rivals-chamber-caption">CHAMBER ART / NEON DISTRICT</span></div>
-        </div>
-        <div className="rivals-operation-content">
-          <div className="rivals-operation-topline"><span><Radio size={13} /> SECTOR 01</span><span>SOLO / TRAINING</span></div>
-          <div className="rivals-operation-copy"><span className="rivals-overline">WELCOME TO THE UNDERCITY</span><h2>RIVAL<br /><em>HEIST</em><span>.</span></h2><p>The vault is waiting.<br />Make your first move.</p></div>
-          <div className="rivals-entry"><div className="rivals-entry-location"><Crosshair size={19} /><div><strong>NEON VAULT</strong><span>Reconnaissance sector · Free exploration</span></div></div><button className="rivals-primary rivals-enter-button" onClick={onEnter}><Swords size={19} /> ENTER THE ARENA <ArrowUpRight size={21} /></button><p className="rivals-entry-note"><i /> SECTOR CLEAR <span>No hostiles. No time limit.</span></p></div>
-        </div>
-      </section>
-    </div>
-
-    <div className="rivals-lobby-bottom"><div><MoveUpRight size={18} /><span><strong>MOVE WITH PURPOSE</strong>Fluid movement & directional animation</span></div><div><LockKeyhole size={18} /><span><strong>LEARN THE TERRAIN</strong>Solid walls, cover & connected passages</span></div><div><Shield size={18} /><span><strong>YOUR OWN PACE</strong>Pause, explore & return safely</span></div></div>
-    <footer className="rivals-lobby-footer"><span><i /> PRIVATE TRAINING SECTOR</span><span>NEON DISTRICT / 01 <b>RIVALS</b></span></footer>
-
-    <dialog ref={guide} className="rivals-guide" aria-labelledby="rivals-guide-title"><button className="rivals-guide-close rivals-icon-button" aria-label="Close field guide" onClick={() => guide.current?.close()}><X size={18} /></button><span className="rivals-overline">OPERATIVE HANDBOOK</span><h2 id="rivals-guide-title">Your first insertion.</h2><p>Explore a real, collision-enabled training vault. Follow the passages and use the minimap to learn the district.</p><dl><div><dt>MOVE</dt><dd>WASD or arrow keys</dd></div><div><dt>MOBILE</dt><dd>Drag the movement stick</dd></div><div><dt>PAUSE / RESUME</dt><dd>Escape or the pause button</dd></div><div><dt>LEAVE</dt><dd>Pause → Return to lobby</dd></div></dl><p className="rivals-guide-note">This sector is for free exploration. Combat, missions and competitive rankings arrive in later phases.</p><button className="rivals-primary" onClick={() => guide.current?.close()}>UNDERSTOOD <ArrowUpRight size={18} /></button></dialog>
+    <section className="rv-menu-hero" aria-label="RIVALS main menu">
+      <div className="rv-menu-art" style={{ backgroundImage: 'url(' + assetUrl('art/chamber-reference.png') + ')' }} /><div className="rv-menu-light" /><div className="rv-menu-scan" />
+      <div className="rv-menu-copy"><p className="rivals-overline">THE CITY KEEPS ITS SECRETS.</p><h1 tabIndex={-1}>RIVAL<br /><em>HEIST</em><span>.</span></h1><p>Get in. Find your edge.<br />Leave your rivals behind.</p>
+        <nav className="rv-main-actions" aria-label="Main menu" onKeyDown={event => {
+          if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const nodes = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button, a[href]'));
+          const index = nodes.indexOf(document.activeElement as HTMLElement);
+          nodes[event.key === 'Home' ? 0 : event.key === 'End' ? nodes.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + nodes.length) % nodes.length]?.focus();
+        }}>
+          <button className="rivals-primary" onClick={canContinue ? onContinue : onPlay}><Swords size={19} />{canContinue ? 'CONTINUE' : 'PLAY'}<ArrowUpRight size={20} /></button>
+          <button onClick={onMissions}><Crosshair size={17} /><span>MISSIONS</span><small>01 available</small></button>
+          <button onClick={onCustomise}><Shield size={17} /><span>CHARACTER CUSTOMIZATION</span></button>
+          <Link to="/profile" onClick={e => { e.preventDefault(); onProfile(); }}><UserRound size={17} /><span>PLAYER PROFILE</span><ArrowUpRight size={14} /></Link>
+          <button onClick={onRankings}><span className="rv-menu-rank">#</span><span>LEADERBOARDS</span><small>Preview</small></button>
+          <button onClick={onSettings}><Settings2 size={17} /><span>SETTINGS</span></button>
+          <button className="rv-menu-back" onClick={onBack}><ArrowLeft size={16} />EXIT / BACK</button>
+        </nav>
+      </div>
+      <aside className="rv-menu-sector"><span className="rivals-overline">NEXT INSERTION / 01</span><h2>NEON DISTRICT</h2><p>A sealed vault. A quiet approach.<br />Your first route through the undercity.</p><button className="rivals-text-button" onClick={() => guide.current?.showModal()}>Field guide <ArrowUpRight size={15} /></button><span className="rv-art-label">V4 VISUAL TARGET / CHAMBER ART</span></aside>
+    </section>
+    <footer className="rivals-lobby-footer"><span>TRAINING ACCESS · NO PURCHASE REQUIRED</span><span>RIVALS / RIVAL HEIST</span></footer>
+    <dialog ref={guide} className="rivals-guide" aria-labelledby="rivals-guide-title"><button className="rivals-guide-close rivals-icon-button" aria-label="Close field guide" onClick={() => guide.current?.close()}><X size={18} /></button><span className="rivals-overline">OPERATIVE HANDBOOK</span><h2 id="rivals-guide-title">Your first insertion.</h2><p>Calibrate your carbine in the west range, then infiltrate the guarded concourse. Camera cones respect walls and cover. Loud gunfire draws investigations; firing windups and laser warnings give you time to dodge. Hack the sector terminal, link WEST to EAST while the phase pads are OPEN, and activate both vault relays. Recover the core and extract south. Hacking pauses the field; reserve ammunition and retries are free. Competitive scoring and rewards come later.</p><ControlHelp /><button className="rivals-primary" onClick={() => guide.current?.close()}>UNDERSTOOD <ArrowUpRight size={18} /></button></dialog>
   </div>;
 }

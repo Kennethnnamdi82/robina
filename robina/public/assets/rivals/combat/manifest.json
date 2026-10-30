@@ -1,0 +1,53 @@
+{
+  "source": "RIVALS_ALL_IN_ONE_V4",
+  "files": [
+    {
+      "file": "carbine.png",
+      "source": "kenney_top-down-shooter/PNG/weapon_machine.png",
+      "bytes": 290,
+      "sha256": "e0cc97e8d98858ac8bf232430b66219db9497f9d020594e5bb89eb889bcf22a4"
+    },
+    {
+      "file": "KENNEY_LICENSE.txt",
+      "source": "kenney_top-down-shooter/License.txt",
+      "bytes": 494,
+      "sha256": "523b1cf39ad1d569cc5d6abc9e8785668208b9c37f1e29383e2a5f8dda8444bc"
+    },
+    {
+      "file": "muzzle.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/vfx/muzzle_8x1.png",
+      "bytes": 34232,
+      "sha256": "cab4bfefa9a4266814ebe617c0a0a8ef856f304ed661960f824254386e779ca9"
+    },
+    {
+      "file": "pulse.png",
+      "source": "01_V4_PLAYABLE_GAME/assets/particles/projectile_impact_8x1.png",
+      "bytes": 762,
+      "sha256": "c833750218181f22d679c2198e7c2cd91caa61262cdebe272f2b195704af520f"
+    },
+    {
+      "file": "turret_fire.wav",
+      "source": "01_V4_PLAYABLE_GAME/assets/audio/sfx/turret_fire.wav",
+      "bytes": 13274,
+      "sha256": "9a6d495935c6e9397e868818d91b9dc6bc359bdd538005ba1a344f2c82bdaf68"
+    },
+    {
+      "file": "laser_hit.wav",
+      "source": "01_V4_PLAYABLE_GAME/assets/audio/sfx/laser_hit.wav",
+      "bytes": 19448,
+      "sha256": "2cc5c8f90097f62348719862a7702274ac216d6b6f6520470dabdc75e1100af3"
+    },
+    {
+      "file": "core_pickup.wav",
+      "source": "01_V4_PLAYABLE_GAME/assets/audio/sfx/core_pickup.wav",
+      "bytes": 16360,
+      "sha256": "2741a3787a2ee4e23b9e76da752917fbc7debcb1a66c79055d9a9526ed9d53b3"
+    },
+    {
+      "file": "extract_success.wav",
+      "source": "01_V4_PLAYABLE_GAME/assets/audio/sfx/extract_success.wav",
+      "bytes": 16360,
+      "sha256": "befb6cb3e3bbb6d3dcfe549d3470d809527e65be9208555253e324d0c7e23fcb"
+    }
+  ]
+}

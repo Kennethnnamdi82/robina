@@ -1,0 +1,30 @@
+{
+  "phase": "Combined master prompt 1 of 10 / original phases 3 and 4",
+  "frontendUnit": { "exitCode": 0, "passedTests": 58, "passedFiles": 19, "durationSeconds": 26.61 },
+  "backendUnit": { "exitCode": 0, "passedTests": 12, "durationMs": 5778.3029, "databaseConnectionUsed": false, "backendSourceChanged": false },
+  "typecheck": { "exitCode": 0, "configs": ["tsconfig.app.json", "tsconfig.node.json"], "afterPublicApiCleanupCorrection": true },
+  "repositoryLint": { "exitCode": 0, "errors": 0, "existingFastRefreshWarnings": 9 },
+  "focusedGameLint": { "exitCode": 0, "errors": 0, "warnings": 0 },
+  "productionBuild": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "durationSeconds": 223,
+    "transformedModules": 10264,
+    "environmentFile": "src/.env (local ignored public configuration, values not recorded)",
+    "configurationGatePreserved": true,
+    "finalSourceBuild": true,
+    "deployed": false
+  },
+  "minifiedGameRegressionBuild": { "command": "npm run build:rivals:preview", "exitCode": 0, "durationSeconds": 46.32 },
+  "browser": {
+    "baseURL": "http://127.0.0.1:8083",
+    "mainRun": { "passed": 14, "failed": 1, "durationMinutes": 12.8, "failure": "Incorrect test assumption: Phaser may reuse its pooled canvas after restart" },
+    "finalRegression": { "passed": 8, "failed": 0, "durationMinutes": 3.8 },
+    "distinctVerifiedScenariosAcrossRuns": 16,
+    "singleCleanSixteenTestRunClaimed": false,
+    "actualGameplayInteractedWith": true,
+    "physicalMobileDevicesTested": false
+  },
+  "performance": { "report": "performance.json", "desktopHighFPS": 9.21, "mobileBalancedFPS": 30.78, "mobileLowFPS": 31.50, "desktopTargetAchieved": false, "physicalMobileTargetVerified": false },
+  "scope": { "historicalRecordsModified": false, "databaseMigration": false, "newFrontendDependencies": false, "newCombatSystem": false, "nextCombinedPromptImplemented": false }
+}

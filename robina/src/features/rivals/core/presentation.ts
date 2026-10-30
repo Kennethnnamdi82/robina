@@ -1,7 +1,9 @@
 export const CHARACTER_IDS = ['vex', 'nyx', 'rook'] as const;
 export type CharacterId = typeof CHARACTER_IDS[number];
-export type AnimationState = 'idle' | 'walk' | 'run' | 'dash' | 'attack' | 'hurt' | 'defeat';
+export type AnimationState = 'idle' | 'walk' | 'run' | 'dash' | 'aim' | 'interact' | 'attack' | 'hurt' | 'defeat';
 export type QualityId = 'high' | 'balanced' | 'low';
+/** Visual hand plane above the ground-plane collision coordinates. */
+export const AIM_HEIGHT = 44;
 
 export const QUALITY_PRESETS = {
   high: { label: 'High', lightScale: 1, particles: 30, particleFrequency: 170, resolution: 1.5, shadows: true },
@@ -38,3 +40,4 @@ export function initialPresentation(): { quality: QualityId; reducedMotion: bool
 export function saveQuality(quality: QualityId) {
   try { localStorage.setItem(PREFERENCE_KEY, quality); } catch { /* Ephemeral preferences when browser storage is unavailable. */ }
 }
+export const missionTime = (seconds: number) => Math.floor(seconds / 60).toString().padStart(2, '0') + ':' + Math.floor(seconds % 60).toString().padStart(2, '0');

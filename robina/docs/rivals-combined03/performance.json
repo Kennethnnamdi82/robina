@@ -1,0 +1,966 @@
+{
+  "measuredAt": "2026-10-30T20:16:05.992Z",
+  "baseURL": "http://127.0.0.1:8083",
+  "softwareGraphics": false,
+  "methodology": "Active guard/security area and sustained player fire; Local Chrome; actual Phaser renderer recorded in metrics; minified isolated QA build; CPU throttling is recorded per scenario; mobile uses browser emulation, not physical Android/iOS hardware. JS heap excludes GPU/native memory. Active frame stalls are retained.",
+  "reports": [
+    {
+      "scenario": {
+        "name": "desktop-high",
+        "width": 1440,
+        "height": 1000,
+        "quality": "high",
+        "character": "vex"
+      },
+      "browser": "155.0.8059.85",
+      "metrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "vex",
+        "quality": "high",
+        "animation": "aim",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "37.65",
+        "p95": "30.40",
+        "startupMs": "683.2",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "807.27",
+        "y": "710.79",
+        "cameraX": "87.27",
+        "cameraY": "210.79",
+        "collisions": "0",
+        "health": "100",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "true",
+        "aimAngle": "0.135",
+        "speed": "0.00",
+        "runId": "1834.4000000953674",
+        "shots": "29",
+        "hits": "4",
+        "kills": "0",
+        "projectiles": "0",
+        "targets": "100,100,100",
+        "ammo": "7",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "1.3333333333333333",
+        "viewX": "267",
+        "viewY": "336",
+        "enemyStates": "guard-01:DEAD,enforcer-01:INVESTIGATE,heavy-01:PATROL",
+        "enemyHealth": "0,75,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"DEAD\",\"x\":917.7264045575888,\"y\":729.0037759487632,\"health\":0,\"maximum\":75,\"detection\":0.8400000000000001,\"shots\":0,\"deaths\":1,\"windup\":0},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"INVESTIGATE\",\"x\":1553.3701078423649,\"y\":828.9717005896513,\"health\":75,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1471.1008726784569,\"y\":295.5144682697657,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "0",
+        "enemyShots": "0",
+        "enemyDeaths": "1",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "1.57",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "combatMetrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "vex",
+        "quality": "high",
+        "animation": "aim",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "37.33",
+        "p95": "30.90",
+        "startupMs": "683.2",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "807.27",
+        "y": "710.79",
+        "cameraX": "87.27",
+        "cameraY": "210.79",
+        "collisions": "0",
+        "health": "100",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "true",
+        "aimAngle": "0.135",
+        "speed": "0.00",
+        "runId": "1834.4000000953674",
+        "shots": "28",
+        "hits": "3",
+        "kills": "0",
+        "projectiles": "4",
+        "targets": "100,100,100",
+        "ammo": "8",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "1.3333333333333333",
+        "viewX": "267",
+        "viewY": "336",
+        "enemyStates": "guard-01:DEAD,enforcer-01:PATROL,heavy-01:PATROL",
+        "enemyHealth": "0,100,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"DEAD\",\"x\":917.7264045575888,\"y\":729.0037759487632,\"health\":0,\"maximum\":75,\"detection\":0.8400000000000001,\"shots\":0,\"deaths\":1,\"windup\":0},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"PATROL\",\"x\":1440.2339828577208,\"y\":824.6144510605134,\"health\":100,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1455.2916636902885,\"y\":349.47628800510705,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "0",
+        "enemyShots": "0",
+        "enemyDeaths": "1",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "2.92",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "canvas": {
+        "width": 1440,
+        "height": 1000,
+        "cssWidth": 1440,
+        "cssHeight": 1000
+      },
+      "visualTransferBytes": 1296646,
+      "visualDecodedFileBytes": 1516152,
+      "totalTransferBytes": 2399367,
+      "jsHeapBytes": 13142336,
+      "resources": [
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 210036,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 7822,
+          "decodedBytes": 7522
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8694,
+          "decodedBytes": 8394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8436,
+          "decodedBytes": 8136
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-floor.webp?v=efe5d07d1b81",
+          "transferBytes": 116694,
+          "decodedBytes": 116394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.webp?v=efe5d07d1b81",
+          "transferBytes": 278446,
+          "decodedBytes": 278146
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.json?v=efe5d07d1b81",
+          "transferBytes": 670,
+          "decodedBytes": 2802
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.webp?v=efe5d07d1b81",
+          "transferBytes": 163182,
+          "decodedBytes": 162882
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.json?v=efe5d07d1b81",
+          "transferBytes": 572,
+          "decodedBytes": 1445
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 233756,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.webp?v=efe5d07d1b81",
+          "transferBytes": 229946,
+          "decodedBytes": 229646
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/carbine.png",
+          "transferBytes": 590,
+          "decodedBytes": 290
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/muzzle.png",
+          "transferBytes": 34532,
+          "decodedBytes": 34232
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/pulse.png",
+          "transferBytes": 1062,
+          "decodedBytes": 762
+        }
+      ],
+      "errors": [],
+      "teardown": {
+        "firstPostExitHeapBytes": 8148192,
+        "afterThreeMoreExitsHeapBytes": 8749948,
+        "differenceBytes": 601756,
+        "remainingCanvases": 0
+      }
+    },
+    {
+      "scenario": {
+        "name": "mobile-unthrottled",
+        "width": 390,
+        "height": 844,
+        "quality": "balanced",
+        "character": "nyx",
+        "mobile": true
+      },
+      "browser": "155.0.8059.85",
+      "metrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "nyx",
+        "quality": "balanced",
+        "animation": "hurt",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "56.85",
+        "p95": "24.20",
+        "startupMs": "539.2",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "803.36",
+        "y": "730.38",
+        "cameraX": "608.36",
+        "cameraY": "308.38",
+        "collisions": "0",
+        "health": "68",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "false",
+        "aimAngle": "0.313",
+        "speed": "0.00",
+        "runId": "1395.7999997138977",
+        "shots": "27",
+        "hits": "1",
+        "kills": "0",
+        "projectiles": "0",
+        "targets": "100,100,100",
+        "ammo": "9",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "0.86",
+        "viewX": "577",
+        "viewY": "240",
+        "enemyStates": "guard-01:ATTACK,enforcer-01:PATROL,heavy-01:PATROL",
+        "enemyHealth": "50,100,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"ATTACK\",\"x\":961.045331015639,\"y\":741.1678988247395,\"health\":50,\"maximum\":75,\"detection\":1,\"shots\":4,\"deaths\":0,\"windup\":0},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"PATROL\",\"x\":1518.4310104206365,\"y\":827.6260794115346,\"health\":100,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1467.7895170700187,\"y\":323.189165782918,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "8",
+        "enemyShots": "4",
+        "enemyDeaths": "0",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "2.13",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "combatMetrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "nyx",
+        "quality": "balanced",
+        "animation": "attack",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "56.22",
+        "p95": "24.30",
+        "startupMs": "539.2",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "803.36",
+        "y": "730.38",
+        "cameraX": "608.36",
+        "cameraY": "308.38",
+        "collisions": "0",
+        "health": "76",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "true",
+        "aimAngle": "0.313",
+        "speed": "0.00",
+        "runId": "1395.7999997138977",
+        "shots": "27",
+        "hits": "1",
+        "kills": "0",
+        "projectiles": "3",
+        "targets": "100,100,100",
+        "ammo": "9",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "0.86",
+        "viewX": "577",
+        "viewY": "240",
+        "enemyStates": "guard-01:ATTACK,enforcer-01:PATROL,heavy-01:PATROL",
+        "enemyHealth": "50,100,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"ATTACK\",\"x\":961.045331015639,\"y\":741.1678988247395,\"health\":50,\"maximum\":75,\"detection\":1,\"shots\":3,\"deaths\":0,\"windup\":0},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"PATROL\",\"x\":1441.0775460864518,\"y\":797.9878102457367,\"health\":100,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1424.670004452655,\"y\":344.8510370352296,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "8",
+        "enemyShots": "3",
+        "enemyDeaths": "0",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "3.42",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "canvas": {
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "visualTransferBytes": 1296946,
+      "visualDecodedFileBytes": 1749608,
+      "totalTransferBytes": 2399667,
+      "jsHeapBytes": 11241312,
+      "resources": [
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 210036,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 7822,
+          "decodedBytes": 7522
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8694,
+          "decodedBytes": 8394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8436,
+          "decodedBytes": 8136
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 233756,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-floor.webp?v=efe5d07d1b81",
+          "transferBytes": 116694,
+          "decodedBytes": 116394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.webp?v=efe5d07d1b81",
+          "transferBytes": 278446,
+          "decodedBytes": 278146
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.json?v=efe5d07d1b81",
+          "transferBytes": 670,
+          "decodedBytes": 2802
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.webp?v=efe5d07d1b81",
+          "transferBytes": 163182,
+          "decodedBytes": 162882
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.json?v=efe5d07d1b81",
+          "transferBytes": 572,
+          "decodedBytes": 1445
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.webp?v=efe5d07d1b81",
+          "transferBytes": 229946,
+          "decodedBytes": 229646
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/carbine.png",
+          "transferBytes": 590,
+          "decodedBytes": 290
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/muzzle.png",
+          "transferBytes": 34532,
+          "decodedBytes": 34232
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/pulse.png",
+          "transferBytes": 1062,
+          "decodedBytes": 762
+        }
+      ],
+      "errors": []
+    },
+    {
+      "scenario": {
+        "name": "mobile-balanced",
+        "width": 390,
+        "height": 844,
+        "quality": "balanced",
+        "character": "nyx",
+        "mobile": true,
+        "throttle": 4
+      },
+      "browser": "155.0.8059.85",
+      "metrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "nyx",
+        "quality": "balanced",
+        "animation": "aim",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "10.82",
+        "p95": "127.30",
+        "startupMs": "2037.1",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "811.19",
+        "y": "714.71",
+        "cameraX": "616.19",
+        "cameraY": "292.71",
+        "collisions": "0",
+        "health": "100",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "true",
+        "aimAngle": "0.313",
+        "speed": "0.00",
+        "runId": "2837.9000000953674",
+        "shots": "29",
+        "hits": "3",
+        "kills": "0",
+        "projectiles": "0",
+        "targets": "100,100,100",
+        "ammo": "7",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "0.86",
+        "viewX": "585",
+        "viewY": "224",
+        "enemyStates": "guard-01:DEAD,enforcer-01:PATROL,heavy-01:PATROL",
+        "enemyHealth": "0,100,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"DEAD\",\"x\":918.133446012835,\"y\":728.584146438302,\"health\":0,\"maximum\":75,\"detection\":1,\"shots\":0,\"deaths\":1,\"windup\":0},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"PATROL\",\"x\":1621.5845361419297,\"y\":831.5988657469265,\"health\":100,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1471.1008726784569,\"y\":295.5144682697657,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "0",
+        "enemyShots": "0",
+        "enemyDeaths": "1",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "1.10",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "combatMetrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "nyx",
+        "quality": "balanced",
+        "animation": "attack",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "10.99",
+        "p95": "127.30",
+        "startupMs": "2037.1",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "811.19",
+        "y": "714.71",
+        "cameraX": "616.19",
+        "cameraY": "292.71",
+        "collisions": "0",
+        "health": "100",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "true",
+        "aimAngle": "0.313",
+        "speed": "0.00",
+        "runId": "2837.9000000953674",
+        "shots": "28",
+        "hits": "3",
+        "kills": "0",
+        "projectiles": "4",
+        "targets": "100,100,100",
+        "ammo": "8",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "0.86",
+        "viewX": "585",
+        "viewY": "224",
+        "enemyStates": "guard-01:DEAD,enforcer-01:PATROL,heavy-01:PATROL",
+        "enemyHealth": "0,100,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"DEAD\",\"x\":918.133446012835,\"y\":728.584146438302,\"health\":0,\"maximum\":75,\"detection\":1,\"shots\":0,\"deaths\":1,\"windup\":0},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"PATROL\",\"x\":1448.55281557718,\"y\":824.9348370553028,\"health\":100,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1460.3952735632274,\"y\":350.2471631667533,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "0",
+        "enemyShots": "0",
+        "enemyDeaths": "1",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "2.83",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "canvas": {
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "visualTransferBytes": 1296946,
+      "visualDecodedFileBytes": 1749608,
+      "totalTransferBytes": 2399667,
+      "jsHeapBytes": 10506496,
+      "resources": [
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 210036,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 7822,
+          "decodedBytes": 7522
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8694,
+          "decodedBytes": 8394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8436,
+          "decodedBytes": 8136
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 233756,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-floor.webp?v=efe5d07d1b81",
+          "transferBytes": 116694,
+          "decodedBytes": 116394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.webp?v=efe5d07d1b81",
+          "transferBytes": 278446,
+          "decodedBytes": 278146
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.json?v=efe5d07d1b81",
+          "transferBytes": 670,
+          "decodedBytes": 2802
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.webp?v=efe5d07d1b81",
+          "transferBytes": 163182,
+          "decodedBytes": 162882
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.json?v=efe5d07d1b81",
+          "transferBytes": 572,
+          "decodedBytes": 1445
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.webp?v=efe5d07d1b81",
+          "transferBytes": 229946,
+          "decodedBytes": 229646
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/carbine.png",
+          "transferBytes": 590,
+          "decodedBytes": 290
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/muzzle.png",
+          "transferBytes": 34532,
+          "decodedBytes": 34232
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/pulse.png",
+          "transferBytes": 1062,
+          "decodedBytes": 762
+        }
+      ],
+      "errors": []
+    },
+    {
+      "scenario": {
+        "name": "mobile-low",
+        "width": 390,
+        "height": 844,
+        "quality": "low",
+        "character": "rook",
+        "mobile": true,
+        "throttle": 4
+      },
+      "browser": "155.0.8059.85",
+      "metrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "rook",
+        "quality": "low",
+        "animation": "aim",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "11.73",
+        "p95": "114.00",
+        "startupMs": "1535.7",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "791.61",
+        "y": "730.38",
+        "cameraX": "596.61",
+        "cameraY": "308.38",
+        "collisions": "0",
+        "health": "68",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "true",
+        "aimAngle": "0.313",
+        "speed": "0.00",
+        "runId": "2604.7999997138977",
+        "shots": "29",
+        "hits": "0",
+        "kills": "0",
+        "projectiles": "0",
+        "targets": "100,100,100",
+        "ammo": "7",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "0.86",
+        "viewX": "565",
+        "viewY": "240",
+        "enemyStates": "guard-01:ATTACK,enforcer-01:PATROL,heavy-01:PATROL",
+        "enemyHealth": "75,100,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"ATTACK\",\"x\":977.8712902070455,\"y\":742.063921887574,\"health\":75,\"maximum\":75,\"detection\":1,\"shots\":4,\"deaths\":0,\"windup\":0},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"PATROL\",\"x\":1558.3614074740403,\"y\":829.163932186525,\"health\":100,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1470.7329442775192,\"y\":298.58943466011596,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "8",
+        "enemyShots": "4",
+        "enemyDeaths": "0",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "1.73",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "combatMetrics": {
+        "testid": "arena-position",
+        "renderer": "canvas",
+        "character": "rook",
+        "quality": "low",
+        "animation": "attack",
+        "frame": "walk/right/2",
+        "facing": "right",
+        "reducedMotion": "false",
+        "fps": "11.90",
+        "p95": "115.40",
+        "startupMs": "1535.7",
+        "textureBytes": "28476712",
+        "essentialBytes": "1265544",
+        "renderScale": "1",
+        "x": "791.61",
+        "y": "730.38",
+        "cameraX": "596.61",
+        "cameraY": "308.38",
+        "collisions": "0",
+        "health": "76",
+        "cooldown": "0.000",
+        "dodgeSerial": "0",
+        "sprinting": "false",
+        "aiming": "true",
+        "aimAngle": "0.313",
+        "speed": "0.00",
+        "runId": "2604.7999997138977",
+        "shots": "29",
+        "hits": "0",
+        "kills": "0",
+        "projectiles": "5",
+        "targets": "100,100,100",
+        "ammo": "7",
+        "reload": "0",
+        "doors": "transit-door",
+        "core": "false",
+        "extracted": "false",
+        "worldRevision": "1",
+        "rangeActive": "false",
+        "cameraZoom": "0.86",
+        "viewX": "565",
+        "viewY": "240",
+        "enemyStates": "guard-01:ATTACK,enforcer-01:PATROL,heavy-01:PATROL",
+        "enemyHealth": "75,100,175",
+        "enemies": "[{\"id\":\"guard-01\",\"type\":\"guard\",\"state\":\"ATTACK\",\"x\":977.8712902070455,\"y\":742.063921887574,\"health\":75,\"maximum\":75,\"detection\":1,\"shots\":3,\"deaths\":0,\"windup\":0.36666666666666664},{\"id\":\"enforcer-01\",\"type\":\"enforcer\",\"state\":\"PATROL\",\"x\":1440.7084871738818,\"y\":809.6369656022015,\"health\":100,\"maximum\":100,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0},{\"id\":\"heavy-01\",\"type\":\"heavy\",\"state\":\"PATROL\",\"x\":1431.8150582747694,\"y\":345.9302622615343,\"health\":175,\"maximum\":175,\"detection\":0,\"shots\":0,\"deaths\":0,\"windup\":0}]",
+        "damageAmount": "8",
+        "enemyShots": "3",
+        "enemyDeaths": "0",
+        "alarm": "false",
+        "alarmSerial": "0",
+        "phase": "ACTIVE",
+        "phaseWindow": "3.30",
+        "phaseLink": "false",
+        "relays": "0",
+        "hacks": "0",
+        "disabled": "",
+        "hacking": "false",
+        "debug": "false"
+      },
+      "canvas": {
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "visualTransferBytes": 1296946,
+      "visualDecodedFileBytes": 1745798,
+      "totalTransferBytes": 2399667,
+      "jsHeapBytes": 11665444,
+      "resources": [
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 210036,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 7822,
+          "decodedBytes": 7522
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8694,
+          "decodedBytes": 8394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook-portrait.webp?v=efe5d07d1b81",
+          "transferBytes": 8436,
+          "decodedBytes": 8136
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.webp?v=efe5d07d1b81",
+          "transferBytes": 229946,
+          "decodedBytes": 229646
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-floor.webp?v=efe5d07d1b81",
+          "transferBytes": 116694,
+          "decodedBytes": 116394
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.webp?v=efe5d07d1b81",
+          "transferBytes": 278446,
+          "decodedBytes": 278146
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-props.json?v=efe5d07d1b81",
+          "transferBytes": 670,
+          "decodedBytes": 2802
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.webp?v=efe5d07d1b81",
+          "transferBytes": 163182,
+          "decodedBytes": 162882
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/neon-walls.json?v=efe5d07d1b81",
+          "transferBytes": 572,
+          "decodedBytes": 1445
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 229646
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/rook.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.webp?v=efe5d07d1b81",
+          "transferBytes": 300,
+          "decodedBytes": 209736
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/vex.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.webp?v=efe5d07d1b81",
+          "transferBytes": 233756,
+          "decodedBytes": 233456
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/phase02/nyx.json?v=efe5d07d1b81",
+          "transferBytes": 636,
+          "decodedBytes": 4191
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/carbine.png",
+          "transferBytes": 590,
+          "decodedBytes": 290
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/muzzle.png",
+          "transferBytes": 34532,
+          "decodedBytes": 34232
+        },
+        {
+          "url": "http://127.0.0.1:8083/assets/rivals/combat/pulse.png",
+          "transferBytes": 1062,
+          "decodedBytes": 762
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

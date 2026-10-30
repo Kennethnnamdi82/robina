@@ -7,7 +7,7 @@ export const CHARACTERS = {
   rook: { name: 'ROOK', role: 'Vanguard', color: '#e9ba62', light: 0xffb95b },
 } as const satisfies Record<CharacterId, { name: string; role: string; color: string; light: number }>;
 
-export const ANIMATION_STATES: AnimationState[] = ['idle', 'walk', 'run', 'dash', 'attack', 'hurt', 'defeat'];
+export const ANIMATION_STATES: AnimationState[] = ['idle', 'walk', 'run', 'dash', 'aim', 'interact', 'attack', 'hurt', 'defeat'];
 export const FACINGS: Facing[] = ['down', 'left', 'right', 'up'];
 
 /** Authored locomotion is distinct from explicit fallbacks; no combat behavior is implied. */
