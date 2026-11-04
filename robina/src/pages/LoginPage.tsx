@@ -125,7 +125,7 @@ export default function LoginPage() {
       <section className="relative w-full max-w-[390px]">
         <div className="mb-6 flex items-center justify-center gap-2.5 text-white">
           <RobinaMark />
-          <span className="text-lg font-semibold tracking-[-0.03em]">Robina</span>
+          <span className="text-lg font-semibold tracking-[-0.03em]">RIVALS</span>
         </div>
 
         <div
@@ -133,8 +133,8 @@ export default function LoginPage() {
         >
           <header className="text-center">
             <span className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Welcome back</span>
-            <h1 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">Sign in to Robina</h1>
-            <p className="mt-2 text-sm leading-5 text-slate-400">Choose a secure way to continue.</p>
+            <h1 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">Sign in to RIVALS</h1>
+            <p className="mt-2 text-sm leading-5 text-slate-400">Sign in to go straight to the game.</p>
           </header>
 
           <div className="mt-6">

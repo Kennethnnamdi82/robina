@@ -26,7 +26,7 @@ class GameBoundary extends Component<{ children: ReactNode }, { failed: boolean 
   }
 }
 
-/** Mounted only inside App's existing authenticated /gaming route. */
+/** The authenticated home page; old /gaming links redirect here. */
 export default function GamingRoute() {
   const [search] = useSearchParams();
   const engine = gameEngine(search.toString());

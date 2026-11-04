@@ -34,7 +34,7 @@ for (const response of ['unauthorized', 'stalled', 'html'] as const) {
     const errors = await prepare(page, response);
     await page.goto('/');
     expect(errors).toEqual([]);
-    await expect(page.getByRole('heading', { name: 'Sign in to Robina' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Sign in to RIVALS' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Restoring your secure session...')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeEnabled();
     expect(errors).toEqual([]);
@@ -42,12 +42,13 @@ for (const response of ['unauthorized', 'stalled', 'html'] as const) {
 }
 test('production game route opens 3D and preserves the classic fallback', async ({ page }) => {
   const errors = await prepare(page, 'authenticated');
-  await page.goto('/gaming');
-  await expect(page.getByRole('button', { name: 'ENTER 3D RAID' })).toBeEnabled({ timeout: 30000 });
-  await expect(page.getByRole('button', { name: 'LOW graphics' })).toBeVisible();
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'PLAY', exact: true })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: 'LOW graphics' })).toHaveCount(0);
   await expect(page.getByText('Development sandbox disabled.')).toHaveCount(0);
-  await page.getByRole('link', { name: 'PLAY CLASSIC 2D' }).click();
-  await expect(page).toHaveURL(/\/gaming\?engine=2d$/);
+  await page.goto('/?engine=2d');
+  // This link reloads the page; remote vendor transfer precedes the client redirect.
+  await expect(page).toHaveURL(/\/\?engine=2d$/, { timeout: 60000 });
   await expect(page.getByRole('button', { name: 'PLAY', exact: true })).toBeEnabled({ timeout: 30000 });
   await page.getByRole('button', { name: 'Exit to website' }).click();
   await expect(page).toHaveURL(new URL('/', test.info().project.use.baseURL!).href);
@@ -56,9 +57,9 @@ test('production game route opens 3D and preserves the classic fallback', async 
 
 test('production 3D and classic game links remain behind login', async ({ page }) => {
   const errors = await prepare(page, 'unauthorized');
-  for (const path of ['/gaming', '/gaming?engine=2d', '/gaming?validation=1']) {
+  for (const path of ['/', '/gaming?engine=2d', '/play', '/missions', '/settings', '/rank', '/profile']) {
     await page.goto(path);
-    await expect(page.getByRole('heading', { name: 'Sign in to Robina' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Sign in to RIVALS' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'ENTER 3D RAID' })).toHaveCount(0);
   }
   expect(errors).toEqual([]);
@@ -66,7 +67,10 @@ test('production 3D and classic game links remain behind login', async ({ page }
 
 test('built production 3D game draws, pauses and exits without changing accounts' + (process.env.PRODUCTION_TEST_WARM_ASSETS === '1' ? ' (warm-cache)' : ''), async ({ page }) => {
   const warmAssets = process.env.PRODUCTION_TEST_WARM_ASSETS === '1';
-  test.setTimeout(warmAssets ? 480000 : 180000);
+  const remote = Boolean(process.env.PRODUCTION_TEST_URL);
+  // Keep the remote suite's network budget; don't overwrite it with the local
+  // renderer budget when intercepted requests must download every model again.
+  test.setTimeout(warmAssets ? 480000 : remote ? 300000 : 180000);
   await page.setViewportSize({ width: 600, height: 320 });
   const errors = await prepare(page, 'authenticated');
   const writes: string[] = [];
@@ -79,13 +83,21 @@ test('built production 3D game draws, pauses and exits without changing accounts
   page.on('request', request => {
     if (new URL(request.url()).pathname.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(request.url());
   });
-  await page.goto('/gaming');
+  await page.goto('/settings');
   await page.getByRole('button', { name: 'LOW graphics' }).click({ timeout: 30000 });
+  await page.getByRole('navigation', {name:'Game navigation'}).getByRole('link', {name:'LOBBY',exact:true}).click();
+  await page.getByRole('link',{name:'PLAY',exact:true}).click();
+  await expect(page.getByRole('button',{name:'DEPLOY / START HEIST'})).toBeEnabled();
   // Optional diagnostic isolates actual renderer behavior from cold transfer.
   // It is never reported as a cold-start pass or a phone performance result.
   if (warmAssets) await expect.poll(() => loadedModels.size, { timeout: 240000 }).toBe(14);
-  await page.getByRole('button', { name: 'ENTER 3D RAID' }).dispatchEvent('click');
-  await page.locator('.r3-game').waitFor({ state: 'attached', timeout: 120000 });
+  await page.getByRole('button', { name: 'DEPLOY / START HEIST' }).dispatchEvent('click');
+  try {
+    await page.locator('.r3-game').waitFor({ state: 'attached', timeout: remote ? 240000 : 120000 });
+  } catch (error) {
+    console.log('Finished city model transfers: ' + loadedModels.size + '/14');
+    throw error;
+  }
   await expect(page.locator('.r3-game')).not.toHaveAttribute('data-status', 'loading', { timeout: 120000 });
   if (await page.locator('.r3-game').getAttribute('data-status') === 'error') {
     throw new Error('3D startup failed: ' + await page.locator('.rivals-pause-panel').innerText());
@@ -95,9 +107,12 @@ test('built production 3D game draws, pauses and exits without changing accounts
   await expect(page.getByRole('button', { name: 'Graphics settings' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Pause game' }).dispatchEvent('click');
   await expect(page.getByRole('button', { name: 'RESUME RAID' })).toBeVisible();
-  await expect(page.getByLabel('3D graphics quality')).toHaveValue('low');
+  await page.getByRole('button',{name:'SETTINGS',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Raid settings'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'LOW graphics'})).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:'BACK TO RAID'}).click();
   await page.getByRole('button', { name: 'RETURN TO GAME MENU' }).dispatchEvent('click');
-  await expect(page.getByRole('button', { name: 'ENTER 3D RAID' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'PLAY',exact:true })).toBeVisible();
   await expect(page.locator('[data-testid="three-host"] canvas')).toHaveCount(0);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
@@ -114,17 +129,69 @@ test('production deep admin link remains gated without a session', async ({ page
 
 
 
-test('authenticated pages recover from unavailable optional services', async ({ page }) => {
+test('main link and retired mining pages open only the game without mining polling', async ({ page }) => {
   const errors = await prepare(page, 'authenticated');
-  for (const [path, title] of [['/', 'BaseDrop'], ['/tasks', 'Missions'], ['/rank', 'Leaderboard'], ['/auto-claim', 'Auto Claim'], ['/marketplace', 'Marketplace'], ['/profile', 'Profile']]) {
+  const miningRequests: string[] = [];
+  page.on('request', request => {
+    if (/\/api\/(mining|leaderboard|tasks|payments)(\/|$)/.test(new URL(request.url()).pathname)) miningRequests.push(request.url());
+  });
+  for (const path of ['/', '/tasks', '/auto-claim', '/marketplace', '/gaming']) {
     await page.goto(path);
-    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveURL(new URL('/', test.info().project.use.baseURL!).href, { timeout: 60000 });
+    await expect(page.getByRole('link', { name: 'PLAY',exact:true })).toBeVisible({ timeout: 30000 });
     await expect(page.getByText('Restoring your secure session...')).toHaveCount(0, { timeout: 15000 });
     await expect(page.getByRole('heading', { name: 'Robina could not start' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Sign in to Robina' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Sign in to RIVALS' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /^(BaseDrop|Leaderboard|Auto Claim|Marketplace|Profile|Missions)$/ })).toHaveCount(0);
+    await expect(page.getByRole('navigation',{name:'Main menu'})).toBeVisible();
     expect(await page.locator('#root').innerText()).not.toBe('');
     expect(errors).toEqual([]);
   }
+  expect(miningRequests).toEqual([]);
+});
+
+test('frontend hub has complete mobile pages, saved settings and no new backend calls',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const errors=await prepare(page,'authenticated'),calls:{origin:string;path:string;method:string}[]=[];
+  page.on('request',request=>{const url=new URL(request.url());if(url.pathname.startsWith('/api/'))calls.push({origin:url.origin,path:url.pathname,method:request.method()});});
+  await page.goto('/');
+  await expect(page.getByRole('link',{name:'PLAY',exact:true})).toBeVisible({timeout:30000});
+  await page.screenshot({path:'docs/rivals-3d/frontend-hub/lobby-phone.png',fullPage:true});
+  await page.getByRole('navigation',{name:'Main menu'}).getByRole('link',{name:/^MISSIONS/}).click();
+  await expect(page.getByRole('heading',{name:'OPERATIONS.'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'VIEW BRIEFING'})).toHaveCount(3);
+  await page.screenshot({path:'docs/rivals-3d/frontend-hub/missions-phone.png',fullPage:true});
+  await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'CUSTOMIZATION',exact:true}).click();
+  await page.getByLabel('Callsign').fill('NIGHT RUNNER');
+  await page.getByRole('button',{name:'ice calling card'}).click();
+  await page.getByRole('button',{name:'SAVE IDENTITY'}).click();
+  await expect(page.getByText('Dossier updated.')).toBeVisible();
+  await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'PLAYER PROFILE',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'NIGHT RUNNER',exact:true})).toBeVisible();
+  await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'LEADERBOARDS',exact:true}).click();
+  await expect(page.getByText('FRONTEND PREVIEW', {exact:true})).toBeVisible();
+  await page.screenshot({path:'docs/rivals-3d/frontend-hub/leaderboard-phone.png',fullPage:true});
+  await page.getByRole('button',{name:'MY RECORDED RUNS'}).click();
+  await expect(page.getByText('NO FINISHED HEISTS. YET.')).toBeVisible();
+  await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'RANK',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'EARN YOUR NAME.'})).toBeVisible();
+  await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'SETTINGS',exact:true}).click();
+  await page.getByRole('button',{name:'LOW graphics'}).click();
+  await page.screenshot({path:'docs/rivals-3d/frontend-hub/settings-phone.png',fullPage:true});
+  await page.reload();
+  await expect(page.getByRole('button',{name:'LOW graphics'})).toHaveAttribute('aria-pressed','true');
+  await page.setViewportSize({width:320,height:740});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'LOBBY',exact:true}).click();
+  await expect(page.getByRole('button',{name:'LOW graphics'})).toHaveCount(0);
+  await page.setViewportSize({width:1440,height:960});
+  await page.screenshot({path:'docs/rivals-3d/frontend-hub/lobby-desktop.png',fullPage:true});
+  // Privy's existing sign-in SDK also reads its own public app configuration.
+  // Assert against the actual application backend, not unrelated SDK hosts.
+  const backendOrigin=calls.find(call=>call.path==='/api/auth/me')?.origin;
+  expect(backendOrigin).toBeTruthy();
+  expect(calls.filter(call=>call.origin===backendOrigin && (call.method!=='GET'||call.path!=='/api/auth/me'))).toEqual([]);
+  expect(errors).toEqual([]);
 });
 
 

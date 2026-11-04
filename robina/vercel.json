@@ -226,6 +226,12 @@
     }
   ],
   "redirects": [
+    { "source": "/gaming", "destination": "/", "permanent": false },
+    { "source": "/tasks", "destination": "/", "permanent": false },
+    { "source": "/leaderboard", "destination": "/leaderboards", "permanent": false },
+    { "source": "/auto-claim", "destination": "/", "permanent": false },
+    { "source": "/marketplace", "destination": "/", "permanent": false },
+    { "source": "/login", "destination": "/", "permanent": false },
     {
       "source": "/assets/rivals/characters/universal-operative.glb",
       "destination": "/assets/rivals/characters/universal-operative.glb.gz",
