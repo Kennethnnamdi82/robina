@@ -1,0 +1,359 @@
+{
+  "license": "CC0-1.0",
+  "sources": {
+    "city": "https://quaternius.com/packs/downtowncitymegakit.html",
+    "sciFi": "src/features/Modular SciFi MegaKit[Standard]/License_Standard.txt"
+  },
+  "models": {
+    "residence": {
+      "source": "Exports/glTF (Godot)/Building_Small_1",
+      "bytes": 1577408,
+      "triangles": 17622,
+      "sha256": "e05937e4d4437202254b496b5eb85844b4f7e075fb654deb605ca5e329655743"
+    },
+    "commerce": {
+      "source": "Exports/glTF (Godot)/Building_Medium_2_001",
+      "bytes": 2462844,
+      "triangles": 24274,
+      "sha256": "5b6b1d0c1bb576d4c8f04c1efe6594a2da26c37b47b7dae4b2ed202524db1e48"
+    },
+    "headquarters": {
+      "source": "Exports/glTF (Godot)/Building_Large_2",
+      "bytes": 3363072,
+      "triangles": 43160,
+      "sha256": "7c4bc0837681bde1256852a9170c6a1caac600d20379f99d6a91fcc571f2ac30"
+    },
+    "street": {
+      "source": "Exports/glTF (Godot)/Street_2Lane",
+      "bytes": 21048,
+      "triangles": 220,
+      "sha256": "2c86bb7648703f58bd8a76be5da5522ef05946d8a564008df23deb56da2b5a6e"
+    },
+    "sidewalk": {
+      "source": "Exports/glTF (Godot)/Sidewalk_Straight_3m",
+      "bytes": 6440,
+      "triangles": 60,
+      "sha256": "ef177d70615bf6c20ef9ffa9941cade8dbc8b83f9ab7b191b6fc5fa80f048b14"
+    },
+    "planter": {
+      "source": "Exports/glTF (Godot)/Prop_Planter_Single",
+      "bytes": 12848,
+      "triangles": 118,
+      "sha256": "580412348bf4b89e1a866f0fbd2221f39332a6793e931af9934fa1932804203f"
+    },
+    "drain": {
+      "source": "Exports/glTF (Godot)/Prop_Drain",
+      "bytes": 2524,
+      "triangles": 10,
+      "sha256": "fe37f270023be8966afa1fba9c734ef8cc83d3300397a2f4af2a74676949f70c"
+    },
+    "ac": {
+      "source": "Exports/glTF (Godot)/Prop_ACUnit",
+      "bytes": 8256,
+      "triangles": 136,
+      "sha256": "4344083af56670d53b6fbb08e8dc5f14425cf27a38b01441c61428caac63546b"
+    },
+    "bollard": {
+      "source": "Exports/glTF (Godot)/Prop_Bollard",
+      "bytes": 12156,
+      "triangles": 190,
+      "sha256": "9727c98808890616ce0804f043003b4218b47309bfd3fe6fd400c99ce9b50b8f"
+    },
+    "wall": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Walls/WallAstra_Straight",
+      "bytes": 21240,
+      "triangles": 355,
+      "sha256": "91e42d3b653bfc9d22d2bb5578f813102dabf2e2eec96473a49a0659807d1618"
+    },
+    "window": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Walls/WallWindow_Straight",
+      "bytes": 22268,
+      "triangles": 397,
+      "sha256": "4bc34834db74afcb869733ce57305b48de4bdcae5900fe87e3182a82bafe9716"
+    },
+    "computer": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Props/Prop_Computer",
+      "bytes": 29364,
+      "triangles": 519,
+      "sha256": "42f33c99069d02c9165a037500a1ccb89c2f557fdc0184151f8fc24b57bba72b"
+    },
+    "access": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Props/Prop_AccessPoint",
+      "bytes": 40084,
+      "triangles": 738,
+      "sha256": "4a00684fedef03dba3c227e4faee33947e6bb97a0f4e9ee35da5fabbc768619d"
+    },
+    "vent": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Props/Prop_Vent_Wide",
+      "bytes": 18376,
+      "triangles": 208,
+      "sha256": "57a15717d3e58f891ba54370ea8471062ca5b623d7ee20731371147c7046160c"
+    },
+    "rail": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Props/Prop_Rail_3",
+      "bytes": 31576,
+      "triangles": 1144,
+      "sha256": "ab3eabef454e262b73c4aa968ed314a02bee1ad164e4835b587886409d95e355"
+    },
+    "barrel": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Props/Prop_Barrel_Large",
+      "bytes": 25800,
+      "triangles": 502,
+      "sha256": "7bbe01a69e596bf290466a038d850f5ecbf37642f3e737d7d8dee97676ca7029"
+    },
+    "crate": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Props/Prop_Crate3",
+      "bytes": 14500,
+      "triangles": 204,
+      "sha256": "dcafa4a88fe10da279c20605153f0468cec0995f903c7ebfe3452d20d5cbe6fe"
+    },
+    "platform": {
+      "source": "Modular SciFi MegaKit[Standard]/glTF/Platforms/Platform_Metal2",
+      "bytes": 2936,
+      "triangles": 24,
+      "sha256": "4e81490b9558b40efe3142cd0cc3cc449fb8c7f99fd27a16a393d00d68d28e00"
+    }
+  },
+  "textures": {
+    "city-T_RedBrick_Normal.webp": {
+      "bytes": 26208,
+      "width": 256,
+      "height": 256,
+      "sha256": "d81a4d252bd2ca28190ede0c5042f9ad5e4b70b32e8859581979fcae692f9cd9"
+    },
+    "city-T_RedBrick_BaseColor.webp": {
+      "bytes": 24402,
+      "width": 512,
+      "height": 512,
+      "sha256": "cbd425abc747dcd1496095b380c82e758d260cf77d6b3e28738d4b545b80c9a1"
+    },
+    "city-T_RedBrick_ORM.webp": {
+      "bytes": 15222,
+      "width": 256,
+      "height": 256,
+      "sha256": "57e283a9a6091381bea56b95da884f9d5c804e59918596e09892238aed62efa7"
+    },
+    "city-T_Trim_Normal.webp": {
+      "bytes": 7080,
+      "width": 256,
+      "height": 256,
+      "sha256": "928fe5754ff1895274d272311542fef021de13655b6710ac4059a240d88cfd26"
+    },
+    "city-T_Trim_BaseColor.webp": {
+      "bytes": 25346,
+      "width": 512,
+      "height": 512,
+      "sha256": "7755fb45c45eaeffaa3931188ff0afba866470b89e06ff572b4d75f00043df32"
+    },
+    "city-T_Trim_ORM.webp": {
+      "bytes": 5806,
+      "width": 256,
+      "height": 256,
+      "sha256": "8ea76b9b8b552f7cdcc44fdc64b24866f4dbe40f566f7e592d0626c0c5b43530"
+    },
+    "city-T_MetalConcrete_Normal.webp": {
+      "bytes": 11360,
+      "width": 256,
+      "height": 256,
+      "sha256": "0d3712d4a64bea4401eecc1b750749612435c64e116af51c18aef559c9a621a7"
+    },
+    "city-T_MetalConcrete_BaseColor.webp": {
+      "bytes": 12178,
+      "width": 512,
+      "height": 512,
+      "sha256": "08018192320f6f3d33dea07e4f608ec33f3b5c74307f0eea4928884b2f50ac24"
+    },
+    "city-T_MetalConcrete_ORM.webp": {
+      "bytes": 8672,
+      "width": 256,
+      "height": 256,
+      "sha256": "92a8fcd594ec4584163bc142ebb3dfa46e8f33db5b5e0e65acea7e5d6ef8a644"
+    },
+    "city-T_lit_interior_2.webp": {
+      "bytes": 19086,
+      "width": 512,
+      "height": 512,
+      "sha256": "6ad7cfb0f5e305f131fe30fe2b9e61d985fd20986d0bf66d7da753b7836c818f"
+    },
+    "city-T_lit_interior_1.webp": {
+      "bytes": 37098,
+      "width": 512,
+      "height": 512,
+      "sha256": "a2e974e8d2d87cd1b25d7f439beebc3bcb00aee1f7c139094e8a53d352c02f1e"
+    },
+    "city-T_Concrete_Normal.webp": {
+      "bytes": 10766,
+      "width": 256,
+      "height": 256,
+      "sha256": "d3fb6117eb342c8f78408ba155c69b47f58b8f7b74a77032ed6111d49993d235"
+    },
+    "city-T_Concrete_BaseColor.webp": {
+      "bytes": 9264,
+      "width": 512,
+      "height": 512,
+      "sha256": "a7a55cf0c64a6a21d0f369cfc6bbc6b447f9468cf1c6f3c6f07bbfb8d94494ed"
+    },
+    "city-T_Concrete_ORM.webp": {
+      "bytes": 5174,
+      "width": 256,
+      "height": 256,
+      "sha256": "125be10d1b608f936209fc7b58716452b151320ea8f6807fc351acb0cc9600f0"
+    },
+    "city-T_dark_interior.webp": {
+      "bytes": 19958,
+      "width": 512,
+      "height": 512,
+      "sha256": "221d79bbb0db4677e743596d92de069184fd0feb08497a9d6726b09e19b345a9"
+    },
+    "city-T_Concrete_Asphalt_BaseColor.webp": {
+      "bytes": 4512,
+      "width": 512,
+      "height": 512,
+      "sha256": "0d8a1965e15deef7b7a8d217bb35ca2f265726f19e79f246d99072b3e0805799"
+    },
+    "city-T_MarbleFloor_Normal.webp": {
+      "bytes": 7664,
+      "width": 256,
+      "height": 256,
+      "sha256": "52a6b8bcf12b7cd1a0c273c8a7cbdba612acddc11887812ca9ca4aa0dd8ae403"
+    },
+    "city-T_MarbleFloor_BaseColor.webp": {
+      "bytes": 14240,
+      "width": 512,
+      "height": 512,
+      "sha256": "673187c3e4e7ec0e729ea6d3707bfdfad4eccead54c7cded1806c39deff22d4a"
+    },
+    "city-T_MarbleFloor_ORM.webp": {
+      "bytes": 4728,
+      "width": 256,
+      "height": 256,
+      "sha256": "453fcfdbd3eb774c7a645bec40a5a5ea0be16bd938fae2b5038c81c8c4538b63"
+    },
+    "city-T_Street_Decals.webp": {
+      "bytes": 140352,
+      "width": 512,
+      "height": 512,
+      "sha256": "78a3f9b5a629a4f3ff7a1ac6598f1dd19e0a34158e58f56416eac34a6b7520be"
+    },
+    "city-T_Dirt_Normal.webp": {
+      "bytes": 26514,
+      "width": 256,
+      "height": 256,
+      "sha256": "c885f774910ad8b593c42901469b845dd0c02e6a7abd752475e2824f5a409e05"
+    },
+    "city-T_Dirt_BaseColor.webp": {
+      "bytes": 5490,
+      "width": 512,
+      "height": 512,
+      "sha256": "6e89d3050f65e9f153a14b84585850e3dc18103cc4ebe206ecb260271fff8c0f"
+    },
+    "city-T_Dirt_ORM.webp": {
+      "bytes": 4252,
+      "width": 256,
+      "height": 256,
+      "sha256": "484f0dd8f967b9a541fb1b7ef830211443c04728ecd1d9e5de16d265ecacd23c"
+    },
+    "city-T_Ornaments_Normal.webp": {
+      "bytes": 22452,
+      "width": 256,
+      "height": 256,
+      "sha256": "c8059d3233720bc038666b722300cc9057e2d96a1174d04b5814e520182fc24f"
+    },
+    "city-T_Ornaments_BaseColor.webp": {
+      "bytes": 29402,
+      "width": 512,
+      "height": 512,
+      "sha256": "6cc911d9a5ee98f3718e0f7fb1c6f8904944cf786ea32768009c1a72567fe6f5"
+    },
+    "city-T_Ornaments_ORM.webp": {
+      "bytes": 19908,
+      "width": 256,
+      "height": 256,
+      "sha256": "e859d10847ea3a3f0bc64a18a5d859ce83384541151b18eaddc4c8d444a4aaf7"
+    },
+    "sci-T_Trim_03_Normal.webp": {
+      "bytes": 3038,
+      "width": 256,
+      "height": 256,
+      "sha256": "a713254ac6376fed351618316045177a51d5666ade35a9adcad908b30a81a5a2"
+    },
+    "sci-T_Trim_03_BaseColor.webp": {
+      "bytes": 6900,
+      "width": 512,
+      "height": 512,
+      "sha256": "8269271a6635b2bf793de84cf1ea2678d6faeb0900dd52d8aa75c909b8c33ab6"
+    },
+    "sci-T_Trim_03_ORM.webp": {
+      "bytes": 17400,
+      "width": 256,
+      "height": 256,
+      "sha256": "9736b0a3fce6488dfaa25d490a3bfa52edc60deeeff818e2466ff853c1fa7070"
+    },
+    "sci-T_Trim_02_Normal.webp": {
+      "bytes": 7564,
+      "width": 256,
+      "height": 256,
+      "sha256": "21b90532f830570f566fe8b54e10113ad14d2dae0997e0fc94ea8c7a62024bff"
+    },
+    "sci-T_Trim_02_BaseColor_Red.webp": {
+      "bytes": 15752,
+      "width": 512,
+      "height": 512,
+      "sha256": "d05e216a2ff4a8b78e573f2a30fbfd2bc2502c46021dea0241a8ac1995354a01"
+    },
+    "sci-T_Trim_02_ORM.webp": {
+      "bytes": 13070,
+      "width": 256,
+      "height": 256,
+      "sha256": "c4333b0d642560efcdba1c6649a18e9fe2ca5d050d4b2ccfdca94b026812c28f"
+    },
+    "sci-T_Trim_01_Normal.webp": {
+      "bytes": 7508,
+      "width": 256,
+      "height": 256,
+      "sha256": "364298f7565483541b6857738d6eec84973086b1e6a6646e4bcd2e907e8ab930"
+    },
+    "sci-T_Trim_01_BaseColor_Red.webp": {
+      "bytes": 19734,
+      "width": 512,
+      "height": 512,
+      "sha256": "ea6ca46eb2ca148709f80349215449a38bf90e8e5c90b719ec0a897af5a762ee"
+    },
+    "sci-T_Trim_01_ORM.webp": {
+      "bytes": 12592,
+      "width": 256,
+      "height": 256,
+      "sha256": "8e221a2cec78da3f557ec6073eca9ca7ee1dcb3e8e9ef839872a9497588982e0"
+    },
+    "sci-T_Decals.webp": {
+      "bytes": 31352,
+      "width": 512,
+      "height": 512,
+      "sha256": "9fc48c4cf74aedb69598045cf1e8990b9a7ae279534ac10cf6204e33fada7b72"
+    },
+    "sci-T_Trim_03_Cables.webp": {
+      "bytes": 1322,
+      "width": 512,
+      "height": 512,
+      "sha256": "372be396a23e2db8bbb6259b345facd9602f8fd3878138ae7507f83e050613ae"
+    },
+    "sci-T_PaddedWall_Normal.webp": {
+      "bytes": 14112,
+      "width": 256,
+      "height": 256,
+      "sha256": "41c2368f6411f9bef7a2673995662f7d38b490a4c6b5c72de15404d628964f66"
+    },
+    "sci-T_PaddedWall_BaseColor.webp": {
+      "bytes": 32970,
+      "width": 512,
+      "height": 512,
+      "sha256": "5f64fb20df56fa1ccda9e296a6d0f4fcfb4290a197d8193ba08471ac69aa7b53"
+    },
+    "sci-T_PaddedWall_ORM.webp": {
+      "bytes": 8470,
+      "width": 256,
+      "height": 256,
+      "sha256": "cfaf93fbb535912798f597299e8f2be3147e2f58c239f053aacd35fd4e97c076"
+    }
+  }
+}

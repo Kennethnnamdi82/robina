@@ -1,0 +1,44 @@
+# Deploy from the repository root; Vercel's existing Root Directory is robina.
+backend/
+node_modules/
+dist/
+.git/
+.codex/
+.agents/
+.env
+.env.*
+robina/.git
+robina/node_modules
+robina/dist
+robina/test-results
+robina/playwright-report
+robina/docs
+robina/.env
+robina/.env.*
+robina/src/.env
+robina/src/.env.*
+robina/src/TASK
+robina/src/RUGFIRE_ASSETS
+robina/src/features/*.glb
+robina/src/features/*.fbx
+robina/src/features/*.exr
+robina/src/features/Guns&Explosives
+robina/src/features/Models
+robina/src/features/Previews
+robina/src/features/WeaponsPack
+robina/src/features/glb
+robina/src/features/sheets
+robina/src/features/thumbs
+robina/src/features/Universal Base Characters*
+robina/src/features/Universal Animation Library*
+robina/src/features/Exports
+robina/src/features/Modular SciFi MegaKit*
+robina/src/features/Textures
+robina/src/features/Audio
+robina/src/features/Blends
+robina/src/features/FBX
+robina/src/features/OBJ
+robina/src/features/PNG
+robina/src/features/Prepared SFX Library
+robina/src/features/rugfire/RIVALS
+robina/public/assets/rivals/city/premium/*-source.glb

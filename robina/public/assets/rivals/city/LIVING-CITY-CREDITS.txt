@@ -1,0 +1,6 @@
+Free Low Poly Simple Urban City 3D Asset Pack
+By Syoma Pozdeev (https://sketchfab.com/moldydoldy)
+https://sketchfab.com/3d-models/free-low-poly-simple-urban-city-3d-asset-pack-310c806355814c3794f5e3022b38db85
+CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+Adaptation: selected vehicle, vegetation and street furniture meshes are normalized, instanced and animated in RIVALS.
+Architecture: Quaternius Downtown City MegaKit, CC0. Existing source and texture manifest: manifest.json.

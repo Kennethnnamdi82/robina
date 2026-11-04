@@ -1,0 +1,22 @@
+{
+  "materials": 13,
+  "atlasSize": 2048,
+  "buildings": [
+    {
+      "id": "residence",
+      "triangles": 17622,
+      "draws": 2
+    },
+    {
+      "id": "commerce",
+      "triangles": 24274,
+      "draws": 2
+    },
+    {
+      "id": "headquarters",
+      "triangles": 43160,
+      "draws": 2
+    }
+  ],
+  "bytes": 7107608
+}

@@ -1,0 +1,9 @@
+{
+  "source": "concept-car-source",
+  "triangles": 31600,
+  "materials": 16,
+  "drawParts": 34,
+  "wheels": 4,
+  "bytes": 1863000,
+  "forward": "+Z"
+}

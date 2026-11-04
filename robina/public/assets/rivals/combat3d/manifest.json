@@ -1,0 +1,281 @@
+{
+  "license": "CC0-1.0",
+  "sources": {
+    "models": "https://quaternius.com/packs/ultimategun.html",
+    "firearms": "https://lpc.opengameart.org/content/the-free-firearm-sound-library",
+    "foley": "https://kenney.nl/assets/impact-sounds",
+    "particles": "https://kenney.nl/assets/smoke-particles"
+  },
+  "files": [
+    {
+      "file": "weapons/rifle.glb",
+      "bytes": 189380,
+      "sha256": "dcf3d06bdd837a68fbc7838fa486944d3d61f435ee1a0cbadbcdf9394b3c2099",
+      "source": "src/features/OBJ/AssaultRifle2_1.obj",
+      "triangles": 1930,
+      "materials": 3,
+      "sockets": {
+        "grip": [
+          0,
+          0,
+          0
+        ],
+        "muzzle": [
+          0,
+          0.10123006076384625,
+          -0.5725729590171362
+        ],
+        "support": [
+          0,
+          0.045,
+          -0.19
+        ],
+        "eject": [
+          0.035,
+          0.08123006076384624,
+          -0.06
+        ],
+        "sight": [
+          0,
+          0.15806792311596546,
+          -0.1
+        ]
+      }
+    },
+    {
+      "file": "weapons/smg.glb",
+      "bytes": 116956,
+      "sha256": "290b11e389243ae86e81aca23aa480ddc430a58b4fd9000130c0360e261fe92d",
+      "source": "src/features/OBJ/SubmachineGun_3.obj",
+      "triangles": 1566,
+      "materials": 4,
+      "sockets": {
+        "grip": [
+          0,
+          0,
+          0
+        ],
+        "muzzle": [
+          0,
+          0.07224083477718347,
+          -0.3238315513406589
+        ],
+        "support": [
+          0,
+          0.035,
+          -0.13
+        ],
+        "eject": [
+          0.035,
+          0.05224083477718347,
+          -0.06
+        ],
+        "sight": [
+          0,
+          0.10574417712052735,
+          -0.1
+        ]
+      }
+    },
+    {
+      "file": "weapons/pistol.glb",
+      "bytes": 98384,
+      "sha256": "4fb877570c6ca5eb4a72a2c491e4106e5bfe151dff91c4999d793e6feb9db367",
+      "source": "src/features/OBJ/Pistol_4.obj",
+      "triangles": 1320,
+      "materials": 3,
+      "sockets": {
+        "grip": [
+          0,
+          0,
+          0
+        ],
+        "muzzle": [
+          0,
+          0.1457557651849453,
+          -0.24446964151431294
+        ],
+        "support": null,
+        "eject": [
+          0.035,
+          0.1257557651849453,
+          -0.06
+        ],
+        "sight": [
+          0,
+          0.1569725334656745,
+          -0.1
+        ]
+      }
+    },
+    {
+      "file": "audio/rifle-0.wav",
+      "bytes": 54728,
+      "sha256": "b18d9248e2543ab336d3e0ae942a38a2279f6c9eb7c3c53ef4f08e1502bff492",
+      "source": "src/features/Prepared SFX Library/AR-15/D_32P.wav",
+      "sourceDuration": 10.21750566893424,
+      "start": 0.6904036281179138,
+      "duration": 0.62,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.82,
+      "processing": "single transient crop, stereo fold-down, 65Hz high-pass, peak normalize, tail fade"
+    },
+    {
+      "file": "audio/rifle-1.wav",
+      "bytes": 54728,
+      "sha256": "f88ddfeacb3641a91cc369e44eb130585555663e6876079ce65ad5e52ad4d085",
+      "source": "src/features/Prepared SFX Library/AR-15/D_24P.wav",
+      "sourceDuration": 6.485328798185941,
+      "start": 0.5706757369614512,
+      "duration": 0.62,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.82,
+      "processing": "single transient crop, stereo fold-down, 65Hz high-pass, peak normalize, tail fade"
+    },
+    {
+      "file": "audio/pistol-0.wav",
+      "bytes": 48556,
+      "sha256": "26180e11f6f6c658df8e0c9e2b8be713d40b570e6870fbd96d254b5a8774888a",
+      "source": "src/features/Prepared SFX Library/1911/A_42P.wav",
+      "sourceDuration": 9.522834467120182,
+      "start": 0.929859410430839,
+      "duration": 0.55,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.82,
+      "processing": "single transient crop, stereo fold-down, 65Hz high-pass, peak normalize, tail fade"
+    },
+    {
+      "file": "audio/pistol-1.wav",
+      "bytes": 48556,
+      "sha256": "5c295e78fdbf669687bb6bef67d812f749c48936abc8c96473af60751ef603e6",
+      "source": "src/features/Prepared SFX Library/1911/A_34P.wav",
+      "sourceDuration": 9.934625850340137,
+      "start": 1.528498866213152,
+      "duration": 0.55,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.82,
+      "processing": "single transient crop, stereo fold-down, 65Hz high-pass, peak normalize, tail fade"
+    },
+    {
+      "file": "audio/smg-0.wav",
+      "bytes": 35324,
+      "sha256": "f010a10ee2a6a47d66b0577f3750b36b26c65ffe7efc80d12749c348ed95ee28",
+      "source": "src/features/Prepared SFX Library/Carl Gustav M45/G_20P.wav",
+      "sourceDuration": 8.86249433106576,
+      "start": 0.33521088435374147,
+      "duration": 0.4,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.82,
+      "processing": "single transient crop, stereo fold-down, 65Hz high-pass, peak normalize, tail fade"
+    },
+    {
+      "file": "audio/smg-1.wav",
+      "bytes": 35324,
+      "sha256": "51d4f43219809236a0b16d857b4b781ee182d273389cbf7a3049dd068577b9f1",
+      "source": "src/features/Prepared SFX Library/Carl Gustav M45/G_22P.wav",
+      "sourceDuration": 8.934195011337868,
+      "start": 0.26337414965986394,
+      "duration": 0.4,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.82,
+      "processing": "single transient crop, stereo fold-down, 65Hz high-pass, peak normalize, tail fade"
+    },
+    {
+      "file": "audio/shotgun-0.wav",
+      "bytes": 75014,
+      "sha256": "063d9d542dcdde0b336916134f724a7c6524079376a0d3f9502e6e7a77e69942",
+      "source": "src/features/Prepared SFX Library/Mossberg/N_26P.wav",
+      "sourceDuration": 11.461383219954648,
+      "start": 0.7742131519274377,
+      "duration": 0.85,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.82,
+      "processing": "single transient crop, stereo fold-down, 65Hz high-pass, peak normalize, tail fade"
+    },
+    {
+      "file": "fx/flash.webp",
+      "bytes": 7332,
+      "sha256": "911ff8599b4c905000be08d02f0b43d4fd3e6f7c3a99552adeefe0a5ad8eb743",
+      "source": "src/features/PNG/Flash/flash04.png",
+      "dimensions": [
+        128,
+        128
+      ]
+    },
+    {
+      "file": "fx/smoke.webp",
+      "bytes": 6896,
+      "sha256": "e2c4c8bb9317ae22875d47a5d9411a4eeae62f9322cee5403893c9f5e3d1cbf1",
+      "source": "src/features/PNG/White puff/whitePuff00.png",
+      "dimensions": [
+        128,
+        128
+      ]
+    },
+    {
+      "file": "fx/blast.webp",
+      "bytes": 6348,
+      "sha256": "356cbe26532ef0f5495111c5450fb64e07918d287e8b14623dc1b311e4f0bace",
+      "source": "src/features/PNG/Explosion/explosion04.png",
+      "dimensions": [
+        128,
+        128
+      ]
+    },
+    {
+      "file": "audio/step-0.ogg",
+      "bytes": 5808,
+      "source": "src/features/Audio/footstep_concrete_000.ogg",
+      "sha256": "d7267e183067757c92c169de2a379abea592cfca6b39bb2e8feea15221ad79fe"
+    },
+    {
+      "file": "audio/step-1.ogg",
+      "bytes": 6308,
+      "source": "src/features/Audio/footstep_concrete_001.ogg",
+      "sha256": "507a75eb19b897087855a3be3cf11a12d7fa37d143ad535eeebe0b8031c7325d"
+    },
+    {
+      "file": "audio/step-2.ogg",
+      "bytes": 6255,
+      "source": "src/features/Audio/footstep_concrete_002.ogg",
+      "sha256": "b21fa546d74941196b25da8a20b7010abd8c05c4fcf93545d1f344e66a664e13"
+    },
+    {
+      "file": "audio/metal-0.ogg",
+      "bytes": 7651,
+      "source": "src/features/Audio/impactMetal_light_000.ogg",
+      "sha256": "33b5e6e37c6e9d54e07bf5a89b12c76e879f40c1ea83cdd82714df1d6f9fec6d"
+    },
+    {
+      "file": "audio/metal-1.ogg",
+      "bytes": 6967,
+      "source": "src/features/Audio/impactMetal_light_001.ogg",
+      "sha256": "fba69c467ddd85da7b1d82e259f936b876d9ba6a3d6f1b24bdd10468e46bfe08"
+    },
+    {
+      "file": "audio/clack.ogg",
+      "bytes": 9023,
+      "source": "src/features/Audio/impactMetal_light_003.ogg",
+      "sha256": "92d5db6bfc672d9dc1b4f390b2900504f013187fa36335472554fafefa9050b1"
+    },
+    {
+      "file": "audio/body-hit.ogg",
+      "bytes": 8701,
+      "source": "src/features/Audio/impactPunch_medium_001.ogg",
+      "sha256": "e71d23abcc3f10d9d6bc9615b2a431fff70b12333a5fcdd9964457564ace4349"
+    },
+    {
+      "file": "audio/collapse.ogg",
+      "bytes": 7279,
+      "source": "src/features/Audio/impactMetal_heavy_001.ogg",
+      "sha256": "83554049f81f4db9209379e103c30bfa63f65c42189a03f300b045c2c82e23ae"
+    }
+  ]
+}

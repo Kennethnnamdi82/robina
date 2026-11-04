@@ -2,6 +2,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { ArenaSession } from './session';
 
 describe('arena session lifecycle', () => {
+  it('starts separate missions on HTTP LAN origins without crypto.randomUUID', () => {
+    const getRandomValues = crypto.getRandomValues.bind(crypto);
+    vi.stubGlobal('crypto', { getRandomValues });
+    try {
+      const first = new ArenaSession(), second = new ArenaSession();
+      expect(first.mission.runId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(second.mission.runId).not.toBe(first.mission.runId);
+      expect(first.getSnapshot().status).toBe('loading');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('pauses once, clears input, and resumes through the scene controls', () => {
     const session = new ArenaSession();
     const controls = { pause: vi.fn(), resume: vi.fn(), mute: vi.fn() };

@@ -7,3 +7,25 @@
 
 # Original multi-hundred-MB art downloads stay local. Ship prepared public assets.
 /src/RUGFIRE_ASSETS/
+
+# Supplied source packs stay local; ship only the selected prepared GLB.
+/src/features/Universal Base Characters*/
+/src/features/Universal Animation Library*/
+
+# Raw combat packs are converter inputs, never production payloads.
+/src/features/Audio/
+/src/features/Blends/
+/src/features/FBX/
+/src/features/OBJ/
+/src/features/PNG/
+/src/features/Prepared SFX Library/
+/src/features/Kenney.url
+/src/features/Patreon.url
+/src/features/License.txt
+/src/features/Preview.jpg
+/src/features/sample.png
+
+# Supplied environment masters; only the curated city output ships.
+/src/features/Exports/
+/src/features/Modular SciFi MegaKit*/
+/src/features/Textures/

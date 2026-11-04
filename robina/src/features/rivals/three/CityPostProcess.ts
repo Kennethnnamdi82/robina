@@ -1,0 +1,28 @@
+import * as T from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import type {QualityId} from '../core/presentation';
+/** Low/Medium use ACES, native AA and one scene pass. Only High opts into HDR
+ * bloom. No redundant half-float MSAA resolve on the default mobile path. */
+export class CityPostProcess {
+ private composer?:EffectComposer;private scenePass?:RenderPass;
+ private qualityId:QualityId='balanced';private width=1;private height=1;private dpr=1;
+ constructor(private renderer:T.WebGLRenderer,private scene:T.Scene,_camera:T.Camera){}
+ quality(quality:QualityId){this.qualityId=quality;if(quality!=='high')this.releaseComposer();}
+ resize(width:number,height:number,dpr:number){this.width=width;this.height=height;this.dpr=dpr;this.composer?.setPixelRatio(dpr);this.composer?.setSize(width,height);}
+ render(camera:T.Camera,_time:number){
+  if(this.qualityId!=='high'){this.renderer.render(this.scene,camera);return;}
+  if(!this.composer){
+   const hdr=this.renderer.extensions.has('EXT_color_buffer_float');
+   const target=new T.WebGLRenderTarget(1,1,{type:hdr?T.HalfFloatType:T.UnsignedByteType});target.samples=Math.min(2,this.renderer.capabilities.maxSamples);this.composer=new EffectComposer(this.renderer,target);
+   this.scenePass=new RenderPass(this.scene,camera);const bloom=new UnrealBloomPass(new T.Vector2(256,128),.12,.35,1.5);
+   const resize=bloom.setSize.bind(bloom);bloom.setSize=(w,h)=>resize(Math.max(1,w/2),Math.max(1,h/2));
+   this.composer.addPass(this.scenePass);this.composer.addPass(bloom);this.composer.addPass(new OutputPass());this.resize(this.width,this.height,this.dpr);
+  }
+  this.scenePass!.camera=camera;this.composer.render();
+ }
+ private releaseComposer(){if(this.composer){this.composer.passes.forEach(p=>p.dispose());this.composer.dispose();this.composer=undefined;this.scenePass=undefined;}}
+ dispose(){this.releaseComposer();}
+}

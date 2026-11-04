@@ -1,0 +1,14 @@
+import {chromium} from '@playwright/test';import fs from 'node:fs/promises';
+const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+try{const page=await browser.newPage({viewport:{width:900,height:650}});page.on('pageerror',e=>console.log('ERROR',e.message));page.on('console',m=>{if(m.type()==='error')console.log(m.text());});await page.goto('http://127.0.0.1:8084/tests/rivals3d/index.html');
+const result=await page.evaluate(async()=>{
+ const T=await import('/node_modules/three/build/three.module.js');const {RaidAssets}=await import('/src/features/rivals/three/RaidAssets.ts');const {CityCrowd}=await import('/src/features/rivals/three/CityCrowd.ts');const {createActor,mountActor}=await import('/src/features/rugfire/actors.ts');const {SecurityPresentation}=await import('/src/features/rivals/three/SecurityPresentation.ts');
+ const assets=new RaidAssets();await assets.load(()=>{});document.body.innerHTML='';const scene=new T.Scene();scene.background=new T.Color(0x9ca8ad);scene.add(new T.HemisphereLight(0xe3efff,0x655d50,2.5));const light=new T.DirectionalLight(0xffe4c7,3);light.position.set(5,8,6);scene.add(light);
+ const crowd=new CityCrowd(0,assets.city.humanoid);crowd.active=1;const p=crowd.people[0];p.x=-1;p.z=0;p.yaw=0;p.moving=true;p.motion=1;p.distance=.53;crowd.draw(.5);scene.add(crowd.root);
+ const actor=createActor('kol');mountActor(actor,assets);const presentation=new SecurityPresentation(actor,assets.instance('rifle').root,assets.models.get('kol').animations);actor.root.position.x=1;actor.root.rotation.y=Math.PI;scene.add(actor.root);
+ const ground=new T.Mesh(new T.PlaneGeometry(100,100),new T.MeshStandardMaterial({color:0x747b77}));ground.rotation.x=-Math.PI/2;ground.position.y=-.02;scene.add(ground);
+ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(900,650);document.body.append(renderer.domElement);const camera=new T.PerspectiveCamera(42,900/650,.1,100);camera.position.set(4,2.8,6);camera.lookAt(0,.95,0);
+ const samples=[];for(let i=0;i<45;i++){presentation.update(1/60,2.2,0,new T.Vector3(1,1,10));if(i%10===0)samples.push({time:presentation.gaitTime,knee:actor.body.getObjectByName('Knee_L').quaternion.toArray()});}renderer.render(scene,camera);
+ const body=[];assets.models.get('player').scene.traverse(n=>{if(n.isSkinnedMesh){n.geometry.computeBoundingBox();body.push({name:n.name,bounds:n.geometry.boundingBox,bind:n.bindMatrix.elements,world:n.matrixWorld.elements});}});return{gait:presentation.gait,samples,body};
+});console.log(JSON.stringify(result));await fs.mkdir('docs/rivals-3d/city-revision',{recursive:true});await page.screenshot({path:'docs/rivals-3d/city-revision/human-gaits.png'});await fs.writeFile('docs/rivals-3d/city-revision/human-gaits.json',JSON.stringify(result,null,2));
+}finally{await browser.close();}

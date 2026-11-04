@@ -3,10 +3,11 @@ import type { PlayerCommand } from '../input/InputBuffer';
 import { AnimationStateMachine, type AnimationIntent } from './AnimationStateMachine';
 import { Health, type DamageEvent } from '../combat/Health';
 
-export const MOVEMENT = { walkSpeed: 235, sprintMultiplier: 1.55, acceleration: 32, stopping: 45, dodgeSpeed: 620, dodgeDuration: .18, dodgeInvulnerability: .12, dodgeRecovery: .10, dodgeCooldown: 1.1, hurtDuration: .22, interactDuration: .22 } as const;
+export const MOVEMENT = { walkSpeed: 235, sprintMultiplier: 1.55, acceleration: 32, stopping: 45, dodgeSpeed: 620, evadeSpeed: 420, dodgeDuration: .18, dodgeInvulnerability: .12, dodgeRecovery: .10, dodgeCooldown: 1.1, hurtDuration: .22, interactDuration: .22 } as const;
 
 /** Physics-independent controller stepped at Arcade's fixed 60 Hz, without per-step allocations. */
 export class CharacterController {
+  constructor(private readonly evasiveDodge = false) {}
   readonly animations = new AnimationStateMachine();
   readonly vitality = new Health();
   get maxHealth() { return this.vitality.maximum; }
@@ -46,6 +47,11 @@ export class CharacterController {
     if (input.dodge && canAct && this.dodgeCooldown <= .00001 && this.dodgeRemaining <= 0) {
       this.dashX = moving ? x : Math.cos(this.aimAngle);
       this.dashY = moving ? y : Math.sin(this.aimAngle);
+      if (this.evasiveDodge) {
+        const forwardX = Math.cos(this.aimAngle),forwardY = Math.sin(this.aimAngle),forward = this.dashX * forwardX + this.dashY * forwardY;
+        if (forward > 0) { this.dashX -= forwardX * forward; this.dashY -= forwardY * forward; }
+        if (!moving || Math.hypot(this.dashX,this.dashY) < .01) { this.dashX = -forwardX; this.dashY = -forwardY; }
+      }
       const dashLength = Math.hypot(this.dashX, this.dashY) || 1;
       this.dashX /= dashLength; this.dashY /= dashLength;
       this.dodgeRemaining = MOVEMENT.dodgeDuration; this.dodgeCooldown = MOVEMENT.dodgeCooldown; this.dodgeSerial++;
@@ -53,7 +59,7 @@ export class CharacterController {
     const dashing = canAct && this.dodgeRemaining > 0;
     this.sprinting = canAct && moving && input.sprint && !dashing;
     if (!canAct) { this.vx = 0; this.vy = 0; }
-    else if (dashing) { this.vx = this.dashX * MOVEMENT.dodgeSpeed; this.vy = this.dashY * MOVEMENT.dodgeSpeed; }
+    else if (dashing) { const speed = this.evasiveDodge ? MOVEMENT.evadeSpeed : MOVEMENT.dodgeSpeed; this.vx = this.dashX * speed; this.vy = this.dashY * speed; }
     else {
       const speed = MOVEMENT.walkSpeed * (input.sprint ? MOVEMENT.sprintMultiplier : 1);
       const blend = 1 - Math.exp(-(moving ? MOVEMENT.acceleration : MOVEMENT.stopping) * dt);

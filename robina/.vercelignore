@@ -1,0 +1,36 @@
+# Local tooling, reports and source art are not deployment inputs.
+.git
+node_modules
+dist
+test-results
+playwright-report
+docs
+.env
+.env.*
+src/.env
+src/.env.*
+src/TASK
+src/RUGFIRE_ASSETS
+src/features/*.glb
+src/features/*.fbx
+src/features/*.exr
+src/features/Guns&Explosives
+src/features/Models
+src/features/Previews
+src/features/WeaponsPack
+src/features/glb
+src/features/sheets
+src/features/thumbs
+src/features/Universal Base Characters*
+src/features/Universal Animation Library*
+src/features/Exports
+src/features/Modular SciFi MegaKit*
+src/features/Textures
+src/features/Audio
+src/features/Blends
+src/features/FBX
+src/features/OBJ
+src/features/PNG
+src/features/Prepared SFX Library
+src/features/rugfire/RIVALS
+public/assets/rivals/city/premium/*-source.glb

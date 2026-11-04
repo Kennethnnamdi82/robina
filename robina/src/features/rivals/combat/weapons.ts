@@ -13,18 +13,18 @@ export const PULSE_CARBINE: WeaponDefinition = {
 export class WeaponController {
   ammo: number; cooldown = 0; reloadRemaining = 0; shots = 0;
   private held = false;
-  constructor(readonly definition: WeaponDefinition = PULSE_CARBINE) { this.ammo = definition.magazine; }
+  constructor(readonly definition: WeaponDefinition = PULSE_CARBINE, public reserve = Infinity, readonly maxReserve = Infinity) { this.ammo = definition.magazine; }
   step(dt: number, fire: boolean, reload: boolean, allowed: boolean): boolean {
     if (!Number.isFinite(dt) || dt <= 0) return false;
     this.cooldown = Math.max(0, this.cooldown - dt);
     if (this.reloadRemaining > 0) {
       this.reloadRemaining = Math.max(0, this.reloadRemaining - dt);
-      if (this.reloadRemaining <= .00001) { this.reloadRemaining = 0; this.ammo = this.definition.magazine; }
+      if (this.reloadRemaining <= .00001) { this.reloadRemaining = 0; const transfer = Math.min(this.definition.magazine - this.ammo,this.reserve); this.ammo += transfer; this.reserve -= transfer; }
     }
-    if (allowed && reload && this.ammo < this.definition.magazine && !this.reloadRemaining) this.reloadRemaining = this.definition.reloadSeconds;
+    if (allowed && reload && this.reserve > 0 && this.ammo < this.definition.magazine && !this.reloadRemaining) this.reloadRemaining = this.definition.reloadSeconds;
     const trigger = fire && (this.definition.automatic || !this.held); this.held = fire;
     if (!allowed || !trigger || this.cooldown > .00001 || this.reloadRemaining > 0) return false;
-    if (this.ammo <= 0) { this.reloadRemaining = this.definition.reloadSeconds; return false; }
+    if (this.ammo <= 0) { if (this.reserve > 0) this.reloadRemaining = this.definition.reloadSeconds; return false; }
     this.ammo--; this.cooldown = this.definition.interval; this.shots++; return true;
   }
   cancelTrigger() { this.held = false; }

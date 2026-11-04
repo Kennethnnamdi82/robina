@@ -10,6 +10,9 @@
     "build:rivals:preview": "node scripts/build-rivals-preview.mjs",
     "benchmark:rivals": "node scripts/benchmark-rivals.mjs",
     "dev:rivals": "vite --config vite.rivals.config.ts",
+    "dev:rivals3d": "node scripts/dev-rivals3d.mjs",
+    "prepare:rivals:humanoid": "node scripts/prepare-rivals-humanoid.mjs",
+    "prepare:rivals:combat3d": "node scripts/prepare-rivals-3d-combat.mjs",
     "test:rivals": "vitest run src/features/rivals",
     "test:e2e:rivals": "playwright test --config playwright.rivals.config.ts",
     "prepare:rugfire": "node scripts/prepare-rugfire-assets.mjs",
@@ -24,7 +27,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test:e2e": "playwright test --config playwright.rugfire.config.ts",
     "test:production": "playwright test --config playwright.production.config.ts",
-    "verify:release": "npm run dist-check && npm run test:e2e && npm run test:production && npm --prefix ../backend test && npm --prefix ../backend run smoke && npm --prefix ../backend run preflight:production && npm audit --omit=dev && npm --prefix ../backend audit --omit=dev"
+    "verify:release": "npm run dist-check && npm run test:e2e && npm run test:production && npm --prefix ../backend test && npm --prefix ../backend run smoke && npm --prefix ../backend run preflight:production && npm audit --omit=dev && npm --prefix ../backend audit --omit=dev",
+    "prepare:rivals:city": "node scripts/prepare-rivals-city.mjs"
   },
   "dependencies": {
     "@coinbase/wallet-sdk": "^4.0.0",

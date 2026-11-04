@@ -1,0 +1,9 @@
+{
+  "source": "delivery-truck-source",
+  "triangles": 3624,
+  "materials": 4,
+  "drawParts": 5,
+  "wheels": 1,
+  "bytes": 188120,
+  "forward": "+Z"
+}

@@ -1,6 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function prepare(page: Page, response: 'unauthorized' | 'stalled' | 'html' | 'authenticated' | 'admin') {
+  // Optional infrastructure-only cookie for the owning account's protected
+  // staged deployment. Never creates an application login or account token.
+  if (process.env.PRODUCTION_TEST_BYPASS_COOKIE) {
+    const cookie = JSON.parse(process.env.PRODUCTION_TEST_BYPASS_COOKIE);
+    if (new URL(cookie.url).origin !== new URL(test.info().project.use.baseURL!).origin) throw new Error('Staging cookie target mismatch');
+    await page.context().addCookies([cookie]);
+  }
   const errors: string[] = []; page.on('pageerror', error => { errors.push(error.message); console.log('Production startup error: ' + error.message); });
   await page.addInitScript(() => Object.defineProperty(window, 'devicePixelRatio', { value: .5 }));
   // Isolate the app from live auth/payment services; no external writes are allowed in these tests.
@@ -17,7 +24,7 @@ async function prepare(page: Page, response: 'unauthorized' | 'stalled' | 'html'
       if (response === 'authenticated' && url.pathname === '/api/leaderboard/top') { await route.fulfill({ json: { leaderboard: [] } }); return; }
       await route.fulfill({ status: 401, json: { error: 'unauthorized' } }); return;
     }
-    if (url.origin === 'http://127.0.0.1:8082') { await route.continue(); return; }
+    if (url.origin === new URL(test.info().project.use.baseURL!).origin) { await route.continue(); return; }
     await route.abort();
   });
   return errors;
@@ -33,16 +40,66 @@ for (const response of ['unauthorized', 'stalled', 'html'] as const) {
     expect(errors).toEqual([]);
   });
 }
-test('production game route loads, renders and returns to base', async ({ page }) => {
+test('production game route opens 3D and preserves the classic fallback', async ({ page }) => {
   const errors = await prepare(page, 'authenticated');
   await page.goto('/gaming');
-  await expect(page.getByRole('button', { name: 'ENTER OPERATION' })).toBeEnabled({ timeout: 20000 });
-  await expect(page.locator('canvas[aria-label="RUGFIRE third-person combat world"]')).toBeVisible();
-  await page.getByRole('button', { name: 'ENTER OPERATION' }).click();
-  await expect(page.locator('.rf-reticle')).toBeVisible();
-  await page.evaluate(() => document.exitPointerLock());
-  await page.getByRole('button', { name: 'RETURN TO BASE' }).click();
-  await expect(page.locator('.rf-game')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'ENTER 3D RAID' })).toBeEnabled({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: 'LOW graphics' })).toBeVisible();
+  await expect(page.getByText('Development sandbox disabled.')).toHaveCount(0);
+  await page.getByRole('link', { name: 'PLAY CLASSIC 2D' }).click();
+  await expect(page).toHaveURL(/\/gaming\?engine=2d$/);
+  await expect(page.getByRole('button', { name: 'PLAY', exact: true })).toBeEnabled({ timeout: 30000 });
+  await page.getByRole('button', { name: 'Exit to website' }).click();
+  await expect(page).toHaveURL(new URL('/', test.info().project.use.baseURL!).href);
+  expect(errors).toEqual([]);
+});
+
+test('production 3D and classic game links remain behind login', async ({ page }) => {
+  const errors = await prepare(page, 'unauthorized');
+  for (const path of ['/gaming', '/gaming?engine=2d', '/gaming?validation=1']) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { name: 'Sign in to Robina' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'ENTER 3D RAID' })).toHaveCount(0);
+  }
+  expect(errors).toEqual([]);
+});
+
+test('built production 3D game draws, pauses and exits without changing accounts' + (process.env.PRODUCTION_TEST_WARM_ASSETS === '1' ? ' (warm-cache)' : ''), async ({ page }) => {
+  const warmAssets = process.env.PRODUCTION_TEST_WARM_ASSETS === '1';
+  test.setTimeout(warmAssets ? 480000 : 180000);
+  await page.setViewportSize({ width: 600, height: 320 });
+  const errors = await prepare(page, 'authenticated');
+  const writes: string[] = [];
+  const loadedModels = new Set<string>();
+  page.on('requestfinished', async request => {
+    if (!/\.glb(?:\.gz)?(?:\?|$)/.test(request.url())) return;
+    const response = await request.response();
+    if (response?.status() === 200) loadedModels.add(new URL(request.url()).pathname.replace(/\.gz$/, ''));
+  });
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(request.url());
+  });
+  await page.goto('/gaming');
+  await page.getByRole('button', { name: 'LOW graphics' }).click({ timeout: 30000 });
+  // Optional diagnostic isolates actual renderer behavior from cold transfer.
+  // It is never reported as a cold-start pass or a phone performance result.
+  if (warmAssets) await expect.poll(() => loadedModels.size, { timeout: 240000 }).toBe(14);
+  await page.getByRole('button', { name: 'ENTER 3D RAID' }).dispatchEvent('click');
+  await page.locator('.r3-game').waitFor({ state: 'attached', timeout: 120000 });
+  await expect(page.locator('.r3-game')).not.toHaveAttribute('data-status', 'loading', { timeout: 120000 });
+  if (await page.locator('.r3-game').getAttribute('data-status') === 'error') {
+    throw new Error('3D startup failed: ' + await page.locator('.rivals-pause-panel').innerText());
+  }
+  await expect(page.locator('.r3-game')).toHaveAttribute('data-status', 'playing', { timeout: 120000 });
+  await expect(page.locator('[data-testid="three-host"] canvas')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Graphics settings' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Pause game' }).dispatchEvent('click');
+  await expect(page.getByRole('button', { name: 'RESUME RAID' })).toBeVisible();
+  await expect(page.getByLabel('3D graphics quality')).toHaveValue('low');
+  await page.getByRole('button', { name: 'RETURN TO GAME MENU' }).dispatchEvent('click');
+  await expect(page.getByRole('button', { name: 'ENTER 3D RAID' })).toBeVisible();
+  await expect(page.locator('[data-testid="three-host"] canvas')).toHaveCount(0);
+  expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });
 test('production deep admin link remains gated without a session', async ({ page }) => {

@@ -1,0 +1,13 @@
+RIVALS selected combat assets
+
+Weapon models: Quaternius, Ultimate Guns Pack, CC0-1.0.
+Firearm recordings: Ben Jaszczak, Brian Nelson, Kevin Heras and Matthew Nanney, The Free Firearm Sound Library, CC0-1.0.
+Foley and particle textures: Kenney, Impact Sounds and Smoke Particles, CC0-1.0.
+
+Publisher license sources:
+https://quaternius.com/packs/ultimategun.html
+https://lpc.opengameart.org/content/the-free-firearm-sound-library
+https://kenney.nl/assets/impact-sounds
+https://kenney.nl/assets/smoke-particles
+
+Prepared recordings are short edited mono cuts. Reload/click/death use edited impact foley; blast uses a filtered shotgun/metal layer, not a claimed field explosion recording.

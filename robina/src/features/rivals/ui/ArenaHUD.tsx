@@ -4,6 +4,7 @@ import type { ArenaSession } from '../core/session';
 import { CHARACTERS } from '../characters/definitions';
 import { missionTime } from '../core/presentation';
 import { useArenaValue } from './useArenaValue';
+import type { LevelDefinition } from '../world/level';
 import { MiniMap } from './MiniMap';
 
 const formatTime = (seconds: number) => Math.floor(seconds / 60).toString().padStart(2, '0') + ':' + (seconds % 60).toString().padStart(2, '0');
@@ -27,12 +28,14 @@ function Clock({ session }: { session: ArenaSession }) {
   const remaining = useArenaValue(session, s => s.mission?.remaining === null || s.mission?.remaining === undefined ? null : Math.ceil(s.mission.remaining));
   return <span className={'rivals-timer' + (remaining !== null && remaining <= 60 ? ' rv-clock-warning' : '')} aria-label="Session time" title={remaining === null ? 'Elapsed field time / no deadline' : 'Challenge time remaining'}>{remaining === null ? formatTime(elapsed) : '↓ ' + missionTime(remaining)}</span>;
 }
-function PositionMap({ session }: { session: ArenaSession }) {
+function PositionMap({ session,securityOnMap,level }: { session: ArenaSession; securityOnMap?: boolean;level?:LevelDefinition }) {
   const player = useArenaValue(session, s => s.player);
   const world = useArenaValue(session, s => s.world);
   const activeId = useArenaValue(session,s => s.mission?.activeId);
   const objective = session.mission.definition.objectives.find(o => o.id === activeId);
-  return <MiniMap player={player} openDoors={world.openDoors} objective={objective?.marker} />;
+  const security = useArenaValue(session,s => s.security);
+  const caption = securityOnMap ? `${security.linked ? 'LINK' : security.phase === 'ACTIVE' ? 'OPEN' : security.phase === 'WARNING' ? 'READY' : 'WAIT'} ${(security.linked ? security.linkRemaining : security.window).toFixed(1)}s R${security.relays}/2` : undefined;
+  return <MiniMap level={level} player={player} openDoors={world.openDoors} objective={objective?.marker} caption={caption} />;
 }
 function FieldStatus({ session }: { session: ArenaSession }) {
   const worldMessage = useArenaValue(session, s => s.world.message), combat = useArenaValue(session, s => s.combat);
@@ -54,9 +57,9 @@ function DamageFeedback({ session }: { session: ArenaSession }) {
   const damage = useArenaValue(session, s => s.damage);
   return damage.serial > 0 ? <div key={damage.serial} className="rv-damage-feedback" aria-label="Damage indicator"><span style={{ transform: 'rotate(' + damage.angle + 'rad)' }} /><b role="status">−{damage.amount} HP</b></div> : null;
 }
-export const ArenaHUD = memo(function ArenaHUD({ session, onAudio, pauseRef }: { session: ArenaSession; onAudio: () => void; pauseRef: React.RefObject<HTMLButtonElement> }) {
+export const ArenaHUD = memo(function ArenaHUD({ session, onAudio, pauseRef,securityOnMap = false,level }: { session: ArenaSession; onAudio: () => void; pauseRef: React.RefObject<HTMLButtonElement>; securityOnMap?: boolean;level?:LevelDefinition }) {
   const status = useArenaValue(session, s => s.status), muted = useArenaValue(session, s => s.muted);
-  return <><header className="rv-game-hud"><div className="rv-hud-left"><Vitals session={session} /><Objective session={session} /></div><div className="rivals-arena-tools"><Clock session={session} /><button className="rivals-icon-button" disabled={status !== 'playing'} aria-label={muted ? 'Enable ambient audio' : 'Mute ambient audio'} onClick={onAudio}>{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button><button ref={pauseRef} className="rivals-icon-button" aria-label="Pause game" disabled={status !== 'playing'} onClick={session.pause}><Pause size={19} /></button></div></header><FieldStatus session={session} /><SecurityStatus session={session} /><PositionMap session={session} /><DamageFeedback session={session} /><HitFeedback session={session} /></>;
+  return <><header className="rv-game-hud"><div className="rv-hud-left"><Vitals session={session} /><Objective session={session} /></div><div className="rivals-arena-tools"><Clock session={session} /><button className="rivals-icon-button" disabled={status !== 'playing'} aria-label={muted ? 'Enable ambient audio' : 'Mute ambient audio'} onClick={onAudio}>{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button><button ref={pauseRef} className="rivals-icon-button" aria-label="Pause game" disabled={status !== 'playing'} onClick={session.pause}><Pause size={19} /></button></div></header><FieldStatus session={session} /><SecurityStatus session={session} /><PositionMap session={session} securityOnMap={securityOnMap} level={level} /><DamageFeedback session={session} /><HitFeedback session={session} /></>;
 });
 
 /** QA telemetry updates DOM attributes at the throttled session cadence, not React state. */

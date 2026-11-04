@@ -14,7 +14,12 @@ export class InputBuffer {
   private dodge = false; private interaction = false; private fireEdge = false; private reload = false;
   private fireHeld = false;
   mobileSprint = false;
+  aimShoots = false;
+  get touchMoving() { return Math.hypot(this.touchX,this.touchY) >= .12; }
+  get keyboardMoving() { return ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].some(key => this.keys.has(key)); }
   get touchAiming() { return Math.hypot(this.aimX, this.aimY) >= .12; }
+  get touchAimX() { return this.aimX; }
+  get touchAimY() { return this.aimY; }
   keyDown(code: string, repeat = false) {
     if (!repeat && !this.keys.has(code)) {
       if (code === 'Space') this.queueDodge();
@@ -45,7 +50,7 @@ export class InputBuffer {
     out.aiming = (touchAim || this.mouseActive) && aimLength > .01;
     out.aimX = out.aiming ? ax / aimLength : 0; out.aimY = out.aiming ? ay / aimLength : 1;
     out.sprint = keys.has('ShiftLeft') || keys.has('ShiftRight') || this.mobileSprint;
-    out.dodge = this.dodge; out.interact = this.interaction; out.fire = this.fireHeld || this.fireEdge; out.reload = this.reload;
+    out.dodge = this.dodge; out.interact = this.interaction; out.fire = this.fireHeld || this.fireEdge || (this.aimShoots && touchAim); out.reload = this.reload;
     this.dodge = false; this.interaction = false; this.fireEdge = false; this.reload = false;
     return out;
   }

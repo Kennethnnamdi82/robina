@@ -1,0 +1,5 @@
+Realistic city
+Pasha (https://sketchfab.com/Pasha.)
+https://sketchfab.com/3d-models/realistic-city-8dbfd6fc44c046c68853d9c95cc2918c
+CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+Adaptation: three exterior building sections curated, normalized, instanced; shared mobile texture atlas.

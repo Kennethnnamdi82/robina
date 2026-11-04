@@ -1,7 +1,8 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'node:path';
-import { existsSync } from 'node:fs';
+import { cpSync, existsSync, readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 export default defineConfig(({ mode, command }) => {
   // Support the existing local src/.env without copying its values into source control.
   // An explicitly configured root environment retains standard Vite precedence.
@@ -21,11 +22,30 @@ export default defineConfig(({ mode, command }) => {
   return {
     envDir,
     server: { host: '::', port: 8080 },
-    plugins: [react()],
+    plugins: [react(), {
+      name: 'rivals-runtime-assets-only',
+      apply: 'build',
+      writeBundle(options) {
+        // Keep converter inputs out of public production output. Do not delete
+        // source assets or change the assets used by the classic Phaser game.
+        const publicRoot = path.resolve(__dirname, 'public');
+        cpSync(publicRoot, path.resolve(options.dir || 'dist'), {
+          recursive: true,
+          filter(source) {
+            const relative = path.relative(publicRoot, source).replace(/\\/g, '/');
+            if (relative.endsWith('.glb.gz') && !gunzipSync(readFileSync(source)).equals(readFileSync(source.slice(0, -3)))) {
+              throw new Error('Stale compressed runtime asset: ' + relative);
+            }
+            return !relative.endsWith('-source.glb');
+          },
+        });
+      },
+    }],
     resolve: { alias: { '@': path.resolve(__dirname, './src') }, dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@tanstack/react-query', '@tanstack/query-core'] },
     define: { global: 'globalThis', 'process.env': {} },
     optimizeDeps: { include: ['buffer', 'ethers', 'siwe'] },
     build: {
+      copyPublicDir: false,
       target: 'es2021', sourcemap: false,
       rollupOptions: {
         output: {

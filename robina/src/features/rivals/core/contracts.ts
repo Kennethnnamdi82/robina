@@ -9,6 +9,7 @@ export type Facing = 'down' | 'left' | 'right' | 'up';
 export type ArenaStatus = 'loading' | 'playing' | 'paused' | 'finished' | 'error' | 'disposed';
 
 export interface ArenaSnapshot {
+  soldier?: { active: number; action: string; remaining: number; serial: number; shots: number; slots: ({ id: string; name: string; kind: string; ammo: number; reserve: number; capacity: number; reload: number } | null)[]; bombs: number; canThrow: boolean; notice: string; replacement: string | null; blocked: boolean };
   status: ArenaStatus;
   mission: MissionSnapshot | null;
   practiceSaved: boolean;
@@ -34,7 +35,7 @@ export interface ArenaSnapshot {
   health: number;
   maxHealth: number;
   shield: { current: number; maximum: number } | null;
-  weapon: { name: string; ammo: number | null; capacity: number | null; reloading?: number } | null;
+  weapon: { name: string; ammo: number | null; capacity: number | null; reloading?: number; reserve?: number } | null;
   combat: { shots: number; hits: number; kills: number; projectiles: number; targetHealth: readonly number[]; hitSerial: number };
   world: { revision: number; openDoors: readonly string[]; core: boolean; extracted: boolean; rangeActive: boolean; message: string };
   hack: HackSnapshot | null; debug: boolean;

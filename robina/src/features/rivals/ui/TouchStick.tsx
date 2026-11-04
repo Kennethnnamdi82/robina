@@ -3,14 +3,14 @@ import type { Vector } from '../core/contracts';
 import { movementVector } from '../systems/movement';
 
 /** One owner per stick; another finger's cancellation must never reset this pointer. */
-export function TouchStick({ onMove, disabled, kind = 'move' }: { onMove: (vector: Vector) => void; disabled: boolean; kind?: 'move' | 'aim' }) {
+export function TouchStick({ onMove, onPress, disabled, kind = 'move' }: { onMove: (vector: Vector) => void; onPress?: (held: boolean) => void; disabled: boolean; kind?: 'move' | 'aim' }) {
   const owner = useRef<number | null>(null), node = useRef<HTMLDivElement>(null), callback = useRef(onMove);
-  callback.current = onMove;
+  const press = useRef(onPress); callback.current = onMove; press.current = onPress;
   const reset = useCallback(() => {
     const id = owner.current; owner.current = null;
     if (node.current && id !== null && node.current.hasPointerCapture?.(id)) node.current.releasePointerCapture(id);
     node.current?.style.setProperty('--stick-x', '0px'); node.current?.style.setProperty('--stick-y', '0px');
-    callback.current({ x: 0, y: 0 });
+    callback.current({ x: 0, y: 0 }); if (id !== null) press.current?.(false);
   }, []);
   useEffect(() => { if (disabled) reset(); return reset; }, [disabled, reset]);
   const move = (event: PointerEvent<HTMLDivElement>) => {
@@ -21,7 +21,7 @@ export function TouchStick({ onMove, disabled, kind = 'move' }: { onMove: (vecto
   };
   return <div className={'rivals-touch-controls rv-stick-control rv-stick-' + kind} aria-hidden={disabled}>
     <div ref={node} className="rivals-stick" role="group" aria-label={kind === 'move' ? 'Movement joystick' : 'Aiming joystick'} data-testid={kind === 'move' ? 'movement-stick' : 'aim-stick'}
-      onPointerDown={event => { if (disabled || owner.current !== null) return; event.preventDefault(); owner.current = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); move(event); }}
+      onPointerDown={event => { if (disabled || owner.current !== null) return; event.preventDefault(); owner.current = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); move(event); press.current?.(true); }}
       onPointerMove={event => { if (!disabled && owner.current === event.pointerId) move(event); }}
       onPointerUp={event => { if (owner.current === event.pointerId) reset(); }}
       onPointerCancel={event => { if (owner.current === event.pointerId) reset(); }}

@@ -1,0 +1,50 @@
+// Offline asset preparation. Source files are never modified.
+import fs from 'node:fs/promises';import path from 'node:path';import http from 'node:http';import {fileURLToPath} from 'node:url';import {chromium} from '@playwright/test';
+import {EXRLoader} from 'three/addons/loaders/EXRLoader.js';import {FloatType} from 'three';
+const root=path.resolve(fileURLToPath(new URL('../',import.meta.url))),out=path.join(root,'public/assets/rivals/city/premium');await fs.mkdir(out,{recursive:true});
+const road=process.argv[2];if(!road)throw Error('Pass generated asphalt PNG path.');
+const raw=await fs.readFile(path.join(root,'src/features/modern_evening_street_4k.exr'));
+const exr=new EXRLoader().setDataType(FloatType).parse(raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength));
+const width=512,height=256,rgbe=Buffer.alloc(width*height*4),channels=exr.data.length/(exr.width*exr.height);
+for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+ let r=0,g=0,b=0,n=0;const sx=Math.floor(x*exr.width/width),sy=Math.floor(y*exr.height/height),stepX=Math.max(1,Math.floor(exr.width/width)),stepY=Math.max(1,Math.floor(exr.height/height));
+ for(let j=0;j<stepY;j++)for(let i=0;i<stepX;i++){const k=((sy+j)*exr.width+sx+i)*channels;r+=exr.data[k];g+=exr.data[k+1];b+=exr.data[k+2];n++;}r/=n;g/=n;b/=n;const max=Math.max(r,g,b),e=max>1e-32?Math.floor(Math.log2(max))+1:0,scale=256/2**e,k=(y*width+x)*4;rgbe[k]=Math.min(255,r*scale);rgbe[k+1]=Math.min(255,g*scale);rgbe[k+2]=Math.min(255,b*scale);rgbe[k+3]=max>1e-32?e+128:0;
+}
+await fs.writeFile(path.join(out,'evening-reflections.hdr'),Buffer.concat([Buffer.from(`#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y ${height} +X ${width}\n`),rgbe]));console.log('HDR compressed to',rgbe.length,'bytes from',raw.length);
+const server=http.createServer(async(req,res)=>{try{if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end('<link rel="icon" href="data:,"><script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script>');return;}const file=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}if(file.endsWith('.js'))res.setHeader('Content-Type','text/javascript');res.end(await fs.readFile(file));}catch{res.writeHead(404).end();}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+let browser;try{
+ browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});const page=await browser.newPage();await page.goto(`http://127.0.0.1:${server.address().port}`);
+ const png='data:image/png;base64,'+(await fs.readFile(road)).toString('base64');
+ const asphalt=await page.evaluate(async png=>{const image=await createImageBitmap(await(await fetch(png)).blob()),canvas=document.createElement('canvas');canvas.width=canvas.height=1024;canvas.getContext('2d').drawImage(image,0,0,1024,1024);return canvas.toDataURL('image/webp',.92).split(',')[1];},png);await fs.writeFile(path.join(out,'asphalt-albedo.webp'),Buffer.from(asphalt,'base64'));
+ await page.exposeFunction('savePremium',async(name,data,audit)=>{await fs.writeFile(path.join(out,name+'.glb'),Buffer.from(data,'base64'));await fs.writeFile(path.join(out,name+'.json'),JSON.stringify(audit,null,2));console.log(name,audit);});
+ await page.evaluate(async()=>{
+  const T=await import('/node_modules/three/build/three.module.js'),{GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js'),{GLTFExporter}=await import('/node_modules/three/examples/jsm/exporters/GLTFExporter.js'),{mergeGeometries,mergeVertices}=await import('/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js'),{SimplifyModifier}=await import('/node_modules/three/examples/jsm/modifiers/SimplifyModifier.js');
+  for(const [sourceName,outputName]of [['concept-car-source','street-car'],['delivery-truck-source','delivery-truck']]){
+   const source=await new GLTFLoader().loadAsync('/public/assets/rivals/city/premium/'+sourceName+'.glb');source.scene.updateMatrixWorld(true);const box=new T.Box3().setFromObject(source.scene),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3()),head=source.scene.getObjectByName('BodyHeadlights'),front=head?new T.Box3().setFromObject(head).getCenter(new T.Vector3()).sub(center):new T.Vector3(1,0,0),yaw=Math.atan2(front.x,front.z),scale=4.25/Math.max(size.x,size.z),normalization=new T.Matrix4().makeRotationY(-yaw).multiply(new T.Matrix4().makeScale(scale,scale,scale)).multiply(new T.Matrix4().makeTranslation(-center.x,-box.min.y,-center.z));
+   const result=new T.Group(),groups=new Map(),materials=new Map(),wheelCenters=new Map();
+   const wheelRoot=node=>{let p=node;while(p){if(/^Wheel(Front|Rear)[LR]$/.test(p.name)||/^Wheels(?:\.001)?$/.test(p.name))return p;p=p.parent;}return null;};
+   source.scene.traverse(node=>{
+    if(!node.isMesh)return;if(sourceName==='concept-car-source'&&/^(Interior|Engine|Axles)|HoodInterior|HoodUnder/.test(node.name))return;
+    const original=Array.isArray(node.material)?node.material[0]:node.material,name=original.name??'',wheel=wheelRoot(node);
+    let kind=/paint|panel sides/i.test(name)?'paint':/glass/i.test(name)?'glass':/tire|wheel/i.test(name)?'rubber':/headlight|brakelight|signallight/i.test(name)?name.toLowerCase():/rim|mirror|disc/i.test(name)?'chrome':/license/i.test(name)?'plate':sourceName==='delivery-truck-source'&&name==='truck'?'livery':'trim';
+    // Shared real PBR textures on visible exterior materials, opaque glazing.
+    const key=kind+':'+(kind==='paint'||kind==='glass'||kind==='plate'?kind:original.uuid);let material=materials.get(key);
+    if(!material){material=new T.MeshStandardMaterial({color:original.color??0xffffff,roughness:original.roughness??.55,metalness:original.metalness??.1,map:original.map,normalMap:original.normalMap,aoMap:original.aoMap,roughnessMap:original.roughnessMap,metalnessMap:original.metalnessMap,emissive:original.emissive,emissiveMap:original.emissiveMap,side:T.FrontSide});material.name='premium-'+kind;material.userData.trafficPaint=kind==='paint';
+     if(kind==='paint'){material.color.set(0xffffff);material.roughness=.25;material.metalness=.62;material.map=null;material.aoMap=null;}
+     if(kind==='glass'){material.color.set(0x263b46);material.roughness=.13;material.metalness=.65;material.map=null;}
+     if(kind==='rubber'){material.roughness=.84;material.metalness=.03;}
+     if(kind==='plate'){material.color.set(0xabb0a8);material.map=null;material.roughness=.5;}
+     if(kind==='chrome'){material.roughness=.26;material.metalness=.85;}
+     if(/light/.test(kind)){material.emissiveIntensity=.65;}
+     for(const value of Object.values(material))if(value?.isTexture)value.userData.mimeType='image/webp';materials.set(key,material);
+    }
+    const part=wheel?wheel.name:'body';if(wheel&&!wheelCenters.has(part)){const p=wheel.getWorldPosition(new T.Vector3()).applyMatrix4(normalization);wheelCenters.set(part,p);}
+    const transform=new T.Matrix4().multiplyMatrices(normalization,node.matrixWorld);if(wheel){const p=wheelCenters.get(part);transform.premultiply(new T.Matrix4().makeTranslation(-p.x,-p.y,-p.z));}
+    let geometry=node.geometry.index?node.geometry.toNonIndexed():node.geometry.clone();geometry.applyMatrix4(transform);for(const attr of Object.keys(geometry.attributes))if(!['position','normal','uv','uv1'].includes(attr))geometry.deleteAttribute(attr);if(!geometry.getAttribute('uv'))geometry.setAttribute('uv',new T.Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count*2),2));if(!geometry.getAttribute('uv1'))geometry.setAttribute('uv1',geometry.getAttribute('uv').clone());const batchKey=part+'|'+key;if(!groups.has(batchKey))groups.set(batchKey,{part,material,geometry:[]});groups.get(batchKey).geometry.push(geometry);
+   });
+   const parts=new Map();let triangles=0;for(const batch of groups.values()){let parent=parts.get(batch.part);if(!parent){parent=new T.Group();parent.name=batch.part;if(batch.part!=='body'){parent.position.copy(wheelCenters.get(batch.part));parent.userData.cityWheel=true;}result.add(parent);parts.set(batch.part,parent);}let geometry=mergeGeometries(batch.geometry);if(!geometry)throw Error('Cannot merge vehicle '+batch.part);geometry=mergeVertices(geometry);if(sourceName==='concept-car-source'&&geometry.getAttribute('position').count>600){const simplified=await new SimplifyModifier().modify(geometry,Math.floor(geometry.getAttribute('position').count*.88));geometry.dispose();geometry=simplified;}triangles+=(geometry.index?.count??geometry.getAttribute('position').count)/3;parent.add(new T.Mesh(geometry,batch.material));}
+   const binary=await new GLTFExporter().parseAsync(result,{binary:true,maxTextureSize:512,onlyVisible:true}),data=await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(new Blob([binary]));});await window.savePremium(outputName,data,{source:sourceName,triangles,materials:materials.size,drawParts:groups.size,wheels:wheelCenters.size,bytes:binary.byteLength,forward:'+Z'});
+  }
+ });
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
+await fs.writeFile(path.join(out,'CREDITS.txt'),`Car Concept: Eric Chadwick / Darmstadt Graphics Group GmbH, 2024. CC BY 4.0. https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept\nAdaptation: exterior-only, mobile textures, neutral body paint, opaque glazing, merged rigid wheel groups. Source license-plate branding removed.\nCesium Milk Truck: Cesium, 2017. CC BY 4.0. https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CesiumMilkTruck\nAdaptation: normalized, merged, mobile textures; original livery/trademark retained as incidental asset artwork, no endorsement implied.\nRoad albedo: generated with built-in image generation for this project; prompt recorded in docs/RIVALS_PREMIUM_ART.md.\nEvening reflection environment: downsampled from user-supplied src/features/modern_evening_street_4k.exr. Original source remains unchanged.\n`);

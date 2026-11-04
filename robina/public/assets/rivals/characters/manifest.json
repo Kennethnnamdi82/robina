@@ -1,0 +1,200 @@
+{
+  "source": {
+    "model": "src/features/Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf",
+    "animations": "src/features/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb"
+  },
+  "license": "CC0-1.0 / Quaternius",
+  "skeleton": [
+    "root",
+    "pelvis",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "neck_01",
+    "Head",
+    "clavicle_l",
+    "upperarm_l",
+    "lowerarm_l",
+    "hand_l",
+    "index_01_l",
+    "index_02_l",
+    "index_03_l",
+    "index_04_leaf_l",
+    "middle_01_l",
+    "middle_02_l",
+    "middle_03_l",
+    "middle_04_leaf_l",
+    "pinky_01_l",
+    "pinky_02_l",
+    "pinky_03_l",
+    "pinky_04_leaf_l",
+    "ring_01_l",
+    "ring_02_l",
+    "ring_03_l",
+    "ring_04_leaf_l",
+    "thumb_01_l",
+    "thumb_02_l",
+    "thumb_03_l",
+    "thumb_04_leaf_l",
+    "clavicle_r",
+    "upperarm_r",
+    "lowerarm_r",
+    "hand_r",
+    "index_01_r",
+    "index_02_r",
+    "index_03_r",
+    "index_04_leaf_r",
+    "middle_01_r",
+    "middle_02_r",
+    "middle_03_r",
+    "middle_04_leaf_r",
+    "pinky_01_r",
+    "pinky_02_r",
+    "pinky_03_r",
+    "pinky_04_leaf_r",
+    "ring_01_r",
+    "ring_02_r",
+    "ring_03_r",
+    "ring_04_leaf_r",
+    "thumb_01_r",
+    "thumb_02_r",
+    "thumb_03_r",
+    "thumb_04_leaf_r",
+    "thigh_l",
+    "calf_l",
+    "foot_l",
+    "ball_l",
+    "ball_leaf_l",
+    "thigh_r",
+    "calf_r",
+    "foot_r",
+    "ball_r",
+    "ball_leaf_r"
+  ],
+  "height": 1.75,
+  "forward": "+Z",
+  "triangles": 14330,
+  "strategy": "T-pose world-rest retarget; fixed bone lengths; vertical pelvis only; physics owns travel",
+  "clips": [
+    {
+      "name": "Idle_Loop",
+      "duration": 2.5,
+      "tracks": 66
+    },
+    {
+      "name": "Walk_Loop",
+      "duration": 1.3333333730697632,
+      "tracks": 66
+    },
+    {
+      "name": "Jog_Fwd_Loop",
+      "duration": 0.9333333373069763,
+      "tracks": 66
+    },
+    {
+      "name": "Sprint_Loop",
+      "duration": 0.6666666865348816,
+      "tracks": 66
+    },
+    {
+      "name": "Jump_Start",
+      "duration": 1.3333333730697632,
+      "tracks": 66
+    },
+    {
+      "name": "Jump_Loop",
+      "duration": 2.5,
+      "tracks": 66
+    },
+    {
+      "name": "Jump_Land",
+      "duration": 1.2666666507720947,
+      "tracks": 66
+    },
+    {
+      "name": "Roll",
+      "duration": 1.4666666984558105,
+      "tracks": 66
+    },
+    {
+      "name": "Hit_Chest",
+      "duration": 0.3333333432674408,
+      "tracks": 66
+    },
+    {
+      "name": "Death01",
+      "duration": 2.4000000953674316,
+      "tracks": 66
+    },
+    {
+      "name": "Pistol_Idle_Loop",
+      "duration": 1.6666666269302368,
+      "tracks": 66
+    },
+    {
+      "name": "Pistol_Aim_Neutral",
+      "duration": 0.1666666716337204,
+      "tracks": 66
+    },
+    {
+      "name": "Pistol_Aim_Up",
+      "duration": 0.1666666716337204,
+      "tracks": 66
+    },
+    {
+      "name": "Pistol_Aim_Down",
+      "duration": 0.1666666716337204,
+      "tracks": 66
+    },
+    {
+      "name": "Pistol_Shoot",
+      "duration": 0.6333333253860474,
+      "tracks": 66
+    },
+    {
+      "name": "Pistol_Reload",
+      "duration": 1.6666666269302368,
+      "tracks": 66
+    },
+    {
+      "name": "Interact",
+      "duration": 2,
+      "tracks": 66
+    },
+    {
+      "name": "Sword_Idle",
+      "duration": 1.6666666269302368,
+      "tracks": 66
+    },
+    {
+      "name": "Sword_Attack",
+      "duration": 1.5333333015441895,
+      "tracks": 66
+    },
+    {
+      "name": "PickUp_Table",
+      "duration": 0.8333333134651184,
+      "tracks": 66
+    },
+    {
+      "name": "Spell_Simple_Shoot",
+      "duration": 0.5,
+      "tracks": 66
+    },
+    {
+      "name": "Crouch_Fwd_Loop",
+      "duration": 2,
+      "tracks": 66
+    }
+  ],
+  "unavailable": [
+    "authored backward walk",
+    "authored strafes",
+    "separate run",
+    "movement starts/stops",
+    "turn in place",
+    "rifle-specific aim"
+  ],
+  "bytes": 2896408,
+  "sha256": "001e88fc4b1385db0371f05c89c17f353e071cf41a484a997fc20e2b0440098c"
+}

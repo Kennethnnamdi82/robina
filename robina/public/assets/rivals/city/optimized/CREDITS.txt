@@ -1,0 +1,6 @@
+Optimized derivatives of existing RIVALS project assets; source assets unchanged.
+Buildings: Quaternius Downtown City MegaKit, CC0. Geometry retained, PBR material atlas prepared offline.
+Car Concept: Eric Chadwick / Darmstadt Graphics Group GmbH (2024), CC BY 4.0.
+https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept
+Adaptation: exterior material consolidation and fixed mobile geometry simplification, preserving four wheel pivots. No endorsement implied.
+Other source/texture credits: ../premium/CREDITS.txt and docs/RIVALS_PREMIUM_ART.md.

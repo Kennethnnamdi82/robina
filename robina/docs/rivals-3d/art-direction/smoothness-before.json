@@ -1,0 +1,717 @@
+{
+  "label": "before",
+  "playableMs": 54723,
+  "driver": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "errors": [],
+  "data": {
+    "testid": "three-state",
+    "operation": "{\"seed\":213187415,\"ordinal\":1,\"venue\":2,\"name\":\"OP 01 / OBSIDIAN ARCHIVE\",\"fingerprint\":\"111111111111111111111111111111111111111111111111111111111111/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000111111100000000111111/100000000000000000000000000000000000000111111100000000111111/100000000000000000000000000000000000000111111100000000111111/100000000000000000000000000000000000000111111100000000111111/100000000000000000000000000000000000000111111100000000111111/100000000000000000000000000000000000000111111100000000111111/100000000000000000000000000000000000000111111100000000111111/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000111111100000000111111100000000111111/100000000000000000000000111111100000000111111100000000111111/100000000000000000000000111111100000000111111100000000111111/100000000000000000000000111111100000000111111100000000111111/100000000000000000000000111111100000000111111100000000111111/100000000000000000000000111111100000000111111100000000111111/100000000000000000000000111111100000000111111100000000111111/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000000000000000000000000000000000000000000000000000001/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/100000000111111100000000111111100000000111111100000000111111/111111111111111111111111111111111111111111111111111111111111:1472,160:1472:city--1--1:residence:14.35|city-0--1:residence:14.17|city-1--1:residence:15.50|city-2--1:residence:15.73|city-3--1:residence:15.09|city--1-0:residence:15.54|city-2-0:residence:15.44|city-3-0:commerce:19.47|city--1-1:residence:15.57|city-1-1:commerce:19.96|city-2-1:commerce:18.10|city-3-1:commerce:19.92|city--1-2:residence:14.56|city-0-2:residence:15.45|city-1-2:commerce:18.49|city-2-2:residence:14.95|city-3-2:residence:14.68|city--1-3:residence:15.00|city-0-3:residence:15.31|city-1-3:residence:15.20|city-2-3:residence:14.54|city-3-3:residence:14.14\"}",
+    "environment": "{\"architecture\":\"photo-textured-fixed-meshes\",\"architectureHash\":\"b7fdd916\",\"models\":18,\"detailModels\":21,\"grass\":324,\"windTime\":0.6166666666666669,\"quality\":\"balanced\",\"district\":\"residential\",\"seed\":213187415,\"outdoor\":true,\"buildings\":22,\"signature\":\"city--1--1:residence:14.35|city-0--1:residence:14.17|city-1--1:residence:15.50|city-2--1:residence:15.73|city-3--1:residence:15.09|city--1-0:residence:15.54|city-2-0:residence:15.44|city-3-0:commerce:19.47|city--1-1:residence:15.57|city-1-1:commerce:19.96|city-2-1:commerce:18.10|city-3-1:commerce:19.92|city--1-2:residence:14.56|city-0-2:residence:15.45|city-1-2:commerce:18.49|city-2-2:residence:14.95|city-3-2:residence:14.68|city--1-3:residence:15.00|city-0-3:residence:15.31|city-1-3:residence:15.20|city-2-3:residence:14.54|city-3-3:residence:14.14\",\"lighting\":\"golden\",\"traffic\":{\"active\":24,\"clock\":0.6166666666666669,\"stops\":24,\"travelled\":10.574666666666683,\"signals\":{\"x\":\"green\",\"z\":\"red\",\"crossing\":false,\"phase\":0.6166666666666671},\"sample\":[{\"id\":0,\"kind\":\"sedan\",\"x\":29.78513838746746,\"z\":11.466526273513491,\"speed\":1.3566666666666671},{\"id\":1,\"kind\":\"taxi\",\"x\":53.78513838746746,\"z\":11.466526273513493,\"speed\":1.3566666666666671},{\"id\":2,\"kind\":\"coupe\",\"x\":77.78513838746747,\"z\":11.466526273513502,\"speed\":1.3566666666666671},{\"id\":3,\"kind\":\"lorry\",\"x\":77.9,\"z\":26.21503170574849,\"speed\":1.3566666666666671},{\"id\":4,\"kind\":\"sedan\",\"x\":53.78513838746746,\"z\":35.466526273513495,\"speed\":1.3566666666666671}]},\"civilians\":{\"active\":36,\"rendered\":26,\"animation\":\"authored-skeletal-walk-run\",\"fled\":0,\"walking\":18.97278841474094,\"crossing\":0}}",
+    "quality": "balanced",
+    "combat": "{\"inventory\":{\"active\":0,\"action\":\"idle\",\"remaining\":0,\"serial\":0,\"shots\":0,\"slots\":[{\"id\":\"rifle\",\"name\":\"PULSE CARBINE\",\"kind\":\"firearm\",\"ammo\":12,\"reserve\":120,\"capacity\":12,\"reload\":0},{\"id\":\"pistol\",\"name\":\"KESTREL / 9MM\",\"kind\":\"firearm\",\"ammo\":12,\"reserve\":96,\"capacity\":12,\"reload\":0},{\"id\":\"knife\",\"name\":\"VEX / FIELD KNIFE\",\"kind\":\"melee\",\"ammo\":0,\"reserve\":0,\"capacity\":0,\"reload\":0}]},\"field\":{\"quantity\":3,\"thrown\":0,\"exploded\":0,\"pending\":null,\"message\":\"\",\"pickups\":[{\"id\":\"supply-charge\",\"position\":[5.6000000000000005,0,14.4],\"supply\":{\"kind\":\"bomb\",\"amount\":2},\"consumed\":false},{\"id\":\"supply-med\",\"position\":[7.2,0,17.6],\"supply\":{\"kind\":\"health\",\"amount\":40},\"consumed\":false},{\"id\":\"supply-smg\",\"position\":[10.4,0,14.4],\"supply\":{\"kind\":\"weapon\",\"weapon\":\"smg\"},\"consumed\":false}],\"bombs\":[]},\"flashError\":0,\"view\":{\"ads\":false,\"fov\":72,\"visible\":false,\"hands\":false,\"sight\":[0.5564097125308999,-0.21065108537261185,0.8995531247915693],\"yaw\":-3.141592653589793,\"pitch\":-0.24},\"ready\":true,\"grip\":0,\"support\":1.716452881078827e-8,\"supported\":true,\"alignment\":0.999999641418377,\"muzzle\":[7.319974318092307,1.236968731421271,7.934062512940902],\"lastShot\":null,\"audio\":{\"state\":\"running\",\"buffers\":15,\"voices\":0,\"maximum\":16,\"played\":0,\"dropped\":0,\"errors\":0,\"peak\":0,\"muted\":false},\"effects\":{\"particles\":0,\"trails\":0,\"capacity\":40,\"flashes\":0,\"impacts\":0,\"blasts\":0,\"traces\":0},\"enemies\":[{\"id\":\"guard-01\",\"dead\":false,\"transitions\":0,\"age\":0,\"height\":0,\"floorError\":0,\"collider\":true,\"visible\":true,\"tactic\":\"patrol\",\"evasions\":0,\"covers\":0,\"speed\":0,\"motion\":\"Idle\",\"hits\":0},{\"id\":\"enforcer-01\",\"dead\":false,\"transitions\":0,\"age\":0,\"height\":0,\"floorError\":0,\"collider\":true,\"visible\":true,\"tactic\":\"patrol\",\"evasions\":0,\"covers\":0,\"speed\":0,\"motion\":\"Idle\",\"hits\":0},{\"id\":\"heavy-01\",\"dead\":false,\"transitions\":0,\"age\":0,\"height\":0,\"floorError\":0,\"collider\":true,\"visible\":true,\"tactic\":\"patrol\",\"evasions\":0,\"covers\":0,\"speed\":61.93800000000124,\"motion\":\"Walk\",\"hits\":0}],\"boss\":{\"dead\":false,\"transitions\":0,\"age\":0,\"height\":0,\"floorError\":0}}",
+    "character": "{\"motion\":\"idle\",\"clip\":\"Idle_Loop\",\"history\":[\"idle\"],\"transition\":\"steady\",\"speed\":0,\"time\":0.6166666666666669,\"yaw\":0.00004747676549112663,\"actions\":2,\"leg\":[0.9470936614210033,0.11867366676244351,-0.01623663502595502,0.29776925461898923],\"socket\":[7.300008543410871,1.3100000032476247,7.379995252210062],\"visible\":true,\"mixerTime\":0.6166666666666669}",
+    "pov": "third",
+    "zoom": "1",
+    "x": "7.2",
+    "y": "0",
+    "z": "7.2",
+    "grounded": "true",
+    "run": "4e39b437-e9ec-4380-a4ff-e3205bc134ae",
+    "enemyCount": "3",
+    "fps": "0",
+    "drawCalls": "897",
+    "triangles": "2208054",
+    "geometries": "267",
+    "textures": "104",
+    "frameMs": "0",
+    "dpr": "1",
+    "targets": "[{\"id\":\"guard-01\",\"x\":125.70187290939519,\"y\":128.7320219598898,\"visible\":true},{\"id\":\"enforcer-01\",\"x\":-82.14587493153459,\"y\":123.14466944688087,\"visible\":false},{\"id\":\"heavy-01\",\"x\":-1248.450150609542,\"y\":198.26198878492397,\"visible\":false}]"
+  },
+  "resources": [
+    {
+      "url": "/assets/rivals/combat3d/audio/rifle-0.wav",
+      "bytes": 54728,
+      "duration": 7.700000286102295
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/rifle-1.wav",
+      "bytes": 54728,
+      "duration": 9.599999904632568
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/smg-0.wav",
+      "bytes": 35324,
+      "duration": 9.400000095367432
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/smg-1.wav",
+      "bytes": 35324,
+      "duration": 17.199999809265137
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/pistol-0.wav",
+      "bytes": 48556,
+      "duration": 25.40000009536743
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/pistol-1.wav",
+      "bytes": 48556,
+      "duration": 26.40000009536743
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/shotgun-0.wav",
+      "bytes": 75014,
+      "duration": 31.799999713897705
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/step-0.ogg",
+      "bytes": 5808,
+      "duration": 27.299999713897705
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/step-1.ogg",
+      "bytes": 6308,
+      "duration": 29.5
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/step-2.ogg",
+      "bytes": 6255,
+      "duration": 35.799999713897705
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/metal-0.ogg",
+      "bytes": 7651,
+      "duration": 45.80000019073486
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/metal-1.ogg",
+      "bytes": 6967,
+      "duration": 44.90000009536743
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/clack.ogg",
+      "bytes": 9023,
+      "duration": 45.19999980926514
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/body-hit.ogg",
+      "bytes": 8701,
+      "duration": 52.799999713897705
+    },
+    {
+      "url": "/assets/rivals/combat3d/audio/collapse.ogg",
+      "bytes": 7279,
+      "duration": 52.09999990463257
+    },
+    {
+      "url": "/assets/rivals/city/premium/evening-reflections.hdr",
+      "bytes": 524337,
+      "duration": 8.699999809265137
+    },
+    {
+      "url": "/assets/rivals/characters/universal-operative.glb",
+      "bytes": 2896408,
+      "duration": 3052.9000000953674
+    },
+    {
+      "url": "/assets/rugfire/characters/FAKE_KOL_INFLUENCER.glb",
+      "bytes": 1773780,
+      "duration": 86
+    },
+    {
+      "url": "/assets/rugfire/characters/RUG_PULLER_RAIDER.glb",
+      "bytes": 1808528,
+      "duration": 154.59999990463257
+    },
+    {
+      "url": "/assets/rugfire/characters/WHALE_ENFORCER.glb",
+      "bytes": 1782180,
+      "duration": 173.60000038146973
+    },
+    {
+      "url": "/assets/rugfire/characters/MEGA_RUGGER_BOSS.glb",
+      "bytes": 1783016,
+      "duration": 180.5
+    },
+    {
+      "url": "/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189380,
+      "duration": 48.69999980926514
+    },
+    {
+      "url": "/assets/rivals/combat3d/weapons/smg.glb",
+      "bytes": 116956,
+      "duration": 69.7999997138977
+    },
+    {
+      "url": "/assets/rivals/combat3d/weapons/pistol.glb",
+      "bytes": 98384,
+      "duration": 134
+    },
+    {
+      "url": "/assets/rugfire/environment/cargo_crate.glb",
+      "bytes": 4976,
+      "duration": 164.5
+    },
+    {
+      "url": "/assets/rugfire/props/health_kit.glb",
+      "bytes": 3536,
+      "duration": 163.59999990463257
+    },
+    {
+      "url": "/assets/rivals/city/sunset-sky.webp",
+      "bytes": 84392,
+      "duration": 176.69999980926514
+    },
+    {
+      "url": "/assets/rivals/v4/audio/neon_ambient.wav",
+      "bytes": 264644,
+      "duration": 19.40000009536743
+    },
+    {
+      "url": "/assets/rivals/combat3d/fx/flash.webp",
+      "bytes": 7332,
+      "duration": 10.299999713897705
+    },
+    {
+      "url": "/assets/rivals/combat3d/fx/smoke.webp",
+      "bytes": 6896,
+      "duration": 15.5
+    },
+    {
+      "url": "/assets/rivals/combat3d/fx/blast.webp",
+      "bytes": 6348,
+      "duration": 15.5
+    },
+    {
+      "url": "/assets/rivals/city/models/residence.glb",
+      "bytes": 1577408,
+      "duration": 42.30000019073486
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_BaseColor.webp",
+      "bytes": 24402,
+      "duration": 9.599999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_ORM.webp",
+      "bytes": 15222,
+      "duration": 13.699999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_Normal.webp",
+      "bytes": 26208,
+      "duration": 25.199999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_BaseColor.webp",
+      "bytes": 25346,
+      "duration": 44.40000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_ORM.webp",
+      "bytes": 5806,
+      "duration": 45.69999980926514
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_Normal.webp",
+      "bytes": 7080,
+      "duration": 44.90000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_BaseColor.webp",
+      "bytes": 12178,
+      "duration": 45.40000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_ORM.webp",
+      "bytes": 8672,
+      "duration": 49.40000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_Normal.webp",
+      "bytes": 11360,
+      "duration": 58.30000019073486
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_lit_interior_2.webp",
+      "bytes": 19086,
+      "duration": 93.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_lit_interior_1.webp",
+      "bytes": 37098,
+      "duration": 92.80000019073486
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_BaseColor.webp",
+      "bytes": 9264,
+      "duration": 93.09999990463257
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_ORM.webp",
+      "bytes": 5174,
+      "duration": 158
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Normal.webp",
+      "bytes": 10766,
+      "duration": 158
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_dark_interior.webp",
+      "bytes": 19958,
+      "duration": 157.7999997138977
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Asphalt_BaseColor.webp",
+      "bytes": 4512,
+      "duration": 177.40000009536743
+    },
+    {
+      "url": "/assets/rivals/city/models/commerce.glb",
+      "bytes": 2462844,
+      "duration": 594.7000002861023
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_BaseColor.webp",
+      "bytes": 25346,
+      "duration": 4.200000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_ORM.webp",
+      "bytes": 5806,
+      "duration": 7.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_Normal.webp",
+      "bytes": 7080,
+      "duration": 7.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_lit_interior_1.webp",
+      "bytes": 37098,
+      "duration": 8.699999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_lit_interior_2.webp",
+      "bytes": 19086,
+      "duration": 10.200000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_dark_interior.webp",
+      "bytes": 19958,
+      "duration": 10.900000095367432
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_BaseColor.webp",
+      "bytes": 24402,
+      "duration": 13.900000095367432
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_ORM.webp",
+      "bytes": 15222,
+      "duration": 15.399999618530273
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_Normal.webp",
+      "bytes": 26208,
+      "duration": 15.900000095367432
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Asphalt_BaseColor.webp",
+      "bytes": 4512,
+      "duration": 16.300000190734863
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_ORM.webp",
+      "bytes": 5174,
+      "duration": 33
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Normal.webp",
+      "bytes": 10766,
+      "duration": 41.19999980926514
+    },
+    {
+      "url": "/assets/rivals/city/models/headquarters.glb",
+      "bytes": 3363072,
+      "duration": 48
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_BaseColor.webp",
+      "bytes": 25346,
+      "duration": 6.899999618530273
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_ORM.webp",
+      "bytes": 5806,
+      "duration": 7.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Trim_Normal.webp",
+      "bytes": 7080,
+      "duration": 8
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_BaseColor.webp",
+      "bytes": 12178,
+      "duration": 11.800000190734863
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_ORM.webp",
+      "bytes": 8672,
+      "duration": 12.099999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_Normal.webp",
+      "bytes": 11360,
+      "duration": 13.099999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_lit_interior_2.webp",
+      "bytes": 19086,
+      "duration": 13.699999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_lit_interior_1.webp",
+      "bytes": 37098,
+      "duration": 17.200000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_BaseColor.webp",
+      "bytes": 24402,
+      "duration": 17.699999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_ORM.webp",
+      "bytes": 15222,
+      "duration": 18.09999990463257
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_RedBrick_Normal.webp",
+      "bytes": 26208,
+      "duration": 18.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_dark_interior.webp",
+      "bytes": 19958,
+      "duration": 19
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Asphalt_BaseColor.webp",
+      "bytes": 4512,
+      "duration": 26.59999990463257
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_ORM.webp",
+      "bytes": 5174,
+      "duration": 26.699999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Normal.webp",
+      "bytes": 10766,
+      "duration": 26.59999990463257
+    },
+    {
+      "url": "/assets/rivals/city/models/street.glb",
+      "bytes": 21048,
+      "duration": 4.700000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Asphalt_BaseColor.webp",
+      "bytes": 4512,
+      "duration": 9
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_ORM.webp",
+      "bytes": 5174,
+      "duration": 10.199999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Concrete_Normal.webp",
+      "bytes": 10766,
+      "duration": 11.600000381469727
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Street_Decals.webp",
+      "bytes": 140352,
+      "duration": 30.40000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_BaseColor.webp",
+      "bytes": 12178,
+      "duration": 10.599999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_ORM.webp",
+      "bytes": 8672,
+      "duration": 10.900000095367432
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_Normal.webp",
+      "bytes": 11360,
+      "duration": 13.900000095367432
+    },
+    {
+      "url": "/assets/rivals/city/models/sidewalk.glb",
+      "bytes": 6440,
+      "duration": 8.200000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_BaseColor.webp",
+      "bytes": 12178,
+      "duration": 17.799999713897705
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_ORM.webp",
+      "bytes": 8672,
+      "duration": 21.200000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_Normal.webp",
+      "bytes": 11360,
+      "duration": 23.799999713897705
+    },
+    {
+      "url": "/assets/rivals/city/models/planter.glb",
+      "bytes": 12848,
+      "duration": 9.099999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_BaseColor.webp",
+      "bytes": 12178,
+      "duration": 4.900000095367432
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_ORM.webp",
+      "bytes": 8672,
+      "duration": 10.599999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_Normal.webp",
+      "bytes": 11360,
+      "duration": 20.199999809265137
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Dirt_BaseColor.webp",
+      "bytes": 5490,
+      "duration": 34.90000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Dirt_ORM.webp",
+      "bytes": 4252,
+      "duration": 58.09999990463257
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Dirt_Normal.webp",
+      "bytes": 26514,
+      "duration": 58.19999980926514
+    },
+    {
+      "url": "/assets/rivals/city/models/drain.glb",
+      "bytes": 2524,
+      "duration": 9.399999618530273
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Ornaments_BaseColor.webp",
+      "bytes": 29402,
+      "duration": 10
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Ornaments_ORM.webp",
+      "bytes": 19908,
+      "duration": 11
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Ornaments_Normal.webp",
+      "bytes": 22452,
+      "duration": 24.100000381469727
+    },
+    {
+      "url": "/assets/rivals/city/models/ac.glb",
+      "bytes": 8256,
+      "duration": 7.400000095367432
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Ornaments_BaseColor.webp",
+      "bytes": 29402,
+      "duration": 10.099999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Ornaments_ORM.webp",
+      "bytes": 19908,
+      "duration": 33.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_Ornaments_Normal.webp",
+      "bytes": 22452,
+      "duration": 116.69999980926514
+    },
+    {
+      "url": "/assets/rivals/city/models/bollard.glb",
+      "bytes": 12156,
+      "duration": 7.700000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_BaseColor.webp",
+      "bytes": 12178,
+      "duration": 6.800000190734863
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_ORM.webp",
+      "bytes": 8672,
+      "duration": 7.900000095367432
+    },
+    {
+      "url": "/assets/rivals/city/textures/city-T_MetalConcrete_Normal.webp",
+      "bytes": 11360,
+      "duration": 11.5
+    },
+    {
+      "url": "/assets/rivals/city/models/wall.glb",
+      "bytes": 21240,
+      "duration": 5.100000381469727
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_03_BaseColor.webp",
+      "bytes": 6900,
+      "duration": 17.200000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_03_ORM.webp",
+      "bytes": 17400,
+      "duration": 19.59999990463257
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_03_Normal.webp",
+      "bytes": 3038,
+      "duration": 19.100000381469727
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_02_BaseColor_Red.webp",
+      "bytes": 15752,
+      "duration": 31.800000190734863
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_02_ORM.webp",
+      "bytes": 13070,
+      "duration": 62.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_02_Normal.webp",
+      "bytes": 7564,
+      "duration": 62
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_BaseColor_Red.webp",
+      "bytes": 19734,
+      "duration": 63.59999990463257
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_ORM.webp",
+      "bytes": 12592,
+      "duration": 63.700000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_Normal.webp",
+      "bytes": 7508,
+      "duration": 76.39999961853027
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Decals.webp",
+      "bytes": 31352,
+      "duration": 78.40000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_03_Cables.webp",
+      "bytes": 1322,
+      "duration": 132
+    },
+    {
+      "url": "/assets/rivals/city/models/window.glb",
+      "bytes": 22268,
+      "duration": 38.69999980926514
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_02_BaseColor_Red.webp",
+      "bytes": 15752,
+      "duration": 45.30000019073486
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_02_ORM.webp",
+      "bytes": 13070,
+      "duration": 51
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_02_Normal.webp",
+      "bytes": 7564,
+      "duration": 57
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_BaseColor_Red.webp",
+      "bytes": 19734,
+      "duration": 66.7999997138977
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_ORM.webp",
+      "bytes": 12592,
+      "duration": 73.90000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_Normal.webp",
+      "bytes": 7508,
+      "duration": 87.80000019073486
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_PaddedWall_BaseColor.webp",
+      "bytes": 32970,
+      "duration": 104.90000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_PaddedWall_ORM.webp",
+      "bytes": 8470,
+      "duration": 123.69999980926514
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_PaddedWall_Normal.webp",
+      "bytes": 14112,
+      "duration": 116.59999990463257
+    },
+    {
+      "url": "/assets/rivals/city/models/computer.glb",
+      "bytes": 29364,
+      "duration": 35.90000009536743
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Decals.webp",
+      "bytes": 31352,
+      "duration": 15.099999904632568
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_BaseColor_Red.webp",
+      "bytes": 19734,
+      "duration": 16.200000286102295
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_ORM.webp",
+      "bytes": 12592,
+      "duration": 19.799999713897705
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Trim_01_Normal.webp",
+      "bytes": 7508,
+      "duration": 20.5
+    },
+    {
+      "url": "/assets/rivals/city/models/access.glb",
+      "bytes": 40084,
+      "duration": 26.5
+    },
+    {
+      "url": "/assets/rivals/city/textures/sci-T_Decals.webp",
+      "bytes": 31352,
+      "duration": 12.700000286102295
+    }
+  ]
+}

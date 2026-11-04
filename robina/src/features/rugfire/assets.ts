@@ -67,7 +67,7 @@ export class MissionAssets {
 }
 
 // Bake only parts beneath the same animated joint. Animation targets stay intact.
-function batchRigidParts(root: T.Object3D, clips: T.AnimationClip[]) {
+export function batchRigidParts(root: T.Object3D, clips: T.AnimationClip[]) {
   const animated = new Set(clips.flatMap(c => c.tracks.map(t => t.name.split('.')[0])));
   const joints: T.Object3D[] = [root]; root.traverse(o => { if (o !== root && animated.has(o.name)) joints.push(o); });
   root.updateMatrixWorld(true);

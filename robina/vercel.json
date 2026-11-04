@@ -10,7 +10,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },
@@ -35,12 +35,266 @@
           "value": "no-cache, max-age=0, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/assets/rivals/characters/universal-operative.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rivals/city/living-city.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rivals/city/optimized/city-blocks.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rivals/city/optimized/street-car.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rivals/city/premium/delivery-truck.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rivals/combat3d/weapons/pistol.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rivals/combat3d/weapons/rifle.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rivals/combat3d/weapons/smg.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rugfire/characters/FAKE_KOL_INFLUENCER.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rugfire/characters/MEGA_RUGGER_BOSS.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rugfire/characters/RUG_PULLER_RAIDER.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rugfire/characters/WHALE_ENFORCER.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rugfire/environment/cargo_crate.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/assets/rugfire/props/health_kit.glb.gz",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
       "source": "/((?!assets/|api/).*)",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/assets/rivals/characters/universal-operative.glb",
+      "destination": "/assets/rivals/characters/universal-operative.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rivals/city/living-city.glb",
+      "destination": "/assets/rivals/city/living-city.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rivals/city/optimized/city-blocks.glb",
+      "destination": "/assets/rivals/city/optimized/city-blocks.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rivals/city/optimized/street-car.glb",
+      "destination": "/assets/rivals/city/optimized/street-car.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rivals/city/premium/delivery-truck.glb",
+      "destination": "/assets/rivals/city/premium/delivery-truck.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rivals/combat3d/weapons/pistol.glb",
+      "destination": "/assets/rivals/combat3d/weapons/pistol.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rivals/combat3d/weapons/rifle.glb",
+      "destination": "/assets/rivals/combat3d/weapons/rifle.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rivals/combat3d/weapons/smg.glb",
+      "destination": "/assets/rivals/combat3d/weapons/smg.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rugfire/characters/FAKE_KOL_INFLUENCER.glb",
+      "destination": "/assets/rugfire/characters/FAKE_KOL_INFLUENCER.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rugfire/characters/MEGA_RUGGER_BOSS.glb",
+      "destination": "/assets/rugfire/characters/MEGA_RUGGER_BOSS.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rugfire/characters/RUG_PULLER_RAIDER.glb",
+      "destination": "/assets/rugfire/characters/RUG_PULLER_RAIDER.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rugfire/characters/WHALE_ENFORCER.glb",
+      "destination": "/assets/rugfire/characters/WHALE_ENFORCER.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rugfire/environment/cargo_crate.glb",
+      "destination": "/assets/rugfire/environment/cargo_crate.glb.gz",
+      "permanent": false
+    },
+    {
+      "source": "/assets/rugfire/props/health_kit.glb",
+      "destination": "/assets/rugfire/props/health_kit.glb.gz",
+      "permanent": false
     }
   ]
 }

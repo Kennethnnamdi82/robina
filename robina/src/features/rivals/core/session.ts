@@ -5,8 +5,20 @@ import { InputBuffer } from '../input/InputBuffer';
 import type { HackSnapshot } from '../security/HackPuzzle';
 import { MissionEngine } from '../missions/MissionEngine';
 import { launchMission } from '../missions/definitions';
+import type { HeistMissionDefinition } from '../missions/types';
 import type { MissionMode } from '../missions/types';
 import { recordPractice } from '../missions/progression';
+
+/** Chrome exposes randomUUID only on HTTPS/localhost, but getRandomValues also
+ * works on the private HTTP address used for phone testing. Keep UUID v4 IDs. */
+function createRunId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0'));
+  return [hex.slice(0, 4).join(''), hex.slice(4, 6).join(''), hex.slice(6, 8).join(''), hex.slice(8, 10).join(''), hex.slice(10).join('')].join('-');
+}
 
 /** One bridge per mounted arena. Frame updates stay in Phaser; HUD updates are throttled. */
 export class ArenaSession {
@@ -35,11 +47,11 @@ export class ArenaSession {
   readonly validation: boolean;
   readonly mission: MissionEngine;
   private resultRecorded = false;
-  constructor(options: { characterId?: CharacterId; quality?: QualityId; reducedMotion?: boolean; settings?: GameSettings; validation?: boolean; missionMode?: MissionMode } = {}) {
+  constructor(options: { characterId?: CharacterId; quality?: QualityId; reducedMotion?: boolean; settings?: GameSettings; validation?: boolean; missionMode?: MissionMode; missionDefinition?: HeistMissionDefinition } = {}) {
     this.validation = Boolean(options.validation);
     const settings = { ...this.snapshot.settings, ...options.settings, quality: options.quality ?? options.settings?.quality ?? this.snapshot.quality };
     this.snapshot = { ...this.snapshot, ...options, settings, quality: settings.quality, muted: settings.muted };
-    this.mission = new MissionEngine(launchMission(options.missionMode), crypto.randomUUID(), options.missionMode);
+    this.mission = new MissionEngine(options.missionDefinition ?? launchMission(options.missionMode), createRunId(), options.missionMode);
     this.mission.prepare();
   }
   movement: Vector = { x: 0, y: 0 };

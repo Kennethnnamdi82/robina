@@ -1,0 +1,6 @@
+Car Concept: Eric Chadwick / Darmstadt Graphics Group GmbH, 2024. CC BY 4.0. https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept
+Adaptation: exterior-only, mobile textures, neutral body paint, opaque glazing, merged rigid wheel groups. Source license-plate branding removed.
+Cesium Milk Truck: Cesium, 2017. CC BY 4.0. https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CesiumMilkTruck
+Adaptation: normalized, merged, mobile textures; original livery/trademark retained as incidental asset artwork, no endorsement implied.
+Road albedo: generated with built-in image generation for this project; prompt recorded in docs/RIVALS_PREMIUM_ART.md.
+Evening reflection environment: downsampled from user-supplied src/features/modern_evening_street_4k.exr. Original source remains unchanged.

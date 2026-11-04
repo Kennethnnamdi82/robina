@@ -1,0 +1,38 @@
+{
+  "source": {
+    "author": "Pasha (https://sketchfab.com/Pasha.)",
+    "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+    "source": "https://sketchfab.com/3d-models/realistic-city-8dbfd6fc44c046c68853d9c95cc2918c",
+    "title": "Realistic city"
+  },
+  "grid": 6,
+  "cell": 512,
+  "pad": 4,
+  "materials": 30,
+  "models": {
+    "residence": {
+      "triangles": 1064,
+      "size": [
+        4138.0859375,
+        7043.557373046875,
+        3319.4921875
+      ]
+    },
+    "commerce": {
+      "triangles": 1028,
+      "size": [
+        4164.765625,
+        8064.266357421875,
+        2372.375
+      ]
+    },
+    "headquarters": {
+      "triangles": 2616,
+      "size": [
+        5659.203125,
+        6935.729858398438,
+        2942.6015625
+      ]
+    }
+  }
+}
