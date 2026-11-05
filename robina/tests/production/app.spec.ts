@@ -229,7 +229,9 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
   }
   await page.setViewportSize({width:844,height:390});
   await move(page,'x',720);await move(page,'y',200,8);
-  await expect(page.getByRole('button',{name:/ENTER SEDAN/})).toBeVisible();await page.getByRole('button',{name:/ENTER SEDAN/}).click();
+  await expect(page.getByRole('button',{name:/ENTER SEDAN/})).toBeVisible();
+  await expect.poll(async()=>{const arrow=await page.getByRole('img',{name:'Red direction arrow'}).boundingBox(),entry=await page.getByRole('button',{name:/ENTER SEDAN/}).boundingBox();return Boolean(arrow&&entry&&arrow.y>=entry.y+entry.height+2);}).toBe(true);
+  await page.getByRole('button',{name:/ENTER SEDAN/}).click();
   await expect(page.getByRole('group',{name:'Driving joystick'})).toBeVisible();
   await expect(page.getByRole('button',{name:'Steer left'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Steer right'})).toHaveCount(0);
   const drivingStick=await page.getByTestId('driving-stick').boundingBox();expect(drivingStick).toBeTruthy();
