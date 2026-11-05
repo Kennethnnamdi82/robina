@@ -18,7 +18,7 @@ export function convertSolids(world: WorldState): Solid3D[] {
   return [
     ...world.blockers.map(b => {
       const kind: Solid3D['kind'] = b.id.startsWith('wall-')||b.id.startsWith('mission-wall-') ? 'wall' : ['transit-door','vault-gate','vault','guardian-lockdown'].includes(b.id) ? 'door' : 'cover';
-      const height = kind === 'wall' ? (city?buildingAt(city,b.x*METRES,b.y*METRES)?.height??3.4:3.4) : kind === 'door' ? 3.1 : b.id.includes('console') || b.id.startsWith('relay') ? 1.25 : 1.05;
+      const height = kind === 'wall' ? (city?buildingAt(city,b.x*METRES,b.y*METRES)?.height??3.4:3.4) : kind === 'door' ? 3.1 : b.id.startsWith('task-')?1.3:b.id.includes('console') || b.id.startsWith('relay') ? 1.25 : 1.05;
       return { id: b.id,enabled: b.enabled,kind,box: new Box3(new Vector3((b.x - b.width / 2) * METRES,0,(b.y - b.height / 2) * METRES),new Vector3((b.x + b.width / 2) * METRES,height,(b.y + b.height / 2) * METRES)) };
     }),
     ...(city?[]:platformDefinitions).map(p => ({ id: p.id,enabled: true,kind: 'platform' as const,box: new Box3(new Vector3((p.x - p.width / 2) * METRES,0,(p.z - p.depth / 2) * METRES),new Vector3((p.x + p.width / 2) * METRES,p.height,(p.z + p.depth / 2) * METRES)) })),

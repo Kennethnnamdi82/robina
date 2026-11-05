@@ -125,3 +125,16 @@ release handoff; this document does not assert that unrun checks passed.
 - Existing model assets and backend code remain unchanged.
 
 Physical-device, real Google account and phone-FPS limitations above still apply.
+
+### Hosted validation follow-up
+
+The hosted preview exposed a parked-car/traffic spawn overlap that could trap a
+car. Parking now uses clear curb positions and initial traffic conflicts are
+resolved before the first scene is displayed. A 60-seed oriented-footprint
+regression passes. Physical consoles use the same world blockers as movement;
+the existing foot-navigation grid is refined for interior clearances. All seven
+completion flows and interior routes pass after that change.
+
+Hosted browser assertions use a 30-second cold-network budget instead of the
+five-second local default. This changes test waiting only, not loading progress,
+game simulation, performance targets or failure detection.

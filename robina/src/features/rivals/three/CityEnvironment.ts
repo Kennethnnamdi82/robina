@@ -138,7 +138,7 @@ export class CityEnvironment {
   }
   private missionProps(){
     const placements=new Map<CityModel,Placement[]>();
-    for(const solid of this.solids.filter(s=>s.kind==='cover'||s.kind==='platform')){
+    for(const solid of this.solids.filter(s=>(s.kind==='cover'||s.kind==='platform')&&!s.id.startsWith('mission-')&&!s.id.startsWith('task-'))){
       const s=solid.box.getSize(new T.Vector3()),c=solid.box.getCenter(new T.Vector3());
       const id:CityModel=solid.kind==='platform'?'platform':solid.id.includes('console')||solid.id.startsWith('relay')?'computer':solid.id.startsWith('cooling')?'vent':solid.id==='reactor'?'barrel':'crate';
       if(!placements.has(id))placements.set(id,[]);placements.get(id)!.push({x:c.x,z:c.z,width:s.x,depth:s.z,height:s.y});

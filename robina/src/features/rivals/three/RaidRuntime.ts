@@ -120,7 +120,8 @@ export class RaidRuntime {
     this.rig.perspective.far=this.rig.orthographic.far=300;
     this.world.blockers.push(this.lockdown); this.solids = convertSolids(this.world); validateConversion(this.solids,this.world.level);
     this.art = new WorldArt(this.world,this.solids,session.operation.venue,session.operation.seed); this.scene.add(this.art.root);
-    this.navigation = new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers);
+    const navigationTile=session.operation.assignment!==undefined?32:64;
+    this.navigation = new NavigationGrid(this.world.level.width*64/navigationTile,this.world.level.height*64/navigationTile,navigationTile,this.world.blockers);
     this.boss = new BossController(new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers,24));
     this.scene.add(this.player.root,this.bossActor.root,this.rig.perspective); this.bossActor.root.visible = false;
     const playerTarget: Target3D = { id: 'operative',team: 'operative',box: new T.Box3(),alive: () => this.controller.health > 0&&!this.vehicles?.current,damage: this.damage };

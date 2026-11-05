@@ -225,7 +225,7 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
     expect(invalid,`${width}x${height} controls`).toEqual([]);
   }
   await page.setViewportSize({width:844,height:390});
-  await move(page,'x',720);await move(page,'y',380,8);
+  await move(page,'x',720);await move(page,'y',200,8);
   await expect(page.getByRole('button',{name:/ENTER SEDAN/})).toBeVisible();await page.getByRole('button',{name:/ENTER SEDAN/}).click();
   await expect(page.getByRole('button',{name:'Accelerate vehicle'})).toBeVisible();
   await page.keyboard.down('w');await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBeGreaterThan(5);await page.keyboard.up('w');
