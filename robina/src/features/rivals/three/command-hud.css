@@ -15,7 +15,7 @@
 @media(max-height:500px) and (orientation:landscape){.r3-game .rv-action-buttons{max-width:356px}}
 @media(pointer:coarse),(max-width:900px){
  .r3-game .rv-controls[data-mobile] .rv-action-buttons{inset:auto var(--safe-r) calc(var(--safe-b) + var(--stick) + 10px) auto;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:7px;width:min(356px,calc(100% - 84px));max-width:356px;height:auto;pointer-events:none}
- .r3-game .rv-controls[data-mobile] .rv-action-buttons>button{position:static!important;inset:auto!important;transform:none;width:var(--action);min-width:var(--action);height:var(--action);min-height:44px;flex-shrink:0}
+ .r3-game .rv-controls[data-mobile] .rv-action-buttons>button{position:relative!important;inset:auto!important;transform:none;width:var(--action);min-width:var(--action);height:var(--action);min-height:44px;flex-shrink:0}
  .r3-game .rv-controls[data-mobile] .rv-action-buttons>.rv-interact-control{width:68px}
  .r3-game .rv-controls[data-mobile] .rv-action-buttons>.rv-fire-control{display:none}
 }

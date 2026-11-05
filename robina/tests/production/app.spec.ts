@@ -223,6 +223,7 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
     await page.setViewportSize({width,height});
     const invalid=await page.evaluate(()=>{const root=document.querySelector('.r3-game')!.getBoundingClientRect(),vitals=document.querySelector('.rv-vitals')!.getBoundingClientRect(),radar=document.querySelector('.r3-mission-radar .rivals-minimap')!.getBoundingClientRect();return [...document.querySelectorAll('.rv-action-buttons>button,.rv-sprint-control')].filter(n=>getComputedStyle(n).display!=='none').map(n=>({name:n.getAttribute('aria-label'),r:n.getBoundingClientRect()})).filter(({r})=>r.width<43||r.height<43||r.top<root.top||r.bottom>root.bottom+1||r.left<root.left||r.right>root.right+1||(r.left<radar.right&&r.right>radar.left&&r.top<radar.bottom&&r.bottom>radar.top)||(r.left<vitals.right&&r.right>vitals.left&&r.top<vitals.bottom&&r.bottom>vitals.top)).map(({name})=>name);});
     expect(invalid,`${width}x${height} controls`).toEqual([]);
+    const badgeInside=await page.locator('.r3-bomb').evaluate(button=>{const b=button.getBoundingClientRect(),count=button.querySelector('b')!.getBoundingClientRect();return count.left>=b.left&&count.right<=b.right&&count.top>=b.top&&count.bottom<=b.bottom;});expect(badgeInside,`${width}x${height} grenade count anchor`).toBe(true);
   }
   await page.setViewportSize({width:844,height:390});
   await move(page,'x',720);await move(page,'y',200,8);
