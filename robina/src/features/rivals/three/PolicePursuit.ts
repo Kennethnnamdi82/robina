@@ -40,7 +40,7 @@ export class PolicePursuit {
       unit.stuck=Math.hypot(car.x-startX,car.z-startZ)<.002?unit.stuck+dt:0;
       if(unit.stuck>.8){unit.reverse=.7;unit.detour=8;unit.repath=0;unit.stuck=0;}
     }
-    const seen=officers.some(o=>o.alive&&Math.hypot(o.x-player.x,o.y-player.y)<900&&clearSight(o,player,this.grid.blockers));
+    const seen=officers.some(o=>o.alive&&Math.hypot(o.x-player.x,o.y-player.y)<1200&&clearSight(o,player,this.grid.blockers));
     const near=this.units.some(u=>u.car.mode!=='player'&&(u.car.health??0)>0&&Math.hypot(u.car.x-player.x*.025,u.car.z-player.y*.025)<18);
     if(seen||near)this.contacted=true;
     this.quiet=this.contacted&&!seen&&!near?this.quiet+dt:0;

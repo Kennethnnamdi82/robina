@@ -49,6 +49,11 @@ describe('second-pass control and pursuit regressions',()=>{
     const cars=new CitySimulation(3,1).cars;Object.assign(cars[0],{kind:'police',x:20,z:32,dx:1,dz:0,speed:0});const obstruction={id:'city-traffic-100',enabled:true,kind:'cover' as const,box:new Box3(new Vector3(23.6,0,31),new Vector3(28.4,2,33))},deploy=vi.fn(),police=new PolicePursuit(cars,new NavigationGrid(60,60,64,[],46),[obstruction],1,deploy);
     police.alert();for(let i=0;i<400&&!deploy.mock.calls.length;i++)police.step(.1,{x:44*40,y:32*40},[]);expect(cars[0].x).toBeGreaterThan(29);expect(deploy).toHaveBeenCalledTimes(2);
   });
+  it('does not declare escape while a living officer can still see and shoot the player',()=>{
+    const cars=new CitySimulation(3,1).cars;Object.assign(cars[0],{kind:'police',x:80,z:80});const police=new PolicePursuit(cars,new NavigationGrid(60,60,64,[],46),[],1,()=>{}),player={x:32*40,y:32*40};police.alert(true);
+    police.step(.1,player,[{x:player.x-500,y:player.y,alive:true}]);cars[0].health=0;
+    for(let i=0;i<200;i++)police.step(.1,player,[{x:player.x-960,y:player.y,alive:true}]);expect(police.lost).toBe(false);expect(police.quiet).toBe(0);
+  });
   it('composes a deterministic stereo heist score with headroom and a separate pursuit layer',()=>{
     const a=composeHeistScore(8000),b=composeHeistScore(8000);expect(a.seconds).toBeGreaterThan(8);expect(a.left).toEqual(b.left);let peak=0,energy=0,alert=0,difference=0;for(let i=0;i<a.left.length;i++){peak=Math.max(peak,Math.abs(a.left[i]));energy+=a.left[i]**2;alert+=a.tension[i]**2;difference+=Math.abs(a.left[i]-a.right[i]);}expect(peak).toBeLessThan(.9);expect(Math.sqrt(energy/a.left.length)).toBeGreaterThan(.06);expect(alert).toBeGreaterThan(1);expect(difference).toBeGreaterThan(1);expect(a.left.at(-1)).toBeCloseTo(0,2);
   });
