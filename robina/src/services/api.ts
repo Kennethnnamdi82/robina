@@ -136,7 +136,7 @@ export const authApi = {
     ref?: string;
   }) => api.post<{ ok: true; user: ApiUser }>(`/api/auth/wallet`, body),
   google: (accessToken: string, ref?: string) =>
-    api.post<{ ok: true; user: ApiUser }>(`/api/auth/google`, { accessToken, ref }),
+    request<{ ok: true; user: ApiUser }>(`/api/auth/google`, {method:'POST',body:JSON.stringify({accessToken,ref})}, {timeoutMs:30000,retries:0}),
   me: (options?: RequestOptions) => api.get<{ user: ApiUser }>(`/api/auth/me`, options),
   logout: () => api.post(`/api/auth/logout`),
 };

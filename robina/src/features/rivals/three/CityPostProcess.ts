@@ -16,9 +16,10 @@ export class CityPostProcess {
   if(this.qualityId!=='high'){this.renderer.render(this.scene,camera);return;}
   if(!this.composer){
    const hdr=this.renderer.extensions.has('EXT_color_buffer_float');
-   const target=new T.WebGLRenderTarget(1,1,{type:hdr?T.HalfFloatType:T.UnsignedByteType});target.samples=Math.min(2,this.renderer.capabilities.maxSamples);this.composer=new EffectComposer(this.renderer,target);
+   const mobile=navigator.maxTouchPoints>0;
+   const target=new T.WebGLRenderTarget(1,1,{type:hdr?T.HalfFloatType:T.UnsignedByteType});target.samples=mobile?0:Math.min(2,this.renderer.capabilities.maxSamples);this.composer=new EffectComposer(this.renderer,target);
    this.scenePass=new RenderPass(this.scene,camera);const bloom=new UnrealBloomPass(new T.Vector2(256,128),.12,.35,1.5);
-   const resize=bloom.setSize.bind(bloom);bloom.setSize=(w,h)=>resize(Math.max(1,w/2),Math.max(1,h/2));
+   const resize=bloom.setSize.bind(bloom);bloom.setSize=(w,h)=>resize(Math.max(1,w/(mobile?4:2)),Math.max(1,h/(mobile?4:2)));
    this.composer.addPass(this.scenePass);this.composer.addPass(bloom);this.composer.addPass(new OutputPass());this.resize(this.width,this.height,this.dpr);
   }
   this.scenePass!.camera=camera;this.composer.render();

@@ -36,7 +36,7 @@ export function batchRaidRigid(root:Object3D,clips:AnimationClip[]){
  if(compatibleForBatching(root))batchRigidParts(root,clips);
 }
 const modelURL=(id:ModelId,path:string)=>id==='player'?'/assets/rivals/characters/universal-operative.glb?v=evasive-controls-4':['rifle','smg','pistol'].includes(id)?`/assets/rivals/combat3d/weapons/${id}.glb?v=combat-polish-2`:assetURL(path);
-export const preloadRaidAssets=()=>warmAssetBytes([...CITY_BINARY_URLS,...Object.entries(models).map(([id,path])=>modelURL(id as ModelId,path))]);
+export const preloadRaidAssets=(progress?:(fraction:number)=>void)=>warmAssetBytes([...CITY_BINARY_URLS,...Object.entries(models).map(([id,path])=>modelURL(id as ModelId,path))],progress,Boolean(progress));
 /** Load only compatible actors/weapons needed by this raid, using the existing asset owner. */
 export class RaidAssets extends MissionAssets {
   readonly city = new CityAssets();

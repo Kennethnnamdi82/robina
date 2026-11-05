@@ -56,6 +56,6 @@ describe('frontend settings',()=>{
     expect(localStorage.getItem('rivals_3d_graphics_v1')).toBe('low');
   });
   it('clamps unsafe ranges and rejects invalid enum values',()=>{
-    expect(cleanPreferences({sensitivity:100,quality:'ultra',pov:'orbital',lighting:'moon',masterVolume:-20})).toMatchObject({sensitivity:2,pov:'third',lighting:'golden',masterVolume:0});
+    expect(cleanPreferences({sensitivity:100,quality:'ultra',pov:'orbital',lighting:'moon',masterVolume:-20})).toMatchObject({sensitivity:2,pov:'third',lighting:'mission',masterVolume:0});
   });
 });

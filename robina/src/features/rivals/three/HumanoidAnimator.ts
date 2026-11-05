@@ -32,7 +32,7 @@ export class HumanoidAnimator {
   private pelvisSample = new Quaternion(); private chestSample = new Quaternion(); private corrected = false;
   get clipName() { return this.base?.getClip().name.split(':')[1] ?? ''; }
   /** The layered pose that keeps the equipped item readable during locomotion. */
-  get upperClipName() { return this.upper?.getClip().name.split(':')[1] ?? ''; }
+  get upperClipName() { return this.upper?.getClip().name.replace(/^upper-/, '').split(':').pop() ?? ''; }
   constructor(readonly actor: Actor, body: Object3D, clips: readonly AnimationClip[]) {
     for (const clip of clips) this.clips.set(clip.name, clip);
     for (const name of ['Idle_Loop', 'Walk_Loop', 'Jog_Fwd_Loop', 'Sprint_Loop', 'Roll', 'Jump_Start', 'Jump_Loop', 'Jump_Land', 'Hit_Chest', 'Death01', 'Pistol_Aim_Neutral', 'Pistol_Idle_Loop', 'Pistol_Shoot', 'Pistol_Reload']) {

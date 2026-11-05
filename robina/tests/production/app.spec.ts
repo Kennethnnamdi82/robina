@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { move } from '../rivals/traversal';
 
 async function prepare(page: Page, response: 'unauthorized' | 'stalled' | 'html' | 'authenticated' | 'admin') {
   // Optional infrastructure-only cookie for the owning account's protected
@@ -159,7 +160,7 @@ test('frontend hub has complete mobile pages, saved settings and no new backend 
   await page.screenshot({path:'docs/rivals-3d/frontend-hub/lobby-phone.png',fullPage:true});
   await page.getByRole('navigation',{name:'Main menu'}).getByRole('link',{name:/^MISSIONS/}).click();
   await expect(page.getByRole('heading',{name:'OPERATIONS.'})).toBeVisible();
-  await expect(page.getByRole('link',{name:'VIEW BRIEFING'})).toHaveCount(3);
+  await expect(page.getByRole('link',{name:'VIEW BRIEFING'})).toHaveCount(1);await expect(page.getByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveCount(6);
   await page.screenshot({path:'docs/rivals-3d/frontend-hub/missions-phone.png',fullPage:true});
   await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'CUSTOMIZATION',exact:true}).click();
   await page.getByLabel('Callsign').fill('NIGHT RUNNER');
@@ -205,4 +206,30 @@ test('admin pages contain service failures without crashing', async ({ page }) =
     await expect(page.getByRole('heading', { name: 'Robina could not start' })).toHaveCount(0);
     expect(errors).toEqual([]);
   }
+});
+
+test('campaign GPS, real driving and landscape action groups remain usable',async({browser},info)=>{
+  test.setTimeout(240000);
+  const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();
+  const errors=await prepare(page,'authenticated');
+  await page.goto(new URL('/settings',info.project.use.baseURL).href);await page.getByRole('button',{name:'LOW graphics'}).click();
+  await page.getByRole('tab',{name:'Controls'}).click();await page.getByLabel('Default camera').selectOption('tactical');
+  await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'LOBBY',exact:true}).click();await page.getByRole('link',{name:'PLAY',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'MISSION OBJECTIVES'})).toBeVisible();await page.getByRole('button',{name:'DEPLOY / START HEIST'}).click();
+  await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing',{timeout:120000});
+  await expect(page.getByRole('img',{name:'Live player and objective navigation'}).last()).toBeVisible();
+  await expect(page.locator('.r3-mission-radar [aria-label="Accessible GPS route"]')).toHaveCount(1);
+  for(const [width,height]of [[568,320],[667,375],[740,360],[812,375],[844,390],[896,414],[390,844]]){
+    await page.setViewportSize({width,height});
+    const invalid=await page.evaluate(()=>{const root=document.querySelector('.r3-game')!.getBoundingClientRect(),vitals=document.querySelector('.rv-vitals')!.getBoundingClientRect(),radar=document.querySelector('.r3-mission-radar .rivals-minimap')!.getBoundingClientRect();return [...document.querySelectorAll('.rv-action-buttons>button,.rv-sprint-control')].filter(n=>getComputedStyle(n).display!=='none').map(n=>({name:n.getAttribute('aria-label'),r:n.getBoundingClientRect()})).filter(({r})=>r.width<43||r.height<43||r.top<root.top||r.bottom>root.bottom+1||r.left<root.left||r.right>root.right+1||(r.left<radar.right&&r.right>radar.left&&r.top<radar.bottom&&r.bottom>radar.top)||(r.left<vitals.right&&r.right>vitals.left&&r.top<vitals.bottom&&r.bottom>vitals.top)).map(({name})=>name);});
+    expect(invalid,`${width}x${height} controls`).toEqual([]);
+  }
+  await page.setViewportSize({width:844,height:390});
+  await move(page,'x',720);await move(page,'y',380,8);
+  await expect(page.getByRole('button',{name:/ENTER SEDAN/})).toBeVisible();await page.getByRole('button',{name:/ENTER SEDAN/}).click();
+  await expect(page.getByRole('button',{name:'Accelerate vehicle'})).toBeVisible();
+  await page.keyboard.down('w');await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBeGreaterThan(5);await page.keyboard.up('w');
+  const brake=page.getByRole('button',{name:'Brake vehicle'});await brake.hover();await page.mouse.down();await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBe(0);await page.mouse.up();
+  await page.getByRole('button',{name:'EXIT VEHICLE · F'}).click();await expect(page.getByRole('button',{name:'Jump',exact:true})).toBeVisible();
+  await page.screenshot({path:info.outputPath('campaign-landscape.png')});expect(errors).toEqual([]);await context.close();
 });

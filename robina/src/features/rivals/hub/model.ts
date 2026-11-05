@@ -3,19 +3,16 @@ import { readGraphicsQuality, saveGraphicsQuality } from '../three/GraphicsChoos
 import type { POV } from '../three/CameraRig';
 import type { CityWeather } from '../three/LivingCityPlan';
 import type { MissionSnapshot } from '../missions/types';
+import { ASSIGNMENTS } from '../missions/assignments';
 
-export const OPERATIONS = [
-  { id: 'reserve', venue: 0, code: '01', name: 'THE RESERVE', location: 'Helix Reserve · Financial district', type: 'BANK HEIST', description: 'Breach the corporate bank. Bring the vault relays online, recover the Reserve Cipher and make your extraction.', target: 'Reserve Cipher', accent: 'gold' },
-  { id: 'reactor', venue: 1, code: '02', name: 'EMBER PROTOCOL', location: 'Ember Reactor · Research district', type: 'RECOVERY', description: 'Infiltrate the energy facility, shut down its security and extract with the Reactor Seed.', target: 'Reactor Seed', accent: 'ember' },
-  { id: 'archive', venue: 2, code: '03', name: 'SILENT ARCHIVE', location: 'Obsidian Archive · Civic district', type: 'INTELLIGENCE', description: 'Enter the intelligence headquarters. Defeat the Guardian, secure the Archive Key and disappear into the city.', target: 'Archive Key', accent: 'ice' },
-] as const;
+export const OPERATIONS = ASSIGNMENTS.map((a,venue)=>({...a,venue,code:a.id.toUpperCase(),accent:'ice'}));
 export type OperationId = typeof OPERATIONS[number]['id'];
 export interface HubPreferences extends GameSettings {
-  sensitivity: number; pov: POV; lighting: CityWeather; monitor: boolean;
+  sensitivity: number; pov: POV; lighting: CityWeather|'mission'; monitor: boolean;
 }
 export const HUB_SETTINGS_KEY = 'rivals_hub_settings_v1';
 export function defaultHubPreferences(): HubPreferences {
-  return { ...defaultSettings(), quality: readGraphicsQuality(), muted: false, sensitivity: 1, pov: 'third', lighting: 'golden', monitor: false };
+  return { ...defaultSettings(), quality: readGraphicsQuality(), muted: false, sensitivity: 1, pov: 'third', lighting: 'mission', monitor: false };
 }
 export function cleanPreferences(input: unknown): HubPreferences {
   const defaults = defaultHubPreferences();
@@ -24,7 +21,7 @@ export function cleanPreferences(input: unknown): HubPreferences {
   return { ...sanitizeSettings(p, defaults),
     sensitivity: typeof p.sensitivity === 'number' && Number.isFinite(p.sensitivity) ? Math.min(2, Math.max(.4, p.sensitivity)) : 1,
     pov: ['tactical', 'side', 'third', 'first'].includes(String(p.pov)) ? p.pov as POV : 'third',
-    lighting: ['golden', 'daylight', 'night'].includes(String(p.lighting)) ? p.lighting as CityWeather : 'golden',
+    lighting: ['mission','golden', 'daylight', 'night'].includes(String(p.lighting)) ? p.lighting as HubPreferences['lighting'] : 'mission',
     monitor: p.monitor === true,
   };
 }
@@ -37,19 +34,19 @@ export function savePreferences(value: HubPreferences): boolean {
 
 export interface HeistRecord {
   runId: string; venue: number; state: 'SUCCESS' | 'FAILED' | 'ABANDONED'; seconds: number;
-  finishedAt: number; completed: number; objectives: string[]; kills: number; shots: number; hits: number;
+  finishedAt: number; completed: number; mandatory?:number; objectives: string[]; kills: number; shots: number; hits: number;
 }
-export interface Dossier { version: 1; callsign: string; emblem: 'gold' | 'ice' | 'ember'; records: HeistRecord[] }
+export interface Dossier { version: 1; callsign: string; emblem: 'gold' | 'ice' | 'ember'; records: HeistRecord[];unlocked?:string[] }
 export const emptyDossier = (): Dossier => ({ version: 1, callsign: 'VEX', emblem: 'gold', records: [] });
 const dossierKey = (identity: string) => 'rivals_heist_dossier_v1:' + encodeURIComponent(identity);
 const bounded = (n: unknown, max: number) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= max;
 export function validRecord(r: HeistRecord): boolean {
   return Boolean(r && typeof r === 'object' && typeof r.runId === 'string' && r.runId.length > 0 && r.runId.length < 100 &&
-    [0, 1, 2].includes(r.venue) && ['SUCCESS', 'FAILED', 'ABANDONED'].includes(r.state) && bounded(r.seconds, 172800) && r.seconds > 0 &&
-    bounded(r.finishedAt, 8640000000000000) && Number.isInteger(r.completed) && bounded(r.completed, 10) &&
-    Array.isArray(r.objectives) && r.objectives.length <= 11 && r.objectives.every(id => typeof id === 'string' && id.length < 80) &&
+    Number.isInteger(r.venue)&&r.venue>=0&&r.venue<OPERATIONS.length && ['SUCCESS', 'FAILED', 'ABANDONED'].includes(r.state) && bounded(r.seconds, 172800) && r.seconds > 0 &&
+    bounded(r.finishedAt, 8640000000000000) && Number.isInteger(r.completed) && bounded(r.completed, 32) && (r.mandatory===undefined||Number.isInteger(r.mandatory)&&r.mandatory>0&&r.mandatory<=32) &&
+    Array.isArray(r.objectives) && r.objectives.length <= 32 && r.objectives.every(id => typeof id === 'string' && id.length < 120) &&
     Number.isInteger(r.kills) && bounded(r.kills, 10000) && Number.isInteger(r.shots) && bounded(r.shots, 1000000) &&
-    Number.isInteger(r.hits) && bounded(r.hits, 1000000) && (r.state !== 'SUCCESS' || r.completed === 10));
+    Number.isInteger(r.hits) && bounded(r.hits, 1000000) && (r.state !== 'SUCCESS' || r.completed === (r.mandatory??10)));
 }
 export function readDossier(identity: string): Dossier {
   try {
@@ -57,6 +54,7 @@ export function readDossier(identity: string): Dossier {
     if (value?.version !== 1) return emptyDossier();
     return { version: 1, callsign: typeof value.callsign === 'string' && /^[a-zA-Z0-9 _-]{2,20}$/.test(value.callsign) ? value.callsign : 'VEX',
       emblem: ['gold', 'ice', 'ember'].includes(value.emblem) ? value.emblem : 'gold',
+      unlocked:Array.isArray(value.unlocked)?value.unlocked.filter((id:unknown)=>OPERATIONS.some(o=>o.id===id)):[],
       records: Array.isArray(value.records) ? value.records.filter(validRecord).slice(0, 200) : [] };
   } catch { return emptyDossier(); }
 }
@@ -65,11 +63,12 @@ export function saveDossier(identity: string, value: Dossier): boolean {
 }
 export function addRecord(dossier: Dossier, mission: MissionSnapshot, venue: number): Dossier {
   const record: HeistRecord = { runId: mission.runId, venue, state: mission.state as HeistRecord['state'], seconds: mission.elapsed,
-    finishedAt: Date.now(), completed: mission.completed, objectives: mission.objectives.filter(o => o.state === 'COMPLETED').map(o => o.title),
+    finishedAt: Date.now(), completed: mission.completed, mandatory:mission.mandatory,objectives: mission.objectives.filter(o => o.state === 'COMPLETED').map(o => o.title),
     kills: mission.stats.enemiesDefeated, shots: mission.stats.shots, hits: mission.stats.hits };
   if (!validRecord(record) || dossier.records.some(r => r.runId === record.runId)) return dossier;
-  return { ...dossier, records: [record, ...dossier.records].slice(0, 200) };
+  return { ...dossier, unlocked:[...new Set([...(dossier.unlocked??[]),...(record.state==='SUCCESS'&&OPERATIONS[venue+1]?[OPERATIONS[venue+1].id]:[])])],records: [record, ...dossier.records].slice(0, 200) };
 }
+export const isAssignmentUnlocked=(dossier:Dossier,index:number)=>index===0||Boolean(dossier.unlocked?.includes(OPERATIONS[index]?.id))||dossier.records.some(r=>r.venue===index-1&&r.state==='SUCCESS');
 // The existing engine's hit count includes melee. Never present that count as
 // firearm accuracy or discard valid knife-only runs for having hits > shots.
 export const runScore = (r: HeistRecord) => r.state === 'SUCCESS' ? 1000 + Math.max(0, 600 - Math.floor(r.seconds)) + Math.min(500, r.kills * 25) : 0;

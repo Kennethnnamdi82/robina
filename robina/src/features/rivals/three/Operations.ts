@@ -3,13 +3,14 @@ import { launchMission } from '../missions/definitions';
 import { WorldState } from '../world/WorldState';
 import { NavigationGrid } from '../ai/navigation';
 import { buildingAt, cityPlan, CITY_SIZE, STREET_CENTRES } from './LivingCityPlan';
+import { ASSIGNMENTS, assignmentAt, assignmentMission } from '../missions/assignments';
 
 export const VENUES = [
   { name:'HELIX RESERVE',building:'Corporate bank',core:'Reserve Cipher',accent:0xd4ad65,sky:0xa9bbc3 },
   { name:'EMBER REACTOR',building:'Energy research facility',core:'Reactor Seed',accent:0xf19c62,sky:0xb8aaa0 },
   { name:'OBSIDIAN ARCHIVE',building:'Intelligence headquarters',core:'Archive Key',accent:0x80c9ce,sky:0x8ba9b7 },
 ] as const;
-export interface Operation3D { seed:number; ordinal:number; venue:number; level:LevelDefinition; mission:ReturnType<typeof launchMission>; fingerprint:string }
+export interface Operation3D { seed:number; ordinal:number; venue:number; level:LevelDefinition; mission:ReturnType<typeof launchMission>; fingerprint:string; assignment?:number }
 let sequence=0; const salt=crypto.getRandomValues(new Uint32Array(1))[0];
 const validatedRoutes=new Set<string>();
 /** Outdoor blocks share the art/collision plan. The original objectives and
@@ -55,4 +56,18 @@ export function createOperation(seed=(salt+sequence++)>>>0,ordinal=1):Operation3
   const fingerprint=walls.map(r=>r.join('')).join('/')+`:${vault.x},${vault.y}:${extract.x}:${city.signature}`;
   return{seed,ordinal,venue,level,mission,fingerprint};
 }
-export function nextOperation(previous:Operation3D,completed=false) {let seed=(previous.seed+1)>>>0;if(seed%3===previous.venue)seed=(seed+1)>>>0;return createOperation(seed,previous.ordinal+(completed?1:0));}
+export function createAssignmentOperation(index=0,seed=crypto.getRandomValues(new Uint32Array(1))[0]):Operation3D {
+  index=Math.max(0,Math.min(ASSIGNMENTS.length-1,Math.floor(index)));
+  const a=assignmentAt(index),base=seed%4294967200,normalized=base-base%21+index*3+a.district,operation=createOperation(normalized,index+1);
+  const level=operation.level,mission=assignmentMission(a),s=a.site;
+  level.title=a.name;level.props=[];level.targets=[];level.markers=[];level.signs=[];level.zones=[];
+  level.objects=mission.objectives.filter(o=>o.id.startsWith('task-')||o.id==='recover'||o.id==='extract').map(o=>({id:o.event,kind:o.id==='extract'?'extraction':o.id==='recover'?'collectible':'terminal',name:o.title,x:o.marker.x,y:o.marker.y,range:85}));
+  level.enemies=Array.from({length:a.security},(_,i)=>{const x=(s.x-3+(i%3)*3)*40,y=(s.z+1+Math.floor(i/3)*2)*40;return{id:'site-guard-'+i,type:index>3&&i%3===0?'heavy' as const:i%2?'enforcer' as const:'guard' as const,x,y,angle:Math.PI/2,patrol:[{x,y},{x,y:y+55},{x:x+25,y:y+55},{x:x+25,y}]};});
+  level.security={...level.security,cameras:[],lasers:[],hacks:[]};
+  return {...operation,mission,assignment:index,fingerprint:operation.fingerprint+':assignment:'+a.id};
+}
+export function nextOperation(previous:Operation3D,completed=false) {
+  if(previous.assignment!==undefined)return createAssignmentOperation(completed?(previous.assignment+1)%ASSIGNMENTS.length:previous.assignment,completed?(previous.seed+31)>>>0:previous.seed);
+  if(!completed)return createOperation(previous.seed,previous.ordinal);
+  let seed=(previous.seed+1)>>>0;if(seed%3===previous.venue)seed=(seed+1)>>>0;return createOperation(seed,previous.ordinal+1);
+}

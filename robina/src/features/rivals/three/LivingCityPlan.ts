@@ -16,17 +16,18 @@ export function cityRandom(seed: number) {
 }
 export function cityPlan(venue: number, seed: number): CityPlan {
   const random = cityRandom(seed), district = (['downtown', 'industrial', 'residential'] as const)[venue % 3];
+  const variant=Math.floor((seed%21)/3),heightBands=[[22,32],[9,14],[30,44],[7,11],[8,14],[6,10],[8,12]][variant];
   const blocks: CityBlock[] = [], buildings: CityBuilding[] = [];
   for (let row = -1; row < 4; row++) for (let col = -1; col < 4; col++) {
     const x = 20 + col * 24, z = 20 + row * 24;
     // The original mission is now an outdoor civic square. Keep its devices,
     // patrols, phase-link route and vault access in these open blocks.
-    const park = row === 0 && (col === 0 || col === 1) || row === 1 && col === 0;
+    const park = row === 0 && (col === 0 || col === 1) || row === 1 && col === 0 || row>=1&&col>=1&&((row*3+col+variant)%7===(variant===4?2:0));
     const variation=random();
     const model = district === 'residential' ? variation>.25?'residence':'commerce' : district === 'industrial' ? variation>.2?'commerce':'residence' : variation>.5?'headquarters':variation>.15?'commerce':'residence';
     const building: CityBuilding | undefined = park ? undefined : {
       id: `city-${col}-${row}`, model, x, z, width: 11.2, depth: 11.2,
-      height: (model==='residence'?14:model==='commerce'?18:17)+random()*2,
+      height: heightBands[0]+random()*(heightBands[1]-heightBands[0]),
       yaw: row<0?0:col%2===0?-Math.PI/2:Math.PI/2,
     };
     blocks.push({ x, z, park, building }); if (building) buildings.push(building);
@@ -34,7 +35,7 @@ export function cityPlan(venue: number, seed: number): CityPlan {
   // Entry always offers the requested sunset; later missions vary lighting.
   const weather = (['golden', 'golden', 'daylight', 'night'] as const)[(seed >>> 3) % 4];
   return { seed, district, weather, label: district === 'downtown' ? 'HELIX / DOWNTOWN' : district === 'industrial' ? 'EMBER / FREIGHT DISTRICT' : 'OBSIDIAN / GARDEN QUARTER', blocks, buildings,
-    signature: buildings.map(b => `${b.id}:${b.model}:${b.height.toFixed(2)}`).join('|') };
+    signature: 'district-layout-'+variant+'|'+buildings.map(b => `${b.id}:${b.model}:${b.height.toFixed(2)}`).join('|') };
 }
 export function buildingAt(plan: CityPlan, x: number, z: number) {
   return plan.buildings.find(b => Math.abs(x - b.x) < b.width / 2 && Math.abs(z - b.z) < b.depth / 2);

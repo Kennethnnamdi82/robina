@@ -26,7 +26,7 @@ describe('frontend-only game hub',()=>{
     fireEvent.click(screen.getByRole('tab',{name:'Controls'}));fireEvent.change(screen.getByLabelText('Default camera'),{target:{value:'first'}});expect(readPreferences().pov).toBe('first');
   });
   it('opens each dedicated menu page',()=>{
-    const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS.'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(3);
+    const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS.'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(1);expect(screen.getAllByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveLength(6);
     fireEvent.click(screen.getByRole('link',{name:'PLAYER PROFILE'}));expect(screen.getByRole('heading',{name:'PLAYER DOSSIER.'})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'RANK'}));expect(screen.getByRole('heading',{name:'EARN YOUR NAME.'})).toBeTruthy();view.unmount();
   });

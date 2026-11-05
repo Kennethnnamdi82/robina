@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import { useAccount, useDisconnect } from "wagmi";
@@ -22,6 +23,7 @@ import { buildAndSignSiwe } from "@/lib/siwe";
 import { getAccessTokenAfterLogin } from "@/lib/privyAuth";
 import { HAS_BACKEND } from "@/lib/backend";
 import { getPhantomWallet, type PhantomWallet } from "@/lib/phantomWallet";
+import { googleAttemptPending,beginGoogleAttempt,clearGoogleAttempt,verifyGoogleSession } from '@/lib/googleAttempt';
 
 interface BaseUser {
   name: string;
@@ -32,7 +34,6 @@ interface BaseUser {
 }
 
 type LoginMethod = "google" | "wallet" | "solana" | null;
-const GOOGLE_OAUTH_PENDING_KEY = "robina_google_oauth_pending";
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -68,7 +69,8 @@ function shortName(wallet: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { getAccessToken, logout: privyLogout } = usePrivy();
+  const { getAccessToken, logout: privyLogout,ready:privyReady,authenticated:privyAuthenticated } = usePrivy();
+  const epoch=useRef(0),googleFlight=useRef<Promise<void>|null>(null),googleIntent=useRef(googleAttemptPending()),signedInRef=useRef(false);
   const { address, chainId, isConnected } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const [signedIn, setSignedIn] = useState(false);
@@ -81,8 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [activeLoginMethod, setActiveLoginMethod] = useState<LoginMethod>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  useEffect(()=>{signedInRef.current=signedIn;if(signedIn)try{localStorage.setItem('rivals_session_seen','1');}catch{/* Non-secret hint only; never required for authentication. */}},[signedIn]);
 
   const resetAuthState = useCallback(() => {
+    try{localStorage.removeItem('rivals_session_seen');}catch{/* Private browsing. */}
     setSignedIn(false);
     setSignedWallet(null);
     setAuthChainType("none");
@@ -109,7 +113,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     const controller = new AbortController();
-    const sessionDeadline = Date.now() + 4000;
+    const hydrationEpoch=epoch.current;
+    let knownSession=false;try{knownSession=localStorage.getItem('rivals_session_seen')==='1';}catch{/* Storage optional. */}
+    const sessionDeadline = Date.now() + (knownSession?30000:4000);
     const sessionOptions = () => ({ signal: controller.signal, timeoutMs: Math.max(1, sessionDeadline - Date.now()), retries: 0 });
 
     const hydrateSession = async () => {
@@ -121,38 +127,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (onAdminRoute) {
           try {
             await adminApi.me(sessionOptions());
-            if (!cancelled) {
+            if (!cancelled&&hydrationEpoch===epoch.current) {
               setSignedIn(true);
               setIsAdmin(true);
               setSignedWallet(null);
               setAuthChainType("none");
+              googleIntent.current=false;clearGoogleAttempt();
             }
             return;
           } catch (error) {
             if ((error as ApiError).status !== 401) throw error;
             const { user } = await authApi.me(sessionOptions());
-            if (!cancelled) {
+            if (!cancelled&&hydrationEpoch===epoch.current) {
               setSignedWallet(user.wallet);
               setAuthChainType(user.chainType || "none");
               setSignedIn(true);
               setIsAdmin(false);
+              googleIntent.current=false;clearGoogleAttempt();
             }
           }
           return;
         }
 
         const { user } = await authApi.me(sessionOptions());
-        if (!cancelled) {
+        if (!cancelled&&hydrationEpoch===epoch.current) {
           setSignedWallet(user.wallet);
           setAuthChainType(user.chainType || "none");
           setSignedIn(true);
           setIsAdmin(false);
+          googleIntent.current=false;clearGoogleAttempt();
         }
       } catch (e) {
         const err = e as ApiError;
-        if (!cancelled && err?.status === 401) resetAuthState();
+        if (!cancelled && hydrationEpoch===epoch.current&&!googleIntent.current&&!googleAttemptPending()&&err?.status === 401) resetAuthState();
       } finally {
-        if (!cancelled) setIsAuthLoading(false);
+        if (!cancelled&&hydrationEpoch===epoch.current&&!googleIntent.current&&!googleAttemptPending()) setIsAuthLoading(false);
       }
     };
 
@@ -163,37 +172,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [resetAuthState]);
 
   const completeGoogleLogin = useCallback(async () => {
-    // Google OAuth may reload the page. sessionStorage survives that redirect,
-    // unlike component state, while still ignoring unrelated SDK events.
-    if (sessionStorage.getItem(GOOGLE_OAUTH_PENDING_KEY) !== "1") return;
-    sessionStorage.removeItem(GOOGLE_OAUTH_PENDING_KEY);
-
+    if(googleFlight.current)return googleFlight.current;
+    if(!googleIntent.current&&!googleAttemptPending())return;
+    const ticket=++epoch.current;
     setIsSigningIn(true);
     setActiveLoginMethod("google");
+    setIsAuthLoading(true);
     setAuthError(null);
-    try {
-      const accessToken = await getAccessTokenAfterLogin(getAccessToken);
-      if (!accessToken) {
-        await privyLogout();
-        throw new Error("privy_access_token_missing");
-      }
-      const referralCode = localStorage.getItem("basedrop_ref") || undefined;
-      const result = await authApi.google(accessToken, referralCode);
-      localStorage.removeItem("basedrop_ref");
-      setSignedWallet(result.user.wallet);
-      setAuthChainType(result.user.chainType || "none");
-      setIsAdmin(false);
-      setSignedIn(true);
+    const flight=(async()=>{try {
+      const result=await verifyGoogleSession(async()=>{
+        const accessToken=await getAccessTokenAfterLogin(getAccessToken,undefined,24);
+        if(!accessToken)throw new Error('privy_access_token_missing');
+        let referralCode:string|undefined;try{referralCode=localStorage.getItem('basedrop_ref')||undefined;}catch{/* Optional referral. */}
+        return authApi.google(accessToken,referralCode);
+      },()=>authApi.me({timeoutMs:8000,retries:0}));
+      if(ticket!==epoch.current)return;
+      try{localStorage.removeItem('basedrop_ref');}catch{/* Login must not depend on storage. */}
+      signedInRef.current=true;setSignedWallet(result.user.wallet);setAuthChainType(result.user.chainType||'none');setIsAdmin(false);setSignedIn(true);setAuthError(null);
     } catch (cause) {
-      const code = cause instanceof Error ? cause.message : "";
-      if (code === "privy_token_invalid") {
-        try {
-          await privyLogout();
-        } catch {
-          setAuthError("Google sign-in failed and the previous session could not be cleared. Reload the page and try again.");
-          return;
-        }
-      }
+      if(ticket!==epoch.current||signedInRef.current)return;
+      const code=cause instanceof Error?cause.message:'';
       const messages: Record<string, string> = {
         privy_access_token_missing: "Google sign-in was interrupted before verification. Please try again.",
         privy_token_invalid: "Google could not verify this sign-in session. Please start a fresh sign-in. If this keeps happening, contact support.",
@@ -203,21 +201,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       setAuthError(messages[code] || "Google sign-in could not be completed. Please try again.");
     } finally {
-      setIsSigningIn(false);
-      setActiveLoginMethod(null);
-    }
-  }, [getAccessToken, privyLogout]);
+      if(ticket===epoch.current){googleIntent.current=false;clearGoogleAttempt();setIsSigningIn(false);setActiveLoginMethod(null);setIsAuthLoading(false);}
+      googleFlight.current=null;
+    }})();googleFlight.current=flight;return flight;
+  }, [getAccessToken]);
+
+  useEffect(()=>{if(privyReady&&privyAuthenticated&&(googleIntent.current||googleAttemptPending()))void completeGoogleLogin();},[privyReady,privyAuthenticated,completeGoogleLogin]);
+  useEffect(()=>{if(!googleIntent.current&&!googleAttemptPending())return;const timer=window.setTimeout(()=>{if(googleFlight.current||signedInRef.current)return;googleIntent.current=false;clearGoogleAttempt();setIsAuthLoading(false);setIsSigningIn(false);setAuthError('Google did not return a verified sign-in. Please try again.');},20000);return()=>clearTimeout(timer);},[]);
 
   const { initOAuth } = useLoginWithOAuth({
     onComplete: () => {
       void completeGoogleLogin();
     },
-    onError: () => {
-      sessionStorage.removeItem(GOOGLE_OAUTH_PENDING_KEY);
-      setIsSigningIn(false);
-      setActiveLoginMethod(null);
-      setAuthError("Google sign-in was cancelled. You can try again whenever you're ready.");
-    },
+    onError: () => {if(googleFlight.current||signedInRef.current)return;void (async()=>{try{const result=await authApi.me({timeoutMs:5000,retries:0});if(signedInRef.current)return;epoch.current++;signedInRef.current=true;setSignedWallet(result.user.wallet);setAuthChainType(result.user.chainType||'none');setIsAdmin(false);setSignedIn(true);setAuthError(null);}catch{if(!signedInRef.current&&!googleFlight.current)setAuthError('Google sign-in was cancelled or could not be verified. You can try again.');}finally{if(!googleFlight.current){googleIntent.current=false;clearGoogleAttempt();setIsSigningIn(false);setActiveLoginMethod(null);setIsAuthLoading(false);}}})();},
   });
 
   const baseUser: BaseUser | null = useMemo(() => {
@@ -376,20 +372,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if(googleFlight.current||googleIntent.current||signedInRef.current)return;
     if (!HAS_BACKEND) throw new Error("Authentication backend is not configured");
     if (!import.meta.env.VITE_PRIVY_APP_ID?.trim()) {
       throw new Error("privy_not_configured");
     }
     // This sends the user directly to Google's OAuth page instead of first
     // opening a Privy method-picker. The marker survives the OAuth redirect.
-    sessionStorage.setItem(GOOGLE_OAUTH_PENDING_KEY, "1");
+    beginGoogleAttempt();googleIntent.current=true;epoch.current++;
     setIsSigningIn(true);
     setActiveLoginMethod("google");
     setAuthError(null);
     try {
       await initOAuth({ provider: "google" });
     } catch (cause) {
-      sessionStorage.removeItem(GOOGLE_OAUTH_PENDING_KEY);
+      if(googleFlight.current||signedInRef.current)return;
+      googleIntent.current=false;clearGoogleAttempt();
       setIsSigningIn(false);
       setActiveLoginMethod(null);
       throw cause;
@@ -397,6 +395,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [initOAuth]);
 
   const signOut = useCallback(async () => {
+    epoch.current++;googleIntent.current=false;clearGoogleAttempt();signedInRef.current=false;
     if (HAS_BACKEND) {
       if (isAdmin) await adminApi.logout();
       else await authApi.logout();
@@ -421,6 +420,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* no-op */
     }
     resetAuthState();
+    setIsAuthLoading(false);setIsSigningIn(false);setActiveLoginMethod(null);
   }, [disconnectAsync, resetAuthState, isAdmin, privyLogout, solanaWallet, solanaWalletAccount]);
 
   return (

@@ -43,7 +43,7 @@ describe('production 3D entry lifecycle', () => {
     render(<RaidApp />);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'ENTER 3D RAID' })); });
     expect(runtime.created).toBe(0);
-    expect(screen.getByRole('button', { name: 'DOWNLOADING CITY…' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('progressbar', { name: 'Mission loading progress' }).getAttribute('aria-valuenow')).toBe('10');
     await act(async () => { release(); });
     expect(runtime.created).toBe(1);
     expect(screen.getByLabelText('RIVALS 3D raid')).toBeTruthy();

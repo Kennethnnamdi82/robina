@@ -36,9 +36,10 @@ export function traceSolids(origin: Vector3,direction: Vector3,solids: readonly 
   return distance;
 }
 /** One Y-up kinematic simulation for every POV. Substeps bound horizontal travel. */
-export function moveKinematic(body: Body3D,dx: number,dz: number,dt: number,solids: readonly Solid3D[],jump = false,jumpHeld = false) {
+export function moveKinematic(body: Body3D,dx: number,dz: number,dt: number,solids: readonly Solid3D[],jump = false,jumpHeld = false,highJump=false) {
   if (![dx,dz,dt].every(Number.isFinite) || dt <= 0) return;
-  if (jump && body.grounded) { body.vertical = BODY.jump; body.grounded = false; body.jumpTime = 0; }
+  if (jump && body.grounded) { body.vertical = highJump?9:BODY.jump; body.grounded = false; body.jumpTime = 0; }
+  else if(jump&&highJump&&(body.jumpTime??Infinity)<.35&&body.vertical>0){body.vertical=Math.max(body.vertical,8.4);body.jumpTime=.35;}
   const p = body.position,radius = BODY.radius;
   const relevant=(s:Solid3D)=>s.enabled&&((s.kind==='wall'||s.kind==='door')&&s.box.min.y<=.05||p.y<s.box.max.y-.005&&p.y+BODY.height>s.box.min.y+.005);
   const resolve=()=>{for(let pass=0;pass<12;pass++){let contact=false;for(const s of solids){if(!relevant(s))continue;const hit=horizontalContact(p.x,p.z,radius,s);if(hit){p.x+=hit.x*(hit.depth+.00001);p.z+=hit.z*(hit.depth+.00001);contact=true;}}if(!contact)break;}};

@@ -22,6 +22,7 @@ export class CityCrowd {
   threat(point:CityPoint,time:number) {
     for(const p of this.people)if(Math.hypot(point.x-p.x,point.z-p.z)<22){if(p.panicUntil<time)this.fled++;p.panicUntil=time+7;p.idleUntil=0;}
   }
+  ejectDriver(car:CityPoint&{dx:number;dz:number}){const p=this.people[this.active-1];if(!p)return;p.x=car.x-car.dz*1.8;p.z=car.z+car.dx*1.8;p.route=[{x:p.x-car.dz*6,z:p.z+car.dx*6},{x:p.x-car.dz*8,z:p.z+car.dx*8}];p.target=0;p.idleUntil=0;p.panicUntil=this.people.reduce((n,p)=>Math.max(n,p.panicUntil),0)+8;p.speed=1.4;p.moving=true;}
   step(dt:number,time:number,cars:readonly (CityPoint&{length:number})[],player:CityPoint,obstacles:readonly {enabled:boolean;box:T.Box3}[]=[]) {
     const phase=trafficPhase(time);
     for(let i=0;i<this.active;i++) {

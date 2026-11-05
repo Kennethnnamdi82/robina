@@ -13,8 +13,10 @@ export class CombatEffects {
   private particles: Particle[] = []; private trails: Trail[] = []; private geometry = new T.CylinderGeometry(1, 1, 1, 4);
   private delta = new T.Vector3(); flashes = 0; impacts = 0; blasts = 0; traceCount = 0;
   private budget = 40; private trailBudget = 48;
+  private scorchGeometry=new T.CircleGeometry(1,20);private scorches:{mesh:T.Mesh<T.CircleGeometry,T.MeshBasicMaterial>;life:number}[]=[];private scorchCursor=0;
   setQuality(quality: 'low' | 'balanced' | 'high') { this.budget = quality === 'low' ? 16 : quality === 'balanced' ? 28 : 40; this.trailBudget = quality === 'low' ? 24 : 48; }
   constructor(private textures: { flash: T.Texture; smoke: T.Texture; blast: T.Texture }) {
+    for(let i=0;i<12;i++){const mesh=new T.Mesh(this.scorchGeometry,new T.MeshBasicMaterial({color:0x171310,transparent:true,opacity:.5,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));mesh.rotation.x=-Math.PI/2;mesh.visible=false;this.root.add(mesh);this.scorches.push({mesh,life:0});}
     for (let i = 0; i < this.capacity; i++) { const sprite = new T.Sprite(new T.SpriteMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false })); sprite.visible = false; this.root.add(sprite); this.particles.push({ sprite, age: 1, life: 0, size: 0, growth: 0, rise: 0 }); }
     for (let i = 0; i < 48; i++) {
       const material = new T.ShaderMaterial({ uniforms: { tint: { value: new T.Color(0xffe3a0) },alpha: { value: 1 } },transparent: true,depthWrite: false,blending: T.AdditiveBlending,
@@ -24,6 +26,7 @@ export class CombatEffects {
     }
   }
   age(dt: number) {
+    for(const s of this.scorches){s.life=Math.max(0,s.life-dt);s.mesh.visible=s.life>0;s.mesh.material.opacity=Math.min(.55,s.life/5*.55);}
     for (const p of this.particles) { p.age += dt; const alive = p.age < p.life; p.sprite.visible = alive; if (alive) { p.sprite.material.opacity = Math.min(1, (1 - p.age / p.life) * 1.8); p.sprite.scale.setScalar(p.size + p.age * p.growth); p.sprite.position.y += p.rise * dt; } }
     for (const t of this.trails) { t.life = Math.max(0, t.life - dt); t.mesh.visible = t.life > 0; t.mesh.material.uniforms.alpha.value = Math.min(1,t.life / .03); }
   }
@@ -32,8 +35,11 @@ export class CombatEffects {
     Object.assign(p, { age: 0, life, size, growth, rise }); p.sprite.visible = true; p.sprite.position.copy(point); p.sprite.scale.setScalar(size); p.sprite.material.map = texture; p.sprite.material.blending = texture === this.textures.smoke ? T.NormalBlending : T.AdditiveBlending; p.sprite.material.color.setHex(color); p.sprite.material.opacity = 1; p.sprite.material.rotation = (this.flashes + this.impacts + this.blasts) * 2.4;
   }
   muzzle(point: T.Vector3, security = false) { this.flashes++; this.particle(point, this.textures.smoke, .08, .18, security ? 0x987455 : 0x73808a, .3, .35); }
+  burn(point:T.Vector3){this.particle(point,this.textures.blast,.8,.45,0xff8e32,1.4,1.7);this.delta.copy(point);this.delta.y+=.7;this.particle(this.delta,this.textures.smoke,.9,1.1,0x44443f,1.2,1.4);}
   impact(point: T.Vector3, body: boolean) { this.impacts++; this.particle(point, this.textures.flash, body ? .24 : .3, .11, body ? 0xff9581 : 0xb9edff); this.particle(point, this.textures.smoke, .12, .32, 0x5c7b90, .5, .2); }
   blast(point: T.Vector3, radius: number,solids:readonly Solid3D[] = []) {
+    const scorch=this.scorches[this.scorchCursor++%this.scorches.length];scorch.mesh.position.copy(point).setY(.055);scorch.mesh.scale.setScalar(radius*.4);scorch.life=45;scorch.mesh.visible=true;
+    for(const solid of solids)if(solid.enabled&&solid.kind==='cover'){solid.box.clampPoint(point,this.delta);if(this.delta.distanceTo(point)<radius*.7)this.impact(this.delta,false);}
     this.blasts++; this.particle(point,this.textures.flash,1.6,.13,0xfff0ce,16);
     this.particle(point,this.textures.blast,2.5,.65,0xff9d35,7,1.2);
     // A brief fireball, radial flame tongues and then darker rising smoke.
@@ -50,7 +56,7 @@ export class CombatEffects {
     this.delta.copy(bullet.direction); t.mesh.position.copy(bullet.position).addScaledVector(this.delta,-length / 2); t.mesh.quaternion.setFromUnitVectors(yAxis,this.delta); t.mesh.scale.set(.009,length,.009); t.mesh.material.uniforms.tint.value.setHex(bullet.team === 'operative' ? 0xffe8b5 : 0xffba7a); t.mesh.material.uniforms.alpha.value = .9;
   }
   snapshot() { return { particles: this.particles.filter(p => p.age < p.life).length, trails: this.trails.filter(t => t.life > 0).length, capacity: this.capacity, flashes: this.flashes, impacts: this.impacts, blasts: this.blasts, traces: this.traceCount }; }
-  dispose() { this.geometry.dispose(); this.particles.forEach(p => p.sprite.material.dispose()); this.trails.forEach(t => t.mesh.material.dispose()); this.root.clear(); }
+  dispose() { this.scorchGeometry.dispose();this.scorches.forEach(s=>s.mesh.material.dispose());this.geometry.dispose(); this.particles.forEach(p => p.sprite.material.dispose()); this.trails.forEach(t => t.mesh.material.dispose()); this.root.clear(); }
 }
 
 /** All flash geometry lives under the actual current muzzle socket, so recoil,

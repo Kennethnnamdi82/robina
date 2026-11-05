@@ -4,7 +4,7 @@ import { createActor, mountActor, disposeActor, type Actor } from '../../rugfire
 import { RaidAssets } from './RaidAssets';
 import { CameraRig, type POV } from './CameraRig';
 import { WorldArt } from './WorldArt';
-import { BODY, moveKinematic, traceSolids, type Body3D } from './physics3d';
+import { BODY, moveKinematic, traceSolids,horizontalContact, type Body3D } from './physics3d';
 import { convertSolids, METRES, point3, validateConversion, type Solid3D } from './world3d';
 import { Projectile3D, type Target3D } from './Projectile3D';
 import type { SandboxSession } from './SandboxSession';
@@ -37,6 +37,15 @@ import { CityPostProcess } from './CityPostProcess';
 import {CameraFeedback} from './CameraFeedback';
 import {AdaptiveResolution} from './AdaptiveResolution';
 import {FrameSurface} from './FrameSurface';
+import { assignmentAt } from '../missions/assignments';
+import { addAssignmentWalls,AssignmentSite } from './AssignmentSite';
+import { VehicleController,vehicleOverlap } from './VehicleController';
+import { PolicePursuit } from './PolicePursuit';
+import { CampaignGameplay } from './CampaignGameplay';
+import type { EnemySpawn } from '../ai/definitions';
+import { CityPeople } from './CityPeople';
+import type { Civilian } from './CityCrowd';
+import { MissionNavigation } from './MissionNavigation';
 
 interface CombatDiagnostics {
   inventory: ReturnType<Loadout['snapshot']>; field: ReturnType<FieldItems['snapshot']>; flashError: number;
@@ -49,9 +58,15 @@ interface CombatDiagnostics {
   boss: { dead: boolean; transitions: number; age: number; height: number; floorError: number } | null;
 }
 
-export interface Diagnostics3D { environment?: CityEnvironment['stats']; combat?: CombatDiagnostics; pov: POV; zoom: number; fps: number; frameMs: number; calls: number; triangles: number; geometries: number; textures: number; dpr: number; quality: QualityId; x: number; y: number; z: number; grounded: boolean; enemies: number; runId: string; targets: { id: string; x: number; y: number; visible: boolean }[]; character?: { motion: string; clip: string; history: string[]; transition: string; speed: number; time: number; yaw: number; actions: number; leg: number[]; socket: number[]; visible: boolean; mixerTime: number } }
+export interface Diagnostics3D { navigation?:{route:{x:number;y:number}[];distance:number;goal?:{x:number;y:number}};vehicle?:VehicleController['snapshot'];pursuit?:PolicePursuit['snapshot'];campaign?:CampaignGameplay['snapshot'];environment?: CityEnvironment['stats']; combat?: CombatDiagnostics; pov: POV; zoom: number; fps: number; frameMs: number; calls: number; triangles: number; geometries: number; textures: number; dpr: number; quality: QualityId; x: number; y: number; z: number; grounded: boolean; enemies: number; runId: string; targets: { id: string; x: number; y: number; visible: boolean }[]; character?: { motion: string; clip: string; history: string[]; transition: string; speed: number; time: number; yaw: number; actions: number; leg: number[]; socket: number[]; visible: boolean; mixerTime: number } }
 interface NPC { model: EnemyController; actor: Actor; target: Target3D; collider: Solid3D; presentation?: SecurityPresentation }
 export class RaidRuntime {
+  vehicles?:VehicleController;pursuit?:PolicePursuit;campaign?:CampaignGameplay;
+  gps?:MissionNavigation;private burning=new Map<string,number>();
+  private assignmentSite?:AssignmentSite;private witnessArt?:CityPeople;private witnessPose?:Civilian;
+  private vehicleTargets:Target3D[]=[];private drivingInput={throttle:0,steer:0,brake:false};private burnClock=0;
+  private recoveryAge=0;private evidenceDropped=false;private recoveryPath:{x:number;y:number}[]=[];private recoveryRouteAge=1;
+  private alertedShots=0;
   readonly scene = new T.Scene(); readonly renderer: T.WebGLRenderer; readonly rig = new CameraRig();
   readonly world: WorldState; readonly controller = new CharacterController(true); readonly loadout = new Loadout(); readonly field = new FieldItems();
   get weapon() { return this.loadout.current.controller; }
@@ -89,13 +104,14 @@ export class RaidRuntime {
   private lockdown = { id: 'guardian-lockdown',x: 1088,y: 480,width: 128,height: 64,enabled: false };
   constructor(private host: HTMLElement,readonly session: SandboxSession,private diagnostics: (data: Diagnostics3D) => void) {
     this.world = new WorldState(session.operation.level); this.security = new SecurityController(this.world,this.world.level.security);
+    if(session.operation.assignment!==undefined)addAssignmentWalls(this.world,assignmentAt(session.operation.assignment));
     this.body.position.copy(point3(this.world.level.spawn.x,this.world.level.spawn.y));this.previousPosition.copy(this.body.position);
     this.quality = session.getSnapshot().quality;
     this.renderer = new T.WebGLRenderer({ antialias: this.quality !== 'low',powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = T.SRGBColorSpace; this.renderer.toneMapping = T.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.35;
     this.renderer.info.autoReset = false;
     this.renderer.domElement.tabIndex = 0; this.renderer.domElement.setAttribute('aria-label','RIVALS experimental unified 3D raid'); host.appendChild(this.renderer.domElement);
-    const weather=session.operation.ordinal===1?'golden':cityPlan(session.operation.venue,session.operation.seed).weather;
+    const weather=session.operation.assignment!==undefined?(['golden','daylight','night','daylight','golden','night','daylight'] as const)[session.operation.assignment]:session.operation.ordinal===1?'golden':cityPlan(session.operation.venue,session.operation.seed).weather;
     this.atmosphere=new CityAtmosphere(this.scene,this.renderer,weather);
     this.post=new CityPostProcess(this.renderer,this.scene,this.rig.camera);
     this.surface=new FrameSurface(this.renderer,(w,h,dpr)=>{this.post.resize(w,h,dpr);this.rig.resize(w,h);});
@@ -107,7 +123,7 @@ export class RaidRuntime {
     this.navigation = new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers);
     this.boss = new BossController(new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers,24));
     this.scene.add(this.player.root,this.bossActor.root,this.rig.perspective); this.bossActor.root.visible = false;
-    const playerTarget: Target3D = { id: 'operative',team: 'operative',box: new T.Box3(),alive: () => this.controller.health > 0,damage: this.damage };
+    const playerTarget: Target3D = { id: 'operative',team: 'operative',box: new T.Box3(),alive: () => this.controller.health > 0&&!this.vehicles?.current,damage: this.damage };
     this.targets.push(playerTarget);
     this.world.level.enemies.forEach((spawn,index) => {
       const model = new EnemyController(spawn,this.navigation,index * .05),actor = createActor(spawn.type === 'guard' ? 'kol' : spawn.type === 'enforcer' ? 'rugger' : 'whale');
@@ -146,18 +162,25 @@ export class RaidRuntime {
     this.listen(host,'pointermove',e => { const p = e as PointerEvent; if (this.drag && p.pointerId === this.lookPointer && session.canControl()) { this.rig.rotate(this.touchLook ? p.clientX - this.lookX : p.movementX,this.touchLook ? p.clientY - this.lookY : p.movementY); this.lookX = p.clientX; this.lookY = p.clientY; } });
     this.listen(this.renderer.domElement,'webglcontextlost',e => { e.preventDefault(); session.fail('The 3D graphics context was lost. Restart this sandbox or use Phaser fallback.'); });
     this.resizeObserver = new ResizeObserver(() => this.resize()); this.resizeObserver.observe(host); this.setQuality(this.quality); this.resize();
-    session.attach({ pause: () => { this.last = 0; this.accumulator = 0; this.audio.pause(true); this.combatAudio.pause(true);session.cityAudio?.pause(true); this.needsDraw = true; },resume: () => { this.last = 0; this.audio.pause(false); this.combatAudio.pause(false);session.cityAudio?.pause(false); this.needsDraw = true; },mute: () => { this.audio.configure(session.getSnapshot().settings); this.combatAudio.configure(session.getSnapshot().settings);session.cityAudio?.configure(session.getSnapshot().settings); },settings: settings => { this.audio.configure(settings); this.combatAudio.configure(settings);session.cityAudio?.configure(settings); },quality: q => this.setQuality(q),stopMovement: () => { this.controller.stop(); this.jump = false; this.jumpHeld = false; this.drag = false; this.lookPointer = null; this.rig.ads = false; },interact: () => session.input.queueInteract(),hackPad: this.hackPad,hackRetry: this.hackRetry,hackClose: this.closeHack,skipBossIntro: () => this.boss.skipIntro() });
+    session.attach({ pause: () => { this.last = 0; this.accumulator = 0; this.audio.pause(true); this.combatAudio.pause(true);session.cityAudio?.pause(true); this.needsDraw = true; },resume: () => { this.last = 0; this.audio.pause(false); this.combatAudio.pause(false);session.cityAudio?.pause(false); this.needsDraw = true; },mute: () => { this.audio.configure(session.getSnapshot().settings); this.combatAudio.configure(session.getSnapshot().settings);session.cityAudio?.configure(session.getSnapshot().settings); },settings: settings => { this.audio.configure(settings); this.combatAudio.configure(settings);session.cityAudio?.configure(settings); },quality: q => this.setQuality(q),stopMovement: () => { this.drivingInput={throttle:0,steer:0,brake:false};this.controller.stop(); this.jump = false; this.jumpHeld = false; this.drag = false; this.lookPointer = null; this.rig.ads = false; },interact: () => session.input.queueInteract(),hackPad: this.hackPad,hackRetry: this.hackRetry,hackClose: this.closeHack,skipBossIntro: () => this.boss.skipIntro() });
     this.unsubscribe = session.subscribe(() => { this.needsDraw = true; });
     this.aim.copy(this.body.position).add(new T.Vector3(0,1,-10));
     this.raf = requestAnimationFrame(this.frame);
     void this.prepare();
   }
   private ownGeometry<G extends T.BufferGeometry>(g: G) { this.geometry.add(g); return g; }
+  private deployOfficer=(spawn:EnemySpawn)=>{
+    if(this.disposed||this.npcs.length>=14)return;
+    const model=new EnemyController(spawn,this.navigation,.05),actor=createActor(spawn.type==='guard'?'kol':'rugger');mountActor(actor,this.assets);
+    const presentation=new SecurityPresentation(actor,this.assets.instance(spawn.type==='guard'?'pistol':'smg').root,this.assets.models.get(actor.role)!.animations);
+    const target:Target3D={id:spawn.id,team:'security',box:new T.Box3(),alive:()=>model.alive,damage:event=>this.damageEnemy(spawn.id,event)};
+    const collider:Solid3D={id:spawn.id,kind:'cover',box:target.box,enabled:true};this.npcs.push({model,actor,presentation,target,collider});this.targets.push(target);this.occupants.splice(this.occupants.length-1,0,collider);this.scene.add(actor.root);this.securityFlashes.set(spawn.id,new MuzzleFlash(presentation.weapon.muzzle,this.assets.textures.get('combat-flash')!));model.alarm(1,this.legacy);
+  };
   private ownMaterial<M extends T.Material>(m: M) { this.materials.add(m); return m; }
   private listen(target: EventTarget,type: string,handler: EventListener) { target.addEventListener(type,handler); this.removers.push(() => target.removeEventListener(type,handler)); }
   private async prepare() {
     try {
-      await this.assets.load((loaded,total) => this.session.loading('Preparing supplied 3D models',loaded / total)); if (this.disposed) return;
+      await this.assets.load((loaded,total) => this.session.loading('Preparing supplied 3D models',loaded / total*.9)); if (this.disposed) return;
       // A tiny shared reflection atlas gives dark metal readable highlights.
       // Apply it only to equipment; the existing city lighting stays intact.
       const studio = new RoomEnvironment(),generator = new T.PMREMGenerator(this.renderer);
@@ -172,6 +195,18 @@ export class RaidRuntime {
       for (const n of this.npcs) this.securityFlashes.set(n.model.spawn.id,new MuzzleFlash(n.presentation!.weapon.muzzle,this.assets.textures.get('combat-flash')!));
       this.securityFlashes.set('vault-guardian',new MuzzleFlash(this.bossPresentation.weapon.muzzle,this.assets.textures.get('combat-flash')!));
       this.art.attachAssets(this.assets); this.art.setQuality(this.quality);
+      if(this.art.city){
+        this.vehicles=new VehicleController(this.art.city.traffic.simulation.cars);
+        this.art.city.traffic.simulation.blocked=car=>this.solids.some(s=>!s.id.startsWith('city-traffic-')&&vehicleOverlap(car,car.x,car.z,Math.atan2(car.dx,car.dz),s));
+        this.vehicleTargets=this.vehicles.cars.map(car=>({id:'vehicle-'+car.id,team:'security',box:this.art.city!.traffic.colliders[car.id].box,alive:()=>(car.health??200)>0,damage:event=>this.vehicles!.damage(car,event.amount)}));this.targets.push(...this.vehicleTargets);
+        if(this.session.operation.assignment!==undefined){
+          const a=assignmentAt(this.session.operation.assignment);this.assignmentSite=new AssignmentSite(a,this.world);this.scene.add(this.assignmentSite.root);
+          this.pursuit=new PolicePursuit(this.vehicles.cars,new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers,46),this.solids,a.response,this.deployOfficer);
+          this.campaign=new CampaignGameplay(this.session.operation.assignment,this.session.mission,this.world,this.vehicles,this.pursuit,this.navigation);
+          if(a.hostage){this.witnessArt=new CityPeople(this.assets.city.humanoid!);this.scene.add(this.witnessArt.root);this.witnessPose={x:a.site.x,z:a.site.z-2,route:[],target:0,speed:0,yaw:0,crossing:false,panicUntil:0,idleUntil:0,distance:0,moving:false,motion:0};}
+        }
+      }
+      this.gps=new MissionNavigation(this.navigation,new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers,46));
       this.art.city?.setLighting(this.atmosphere.preset);
       this.effects = new CombatEffects({ flash: this.assets.textures.get('combat-flash')!,smoke: this.assets.textures.get('combat-smoke')!,blast: this.assets.textures.get('combat-blast')! }); this.effects.setQuality(this.quality); this.scene.add(this.effects.root);
       this.viewScene.add(this.viewCamera,new T.HemisphereLight(0xb9e3ff,0x233346,2.5));
@@ -205,8 +240,8 @@ export class RaidRuntime {
     this.player.root.updateMatrixWorld(true); this.viewGun.root.updateMatrixWorld(true);
     this.flash = new MuzzleFlash(this.gun.muzzle,this.assets.textures.get('combat-flash')!); this.viewFlash = new MuzzleFlash(this.viewGun.model.getObjectByName('weapon-muzzle')!,this.assets.textures.get('combat-flash')!); this.equipped = id;
   }
-  switchWeapon = (index?: number) => { if (!this.session.canControl() || !this.controller.canAttack) return; const changed = index === undefined ? this.loadout.cycle(true) : this.loadout.switchTo(index,true); if (changed) { this.equip(); this.publish(); } };
-  throwBomb = () => { if (!this.session.canControl() || !this.controller.canAttack || this.loadout.busy || this.weapon.reloadRemaining > 0 || this.field.quantity <= 0) return; this.loadout.start('throw',.55); this.throwRelease = .18; this.publish(); };
+  switchWeapon = (index?: number) => { if (this.vehicles?.current||!this.session.canControl() || !this.controller.canAttack) return; const changed = index === undefined ? this.loadout.cycle(true) : this.loadout.switchTo(index,true); if (changed) { this.equip(); this.publish(); } };
+  throwBomb = () => { if (this.vehicles?.current||!this.session.canControl() || !this.controller.canAttack || this.loadout.busy || this.weapon.reloadRemaining > 0 || this.field.quantity <= 0) return; this.loadout.start('throw',.55); this.throwRelease = .18; this.publish(); };
   menu(open: boolean) { this.session.block(open); this.last = 0; this.accumulator = 0; const silent = open || this.session.getSnapshot().status !== 'playing'; this.audio.pause(silent); this.combatAudio.pause(silent); this.needsDraw = true; this.publish(); }
   replacePickup = (index?: number) => {
     const item = this.field.pickups.find(p => p.id === this.field.pending); if (!item) return;
@@ -214,7 +249,8 @@ export class RaidRuntime {
     if (index === undefined) this.field.cancel(); else if (!this.loadout.busy) this.loadout.start('pickup',.35); this.menu(false); this.equip(); this.publish();
   };
   zoom(value?: number) { if (value === undefined) this.rig.cycleZoom(); else this.rig.setZoom(value); this.needsDraw = true; }
-  requestJump = () => { if (this.session.canControl()) this.jump = true; };
+  private lastJump=-Infinity;private highJump=false;
+  requestJump = () => { if (this.session.canControl()&&!this.vehicles?.current) {const now=performance.now();this.highJump=now-this.lastJump<300;this.lastJump=now;this.jump = true;} };
   holdJump = (held: boolean) => { if (held && !this.jumpHeld) this.requestJump(); this.jumpHeld = held && this.session.canControl(); };
   private key = (e: Event) => {
     const event = e as KeyboardEvent; if (event.repeat || !this.session.canControl() || (event.target instanceof Element && event.target.closest('input,select,textarea,[role=dialog]'))) return;
@@ -224,9 +260,10 @@ export class RaidRuntime {
     if (event.code === 'KeyZ') this.zoom();
     if (event.code === 'KeyQ') { event.preventDefault(); this.switchWeapon(); }
     if (event.code === 'KeyG') { event.preventDefault(); this.throwBomb(); }
+    if (event.code === 'KeyF') {event.preventDefault();this.vehicleInteract();}
     if (['Digit1','Digit2','Digit3'].includes(event.code)) this.switchWeapon(Number(event.code.slice(-1)) - 1);
   };
-  private setQuality(quality:QualityId){this.quality=quality;this.art?.setQuality(quality);this.effects?.setQuality(quality);this.atmosphere.quality(quality);this.post.quality(quality);const mobile=navigator.maxTouchPoints>0;this.dpr=Math.min(devicePixelRatio,quality==='low'?.85:quality==='balanced'?(mobile?1:1.15):1.5);this.resolution=new AdaptiveResolution(this.dpr,this.dpr,Math.min(.65,this.dpr));this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.autoUpdate=false;this.renderer.shadowMap.needsUpdate=true;this.shadowClock=1;this.resize();if(this.modelsReady)this.publish();}
+  private setQuality(quality:QualityId){this.quality=quality;this.art?.setQuality(quality);this.effects?.setQuality(quality);this.atmosphere.quality(quality);this.post.quality(quality);const mobile=navigator.maxTouchPoints>0;this.dpr=Math.min(devicePixelRatio,quality==='low'?.85:quality==='balanced'?(mobile?1:1.15):(mobile?1.15:1.5));this.resolution=new AdaptiveResolution(this.dpr,this.dpr,Math.min(.65,this.dpr));this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.autoUpdate=false;this.renderer.shadowMap.needsUpdate=true;this.shadowClock=1;this.resize();if(this.modelsReady)this.publish();}
   setEnvironmentLighting(preset:CityWeather) { this.atmosphere.set(preset);this.art.city?.setLighting(preset);this.needsDraw=true;if(this.modelsReady)this.publish(); }
   // Queue only. Writing canvas dimensions here could clear the last image
   // between animation frames (including a paused frame).
@@ -235,13 +272,14 @@ export class RaidRuntime {
     const amount = this.controller.receiveDamage(event); if (!amount) return 0;
     this.session.mission.damage(amount); const previous = this.session.getSnapshot().damage;
     this.session.update({ health: this.controller.health,damage: { serial: previous.serial + 1,amount,angle: event.angle } }); this.combatAudio.hit(true);
-    if (this.controller.health <= 0) { this.session.mission.fail('Operative defeated.'); this.pool.clear(); this.session.clearInput(); }
+    if (this.controller.health <= 0) { this.session.mission.fail('Operative defeated before extraction.'); this.pool.clear(); this.session.clearInput();this.session.publishMission(); }
     return amount;
   };
   private spatial(point: T.Vector3) { const dx = point.x - this.body.position.x,dz = point.z - this.body.position.z,distance = Math.hypot(dx,dz); return { distance,pan: (dx * Math.cos(this.rig.yaw) - dz * Math.sin(this.rig.yaw)) / Math.max(2,distance) }; }
   private damageEnemy(id: string,event: DamageEvent) {
     const n = this.npcs.find(n => n.model.spawn.id === id)!; const amount = n.model.damage(event); if (!amount) return 0;
     const died = n.presentation?.hit(event.angle,n.model.alive); n.collider.enabled = n.model.alive;
+    if(event.id.startsWith('pulse-bomb:'))this.burning.set(id,3);
     if (died) {
       const s = this.spatial(n.actor.root.position); this.combatAudio.death(s.distance,s.pan);
       this.field.add(id + ':weapon',point3(n.model.x,n.model.y),{ kind: 'weapon',weapon: ENEMY_DROPS[n.model.spawn.type] });
@@ -260,8 +298,11 @@ export class RaidRuntime {
     for (const id of this.world.active) this.session.mission.event(id);
   }
   private interact() {
+    if(this.campaign&&this.campaign.interact(this.body.position)){this.publish();return;}
+    if(this.vehicles?.current||this.vehicles?.nearby){this.vehicleInteract();return;}
     const item = this.field.nearby(this.body.position,this.solids);
     if (item) { const collected = this.field.take(item,this.loadout,this.controller.vitality,this.controller.health > 0); if (collected) { this.loadout.start('pickup',.35); this.audio.effect('terminal_success'); } else if (this.field.pending) this.menu(true); this.equip(); this.publish(); return; }
+    if(this.campaign)return;
     const object = this.world.nearest(this.legacy); if (!object) return;
     if (object.id === 'med-station' && this.controller.health === this.controller.maxHealth) { this.field.message = 'Health Full.'; this.publish(); return; }
     if (object.hack && this.security.beginHack(object,this.legacy)) { this.session.openHack(this.security.hack!.getSnapshot()); return; }
@@ -270,6 +311,21 @@ export class RaidRuntime {
     const event = this.world.interact(object,this.legacy,this.controller.health); if (!event) return;
     if (event.objectId === 'med-station') this.controller.vitality.heal(25);
     this.controller.interacted(); this.session.mission.event(event.objectId); this.audio.effect(event.kind === 'extraction' ? 'extract_success' : event.kind === 'vault' ? 'vault_open' : 'terminal_success');
+  }
+  vehicleInteract=()=>{if(!this.session.canControl()||!this.vehicles)return;const v=this.vehicles;this.controller.stop();this.jump=false;if(v.current)v.exit(this.body.position,this.solids);else{v.scan(this.body.position,this.art.city?.traffic.active??28);if(v.nearby)v.enter(v.nearby,this.body.position,this.solids,car=>this.art.city?.crowd.ejectDriver(car));}this.previousPosition.copy(this.body.position);this.session.clearInput();this.publish();};
+  setDriving=(patch:Partial<typeof this.drivingInput>)=>{if(this.session.canControl()||Object.values(patch).every(value=>!value))Object.assign(this.drivingInput,patch);};
+  private recoverEvidence(dt:number){
+    const campaign=this.campaign;if(!campaign?.carrying||campaign.recoveredByPolice||this.recoveryAge>=15)return;
+    this.recoveryAge+=dt;
+    const device=this.art.devices.get('cargo-recovered');
+    if(!this.evidenceDropped){this.evidenceDropped=true;this.world.active.delete('cargo-recovered');const evidence=this.world.level.objects.find(o=>o.id==='cargo-recovered');if(evidence){evidence.x=this.body.position.x*40;evidence.y=this.body.position.z*40;}device?.position.copy(this.body.position).setY(0);}
+    this.pursuit?.step(dt,this.legacy,[]);
+    let officer:NPC|undefined,distance=Infinity;for(const n of this.npcs){if(!n.model.alive||!n.model.spawn.id.startsWith('police-'))continue;const d=Math.hypot(n.model.x-this.legacy.x,n.model.y-this.legacy.y);if(d<distance){officer=n;distance=d;}}
+    if(!officer)return;
+    if(distance<80){campaign.recoveredByPolice=true;campaign.carrying=false;this.world.grantFlag('cargo-recovered');return;}
+    this.recoveryRouteAge+=dt;if(this.recoveryRouteAge>.8){this.recoveryPath=this.navigation.path(officer.model,this.legacy);this.recoveryRouteAge=0;}
+    while(this.recoveryPath.length&&Math.hypot(this.recoveryPath[0].x-officer.model.x,this.recoveryPath[0].y-officer.model.y)<12)this.recoveryPath.shift();
+    const goal=this.recoveryPath[0];if(goal){const x=goal.x-officer.model.x,y=goal.y-officer.model.y,d=Math.hypot(x,y);this.navigation.move(officer.model,x/d*Math.min(d,140*dt),y/d*Math.min(d,140*dt));officer.model.vx=x/d*140;officer.model.vy=y/d*140;officer.model.angle=Math.atan2(y,x);}
   }
   private hackPad = (pad: number) => { if (!this.security.hack) return; this.security.submitHack(pad,this.legacy); this.session.update({ hack: this.security.hack.getSnapshot() }); this.syncGeometry(); this.publish(); };
   private hackRetry = () => { this.security.hack?.retry(); if (this.security.hack) this.session.update({ hack: this.security.hack.getSnapshot() }); };
@@ -290,9 +346,9 @@ export class RaidRuntime {
     this.legacy.x = this.body.position.x / METRES; this.legacy.y = this.body.position.z / METRES; this.syncGeometry();
     const mission = this.session.mission;
     if (this.notice !== this.field.message) { this.notice = this.field.message; this.noticeAge = 0; } else if (this.field.message && (this.noticeAge += dt) > 3) this.field.message = '';
-    if (this.legacy.x > 720 && this.legacy.y > 500) mission.event('compound-entered');
+    if (!this.campaign&&this.legacy.x > 720 && this.legacy.y > 500) mission.event('compound-entered');
     if (this.world.active.has('vault-gate') && this.legacy.x > 1010 && this.legacy.y < 410) mission.event('vault-sector-entered');
-    if (this.boss.state === 'DORMANT' && this.legacy.y < 410 && this.legacy.x > 1150 && mission.definition.boss.prerequisites.every(id => mission.completed.has(id))) {
+    if (!this.campaign&&this.boss.state === 'DORMANT' && this.legacy.y < 410 && this.legacy.x > 1150 && mission.definition.boss.prerequisites.every(id => mission.completed.has(id))) {
       this.boss.activate(this.session.getSnapshot().reducedMotion); this.lockdown.enabled = true; this.world.revision++; this.session.clearInput(); this.jump = false; this.pool.clear(); this.syncGeometry();
     }
     this.boss.step(dt,this.legacy,{
@@ -302,6 +358,8 @@ export class RaidRuntime {
     });
     if (this.boss.state === 'INTRO') { this.controller.stop(); return; }
     const command = this.session.input.read(this.command);
+    const throttle=-command.y,steer=command.x;
+    if(this.vehicles?.current){command.fire=false;command.dodge=false;command.aiming=false;}
     this.touchAim.x = command.aimX; this.touchAim.y = command.aimY;
     // Aim uses the latest unshaken render camera. Updating the follow rig in
     // every fixed substep AND again in render doubled its damping and jitter.
@@ -324,7 +382,15 @@ export class RaidRuntime {
     const x = this.body.position.x,z = this.body.position.z;
     const solids = [...this.solids,...this.occupants];
     const dodgeScale = dodgeMotionScale(this.controller.dodgeRemaining,dt);
-    moveKinematic(this.body,this.controller.vx * METRES * dt * dodgeScale,this.controller.vy * METRES * dt * dodgeScale,dt,solids,this.jump && this.controller.dodgeRemaining <= 0,this.jumpHeld); this.jump = false;
+    if(this.vehicles?.current){this.vehicles.step(dt,{throttle:throttle||this.drivingInput.throttle,steer:steer||this.drivingInput.steer,brake:this.drivingInput.brake||command.dodge},this.solids,this.body.position);this.body.grounded=true;this.body.vertical=0;this.controller.stop();}
+    else{this.vehicles?.step(dt,this.drivingInput,this.solids,this.body.position);moveKinematic(this.body,this.controller.vx * METRES * dt * dodgeScale,this.controller.vy * METRES * dt * dodgeScale,dt,solids,this.jump && this.controller.dodgeRemaining <= 0,this.jumpHeld,this.highJump);}
+    this.jump = false;this.highJump=false;
+    this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
+    this.vehicles?.scan(this.body.position,this.art.city?.traffic.active??28);
+    this.vehicleTargets.forEach((t,i)=>{t.team=this.vehicles?.cars[i]===this.vehicles?.current?'operative':'security';});
+    this.pursuit?.step(dt,this.legacy,this.npcs.filter(n=>n.model.spawn.id.startsWith('police-')).map(n=>({x:n.model.x,y:n.model.y,alive:n.model.alive})));
+    this.campaign?.step(dt,this.body.position,this.npcs.filter(n=>n.model.spawn.id.startsWith('site-guard-')&&n.model.alive).length);
+    if(this.campaign&&this.loadout.shots!==this.alertedShots){this.alertedShots=this.loadout.shots;this.pursuit?.alert();}
     const traveled = Math.hypot(this.body.position.x - x,this.body.position.z - z); this.distance += traveled / METRES;
     this.humanoidFrame.vx = (this.body.position.x - x) / dt; this.humanoidFrame.vz = (this.body.position.z - z) / dt;
     this.combatAudio.walk(traveled,this.body.grounded && this.controller.dodgeRemaining <= 0,this.controller.sprinting);
@@ -336,11 +402,12 @@ export class RaidRuntime {
     for (const n of this.npcs) {
       if (this.security.alarmRemaining > 0) n.model.alarm(this.security.alarmSerial,this.security.alarmPosition);
       n.model.step(dt,{ player: this.legacy,alive: this.controller.health > 0,permitted: nearest.includes(n) },(enemy,angle) => this.shootSecurity(enemy.spawn.id,enemy.x,enemy.y,angle,enemy.config.damage));
+      for(const solid of this.art.city?.traffic.colliders??[]){if(!solid.enabled)continue;const hit=horizontalContact(n.model.x*METRES,n.model.y*METRES,.36,solid);if(hit){n.model.x+=hit.x*hit.depth/METRES;n.model.y+=hit.z*hit.depth/METRES;}}
       this.setBox(n.target.box,point3(n.model.x,n.model.y),.36,1.8); n.collider.enabled = n.model.alive;
     }
     this.setBox(this.bossBox,point3(this.boss.x,this.boss.y),.55,2.7); this.occupants[this.occupants.length - 1].enabled = this.boss.active;
     if (this.throwRelease >= 0) { this.throwRelease -= dt; if (this.throwRelease <= 0) { if (this.controller.health > 0) this.field.throw(this.body.position,this.aim,true); this.throwRelease = -1; } }
-    this.field.step(dt,this.solids,this.targets,(p,radius) => { const s = this.spatial(p); this.effects?.blast(p,radius); this.art.city?.threat(p);this.combatAudio.blast(s.distance,s.pan); });
+    this.field.step(dt,this.solids,this.targets.filter(t=>!t.id.startsWith('vehicle-')),(p,radius) => { const s = this.spatial(p); this.effects?.blast(p,radius,this.solids);this.vehicles?.blast(p,radius);this.pursuit?.alert(); this.art.city?.threat(p);this.combatAudio.blast(s.distance,s.pan); });
     const previousReload = this.weapon.reloadRemaining,empty = this.weapon.ammo === 0;
     const fired = this.loadout.step(dt,command.fire,command.reload,this.controller.canAttack && !interaction,this.session.input.touchAiming);
     if (previousReload === 0 && this.weapon.reloadRemaining > 0) { if (empty && command.fire) this.combatAudio.empty(); this.combatAudio.reload(); }
@@ -367,7 +434,7 @@ export class RaidRuntime {
       this.effects?.muzzle(this.origin); this.combatAudio.shot(w.model as 'rifle' | 'pistol' | 'smg'); this.npcs.forEach(n => { n.model.hear(this.legacy); n.model.threat(this.legacy,{x:this.direction.x,y:this.direction.z}); });
       }
     }
-    this.pool.step(dt,this.solids,this.targets,(p,damage,owner) => { const s = this.spatial(p); this.effects?.impact(p,damage > 0); this.combatAudio.hit(damage > 0,s.distance,s.pan); if (damage > 0 && owner === 'operative') { this.hits++; this.hitSerial++; } },bullet => this.effects?.trace(bullet));
+    this.pool.step(dt,this.solids.filter(s=>!s.id.startsWith('city-traffic-')||(this.vehicles?.cars.find(c=>'city-traffic-'+c.id===s.id)?.health??0)<=0),this.targets,(p,damage,owner) => { const s = this.spatial(p); this.effects?.impact(p,damage > 0); this.combatAudio.hit(damage > 0,s.distance,s.pan); if (damage > 0 && owner === 'operative') { this.hits++; this.hitSerial++; } },bullet => this.effects?.trace(bullet));
     this.elapsed += dt; mission.sample(this.loadout.shots,this.hits,this.npcs.filter(n => !n.model.alive).length); mission.step(dt);
     if (fired || previousReload !== this.weapon.reloadRemaining && (!previousReload || !this.weapon.reloadRemaining)) this.publish();
     if (mission.state !== 'ACTIVE') { this.pool.clear(); this.session.clearInput(); this.publish(); }
@@ -412,14 +479,15 @@ export class RaidRuntime {
     if (active) this.effects?.age(dt);
     let simulationDelta = 0;
     if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator >= 1/60 && steps++ < 6) { this.step(1/60); simulationDelta += 1/60; this.accumulator -= 1/60; if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
-    const finished = this.session.getSnapshot().status === 'finished',settling = finished && (this.npcs.some(n => n.presentation?.dead && n.presentation.deathAge < 10) || (this.bossPresentation?.dead && this.bossPresentation.deathAge < 10) || this.controller.health <= 0);
+    const finished = this.session.getSnapshot().status === 'finished',settling = finished && (this.npcs.some(n => n.presentation?.dead && n.presentation.deathAge < 10) || (this.bossPresentation?.dead && this.bossPresentation.deathAge < 10) || this.campaign?.carrying&&this.recoveryAge<15);
+    if(finished&&this.session.mission.state==='FAILED')this.recoverEvidence(dt);
     if (!active && !settling && !this.needsDraw) return;
     if(active){const scale=this.resolution.sample(wallDt);if(scale!==undefined)this.dpr=scale;}
     const presented=this.surface.present(this.host.clientWidth,this.host.clientHeight,this.dpr,()=>{
     const animationDelta = finished ? dt : simulationDelta;
     this.renderPosition.copy(active?this.previousPosition:this.body.position);if(active)this.renderPosition.lerp(this.body.position,T.MathUtils.clamp(this.accumulator*60,0,1));
-    this.rig.update(this.renderPosition,this.solids,dt,this.session.getSnapshot().reducedMotion,0,{x:this.command.x,y:this.command.y});this.updateAim();this.player.root.position.copy(this.renderPosition);
-    this.player.root.visible = this.rig.pov !== 'first'; if (finished && this.controller.health <= 0) this.animatePlayer(dt); else this.gun?.pose(this.aim,this.humanoidFrame);
+    this.rig.update(this.renderPosition,this.vehicles?.current?this.solids.filter(s=>s.id!=='city-traffic-'+this.vehicles!.current!.id):this.solids,dt,this.session.getSnapshot().reducedMotion,0,{x:this.command.x,y:this.command.y});this.updateAim();this.player.root.position.copy(this.renderPosition);
+    this.player.root.visible = this.rig.pov !== 'first'&&!this.vehicles?.current; if (finished && this.controller.health <= 0) this.animatePlayer(dt); else this.gun?.pose(this.aim,this.humanoidFrame);
 
     this.flash?.update(animationDelta); this.viewFlash?.update(animationDelta); this.securityFlashes.forEach(f => f.update(animationDelta));
     for (const n of this.npcs) {
@@ -454,16 +522,18 @@ export class RaidRuntime {
       });
     }
     this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.body.position,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
+    if(this.witnessArt&&this.witnessPose&&this.campaign){const w=this.witnessPose,p=this.campaign.witness;w.yaw=Math.atan2(p.x*.025-w.x,p.y*.025-w.z);w.x=p.x*.025;w.z=p.y*.025;w.moving=this.campaign.witnessMoving;w.motion=w.moving?1.5:0;this.witnessArt.draw([w],this.campaign.witnessBoarded?0:1,this.elapsed,this.rig.camera);}
+    if(active){this.burnClock+=dt;if(this.burnClock>.18){this.burnClock=0;for(const car of this.vehicles?.cars??[])if((car.health??200)<35&&Math.hypot(car.x-this.body.position.x,car.z-this.body.position.z)<45)this.effects?.burn(new T.Vector3(car.x,1.05,car.z));for(const [id,time]of this.burning){const npc=this.npcs.find(n=>n.model.spawn.id===id);if(npc)this.effects?.burn(point3(npc.model.x,npc.model.y,.75));if(time<=0)this.burning.delete(id);else this.burning.set(id,time-.18);}}}
     // Small render-only recoil cannot change the ray used for authoritative
     // shots. The rig restores the camera before the next aim sample.
     const settings = this.session.getSnapshot().settings;
     const feedbackEnabled=settings.cameraShake&&!this.session.getSnapshot().reducedMotion&&['first','third'].includes(this.rig.pov);
     this.cameraFeedback.update(active?dt:0,feedbackEnabled,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz),this.rig.ads);if(feedbackEnabled)this.cameraFeedback.apply(this.rig.camera);
-    this.shadowClock+=active?dt:0;const shadowPeriod=this.quality==='high'?0:this.quality==='balanced'?1/20:1/12;
+    this.shadowClock+=active?dt:0;const shadowPeriod=this.quality==='high'?1/30:this.quality==='balanced'?1/20:1/12;
     if(this.shadowClock>=shadowPeriod||this.needsDraw){this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;}
     if(active&&this.art.city){const cars=this.art.city.traffic.simulation.cars.slice(0,this.art.city.traffic.active),nearest=cars.reduce((a,b)=>Math.hypot(a.x-this.body.position.x,a.z-this.body.position.z)<Math.hypot(b.x-this.body.position.x,b.z-this.body.position.z)?a:b);this.session.cityAudio?.update(this.elapsed,nearest.speed,Math.hypot(nearest.x-this.body.position.x,nearest.z-this.body.position.z),nearest.stopped);}
     this.renderer.info.reset();this.post.render(this.rig.camera,this.elapsed);
-    if (this.rig.pov === 'first' && this.viewGun) {
+    if (this.rig.pov === 'first' && this.viewGun&&!this.vehicles?.current) {
       this.viewCamera.aspect = this.rig.perspective.aspect; this.viewCamera.fov = this.rig.perspective.fov; this.viewCamera.updateProjectionMatrix();
       this.renderer.autoClear = false; this.renderer.clearDepth(); this.renderer.render(this.viewScene,this.viewCamera); this.renderer.autoClear = true;
     }
@@ -486,13 +556,13 @@ export class RaidRuntime {
   }
   private publish() {
     if (this.disposed) return;
-    const model = this.security,nearby = this.world.nearest(this.legacy),pickup = this.field.nearby(this.body.position,this.solids),period = model.definition.sequence.off + model.definition.sequence.warning + model.definition.sequence.open;
+    const active=this.session.mission.definition.objectives.find(o=>o.id===this.session.mission.snapshot().activeId),candidate=active&&this.world.level.objects.find(o=>o.id===active.event);const model = this.security,nearby = this.campaign?(candidate&&this.world.reachable(candidate,this.legacy)?candidate:null):this.world.nearest(this.legacy),pickup = this.campaign&&nearby?undefined:this.field.nearby(this.body.position,this.solids),period = model.definition.sequence.off + model.definition.sequence.warning + model.definition.sequence.open;
     const supply = pickup?.supply,pickupName = supply?.kind === 'weapon' ? EQUIPMENT[supply.weapon].name : supply?.kind === 'health' ? `FIELD MEDKIT / +${supply.amount} HP` : 'GRENADE CACHE';
     this.session.batch(() => {
       this.session.update({ soldier: { ...this.loadout.snapshot(),bombs: this.field.quantity,canThrow: this.field.quantity > 0 && !this.loadout.busy && this.weapon.reloadRemaining === 0,notice: this.field.message,replacement: this.field.pending,blocked: this.session.blocked } });
       this.session.update({ elapsed: this.elapsed,player: { ...this.legacy },velocity: { x: this.controller.vx,y: this.controller.vy },health: this.controller.health,maxHealth: this.controller.maxHealth,animation: this.controller.animations.state,facing: this.controller.facing,dodgeCooldown: this.controller.dodgeCooldown,dodgeSerial: this.controller.dodgeSerial,sprinting: this.controller.sprinting,aiming: this.controller.aiming,aimAngle: this.controller.aimAngle,collisions: this.collisions,distance: this.distance,
         weapon: { name: this.loadout.definition.name,ammo: this.loadout.definition.kind === 'melee' ? null : this.weapon.ammo,capacity: this.weapon.definition.magazine,reloading: this.weapon.reloadRemaining,reserve: this.weapon.reserve },combat: { shots: this.loadout.shots,hits: this.hits,kills: this.npcs.filter(n => !n.model.alive).length,projectiles: this.pool.entries.filter(b => b.active).length,targetHealth: [],hitSerial: this.hitSerial },
-        nearby: pickup ? { id: pickup.id,name: pickupName,description: supply?.kind === 'health' && this.controller.health === this.controller.maxHealth ? 'Health Full.' : 'INTERACT TO COLLECT',active: false } : nearby ? { id: nearby.id,name: nearby.name,description: this.world.description(nearby),active: this.world.active.has(nearby.id) } : null,
+        nearby: pickup ? { id: pickup.id,name: pickupName,description: supply?.kind === 'health' && this.controller.health === this.controller.maxHealth ? 'Health Full.' : 'INTERACT TO COLLECT',active: false } : nearby ? { id: nearby.id,name: nearby.name,description: this.campaign?'INTERACT / '+nearby.name:this.world.description(nearby),active: this.world.active.has(nearby.id) } : null,
         world: { revision: this.world.revision,openDoors: ['transit-door','vault-gate'].filter(id => this.world.active.has(id)),core: this.world.active.has('training-core'),extracted: this.world.extracted,rangeActive: this.world.active.has('auxiliary-console'),message: 'PRACTICE RAID / No account or reward writes' },
         security: { alarm: model.alarmRemaining > 0,seconds: model.alarmRemaining,source: model.alarmSource,serial: model.alarmSerial,phase: model.sequencePhase,window: model.sequencePhase === 'ACTIVE' ? period - model.clock % period : model.definition.sequence.off + model.definition.sequence.warning - model.clock % period,linkRemaining: model.sequenceRemaining,linked: this.world.active.has('timed-access'),relays: Number(this.world.active.has('relay-a')) + Number(this.world.active.has('relay-b')),hacks: model.hacksCompleted,failures: model.sequenceFailures,disabled: [...model.disabled.keys()].filter(id => model.disabledFor(id) > 0),message: model.message },
         enemies: this.npcs.map(n => ({ id: n.model.spawn.id,type: n.model.spawn.type,state: n.model.state,x: n.model.x,y: n.model.y,health: n.model.health.current,maximum: n.model.health.maximum,detection: n.model.detection,shots: n.model.shots,deaths: n.model.deaths,windup: n.model.windup })),boss: this.boss.snapshot(),metrics: { ...this.session.getSnapshot().metrics,fps: this.fps,p95FrameMs: this.p95,renderScale: this.dpr } });
@@ -500,14 +570,15 @@ export class RaidRuntime {
     });
     const projected = this.npcs.map(n => { const point = point3(n.model.x,n.model.y,1).project(this.rig.camera); return { id: n.model.spawn.id,x: (point.x + 1) / 2 * this.host.clientWidth,y: (1 - point.y) / 2 * this.host.clientHeight,visible: n.actor.root.visible && n.model.alive && Math.abs(point.x) < 1 && Math.abs(point.y) < 1 && point.z < 1 }; });
     const h = this.humanoid;
-    this.diagnostics({ environment: this.art.city?.stats,combat: this.combatSnapshot(),pov: this.rig.pov,zoom: this.rig.zoom[this.rig.pov],fps: this.fps,frameMs: this.p95,calls: this.renderer.info.render.calls,triangles: this.renderer.info.render.triangles,geometries: this.renderer.info.memory.geometries,textures: this.renderer.info.memory.textures,dpr: this.dpr,quality: this.quality,x: this.body.position.x,y: this.body.position.y,z: this.body.position.z,grounded: this.body.grounded,enemies: this.npcs.length,runId: this.session.mission.runId,targets: projected,character: h ? { motion: h.motion,clip: h.clipName,history: [...h.history],transition: h.transition,speed: h.speed,time: h.actionTime,yaw: h.yaw,actions: h.activeActions,leg: this.player.body!.getObjectByName('thigh_l')!.quaternion.toArray(),socket: h.socketPosition(this.socketPoint).toArray(),visible: this.player.root.visible,mixerTime: h.mixer.time } : undefined });
+    const snapshot=this.session.mission.snapshot(),goal=this.campaign?.destination??snapshot.objectives.find(o=>o.id===snapshot.activeId)?.marker;this.gps?.update(.1,this.legacy,goal,Boolean(this.vehicles?.current));
+    this.diagnostics({ navigation:this.gps?{route:this.gps.route,distance:this.gps.distance,goal:this.gps.goal}:undefined,vehicle:this.vehicles?.snapshot,pursuit:this.pursuit?.snapshot,campaign:this.campaign?.snapshot,environment: this.art.city?.stats,combat: this.combatSnapshot(),pov: this.rig.pov,zoom: this.rig.zoom[this.rig.pov],fps: this.fps,frameMs: this.p95,calls: this.renderer.info.render.calls,triangles: this.renderer.info.render.triangles,geometries: this.renderer.info.memory.geometries,textures: this.renderer.info.memory.textures,dpr: this.dpr,quality: this.quality,x: this.body.position.x,y: this.body.position.y,z: this.body.position.z,grounded: this.body.grounded,enemies: this.npcs.length,runId: this.session.mission.runId,targets: projected,character: h ? { motion: h.motion,clip: h.clipName,history: [...h.history],transition: h.transition,speed: h.speed,time: h.actionTime,yaw: h.yaw,actions: h.activeActions,leg: this.player.body!.getObjectByName('thigh_l')!.quaternion.toArray(),socket: h.socketPosition(this.socketPoint).toArray(),visible: this.player.root.visible,mixerTime: h.mixer.time } : undefined });
   }
   dispose() {
     if (this.disposed) return; this.disposed = true;this.firstFrameReady?.();this.firstFrameReady=undefined;this.cameraFeedback.restore();cancelAnimationFrame(this.raf); this.resizeObserver?.disconnect(); this.unsubscribe?.(); this.input?.dispose(); this.removers.forEach(remove => remove()); this.audio?.dispose(); this.pool.clear();
     this.flash?.dispose(); this.viewFlash?.dispose(); this.securityFlashes.forEach(f => f.dispose()); this.fieldArt?.dispose(); this.combatAudio?.dispose(); this.effects?.dispose(); this.bossPresentation?.dispose(); this.npcs.forEach(n => n.presentation?.dispose());
     this.humanoid?.dispose(); this.viewGun?.dispose(); disposeActor(this.bossActor); this.npcs.forEach(n => disposeActor(n.actor));
     [this.bossActor,...this.npcs.map(n => n.actor)].forEach(actor => { actor.muzzle.geometry.dispose(); (actor.muzzle.material as T.Material).dispose(); });
-    this.art?.dispose();this.atmosphere?.dispose();this.post?.dispose(); this.geometry.forEach(g => g.dispose()); this.materials.forEach(m => m.dispose());
+    this.assignmentSite?.dispose();this.witnessArt?.dispose();this.art?.dispose();this.atmosphere?.dispose();this.post?.dispose(); this.geometry.forEach(g => g.dispose()); this.materials.forEach(m => m.dispose());
     for (const id of ['rifle','smg','pistol'] as const) this.assets.models.get(id)?.scene.traverse(node => { if (node instanceof T.Mesh) for (const material of Array.isArray(node.material) ? node.material : [node.material]) if (material instanceof T.MeshStandardMaterial) material.envMap = null; });
     this.assets.dispose(); this.weaponEnvironment?.dispose(); this.scene.clear(); this.viewScene.clear(); this.renderer.dispose(); this.renderer.forceContextLoss(); this.renderer.domElement.remove(); this.session.dispose();
   }

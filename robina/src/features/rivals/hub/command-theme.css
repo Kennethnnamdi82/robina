@@ -1,0 +1,18 @@
+/* RIVALS command language: restrained charcoal, white and neutral steel. */
+.rh-app{--rh-gold:#f0f2ed;--rh-ink:#0b0d0e;--rh-muted:#a1a7a7;--rh-line:#ffffff21;--rh-panel:#141719;background:#0b0d0e;color:#e7eae7;font-family:Arial,Helvetica,sans-serif}
+.rh-app h1,.rh-app h2,.rh-app h3,.rh-app .rh-brand strong{font-family:'Arial Narrow',Arial,Helvetica,sans-serif;font-style:normal;font-weight:800;letter-spacing:-.035em}
+.rh-app h1 em{font-style:normal;color:#f2f3ef}.rh-app h1>span,.rh-app .rh-eyebrow,.rh-app .rh-text-link,.rh-app .rh-back,.rh-app .rh-brand small{color:#b9c1bf}
+.rh-app .rh-primary{background:#f0f2ed;color:#121516;border:1px solid #f0f2ed;box-shadow:none;border-radius:2px}.rh-app .rh-primary:hover{background:#d4ded8}
+.rh-app .rh-crest,.rh-app .rh-mini-emblem,.rh-app .rh-large-emblem,.rh-app .rh-table-emblem{background:#262d2c;color:#e2e8e3;border-color:#69716d;box-shadow:none}
+.rh-app .rh-topbar,.rh-app .rh-subnav,.rh-app .rh-panel,.rh-app .rh-mission-card,.rh-app .rh-stat,.rh-app .rh-setting-group,.rh-app .rh-rank-hero,.rh-app .rh-dossier-banner{background:#131719;border-color:#ffffff20;border-radius:2px;box-shadow:none}
+.rh-app .rh-lobby{border-radius:2px;border-color:#ffffff28}.rh-app .rh-lobby-art,.rh-briefing-art{filter:saturate(.22);opacity:.55}.rh-app .rh-lobby-grid{display:none}.rh-app .rh-lobby{background:#0e1113}.rh-app .rh-insertion{border-color:#c8d2cb;background:#0d1113e8}
+.rh-app .rh-main-actions>a:not(.rh-primary),.rh-app .rh-main-actions>button{border-radius:0;border-bottom:1px solid #ffffff12}.rh-app .rh-main-actions>a:hover{background:#ffffff0c;color:#fff}
+.rh-app .rh-subnav a.active,.rh-app .rh-tabs button[aria-pressed=true],.rh-app button[aria-pressed=true]{color:#fff;border-color:#d3ded7;background:#ffffff0b;box-shadow:inset 0 -2px #d3ded7}
+.rh-app .rh-secondary,.rh-app .rh-quiet,.rh-app .rh-sort select,.rh-app input,.rh-app select{border-radius:2px;background:#171c1e;color:#eceeeb;border-color:#5b6561;box-shadow:none}
+.rh-app .rh-podium{display:none}.rh-app .rh-board{background:#101416}.rh-app .rh-board th{background:#202628;color:#b9c4bf;font-size:10px;letter-spacing:.12em}.rh-app .rh-board td{height:66px;border-bottom:1px solid #ffffff12}.rh-app .rh-board tbody tr:first-child{background:#ffffff0a}.rh-app .rh-board tbody tr:hover{background:#ffffff08}
+.rh-app .rh-mission-card[data-locked=true]{opacity:.65}.rh-app .rh-mission-visual{filter:saturate(.1)}.rh-app .rh-briefing-objectives>span{line-height:1.6}.rh-app .rh-briefing h1{font-size:clamp(38px,8vw,76px)}
+.rh-app .rh-preview-notice{background:#1c2221;border:1px solid #6d7771;color:#d6ded8}.rh-app .rh-preview-notice>span{color:#fff}.rh-app .rh-rank-ladder article.current{border-color:#d9e4dc;background:#1e2722}.rh-app .rh-rank-hero progress{accent-color:#d9e4dc}
+.rh-app *:focus-visible{outline:2px solid #f0f4ee;outline-offset:4px}
+.rh-app .rh-mission-grid{display:block}.rh-app .rh-mission-card{display:grid;grid-template-columns:180px minmax(0,1fr);margin:0;border:0;border-bottom:1px solid #ffffff20;border-radius:0;background:#111618}.rh-app .rh-mission-visual{min-height:100%;height:auto}.rh-app .rh-mission-body{padding:24px 28px}.rh-app .rh-mission-body h2{font-size:26px}.rh-app .rh-mission-body>p{max-width:800px}.rh-app .rh-mission-body .rh-secondary{max-width:340px}.rh-app .rh-reticle-art{display:none}
+@media(max-width:640px){.rh-app .rh-mission-card{grid-template-columns:1fr}.rh-app .rh-mission-visual{display:none}.rh-app .rh-mission-body{padding:24px 18px}.rh-app .rh-mission-body h2{font-size:24px}}
+.rh-app .rh-mission-card .rh-secondary{background:#18201d;color:#e0eae1;border-color:#6b7970}.rh-app .rh-lobby-bottom svg,.rh-app .rh-empty>svg{color:#bcc9bf}

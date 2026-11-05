@@ -60,7 +60,8 @@ describe('combat presentation with unchanged simulation rules', () => {
   it('bounds effects during sustained fire and expires all presentation objects', () => {
     const effects = new CombatEffects({ flash: new Texture(), smoke: new Texture(), blast: new Texture() }); effects.setQuality('low');
     for (let i = 0; i < 150; i++) { effects.muzzle(new Vector3(i,1,0)); effects.impact(new Vector3(),false); }
-    expect(effects.snapshot().particles).toBeLessThanOrEqual(16); effects.age(1); expect(effects.snapshot().particles).toBe(0); expect(effects.root.children.length).toBe(88); effects.dispose(); expect(effects.root.children.length).toBe(0);
+    expect(effects.snapshot().particles).toBeLessThanOrEqual(16); effects.age(1); expect(effects.snapshot().particles).toBe(0); expect(effects.root.children.length).toBe(100); // 88 combat objects + 12 fixed scorch slots.
+    effects.blast(new Vector3(),7);effects.age(46);expect(effects.root.children.every(n=>!n.visible)).toBe(true);effects.dispose(); expect(effects.root.children.length).toBe(0);
   });
   it('settles all four actual supplied security death clips without a raised torso', async () => {
     // Pose-only loader: texture decoding/rendering is tested in Chrome. Actual

@@ -98,6 +98,7 @@ export class WorldArt {
     for (const [id,mesh] of this.doors) mesh.visible = this.solids.find(s => s.id === id)?.enabled ?? false;
     for (const [id,root] of this.devices) {
       const object = this.state.level.objects.find(o => o.id === id)!;
+      root.position.set(object.x*METRES,0,object.y*METRES);
       if (object.kind === 'collectible') { root.visible = !this.state.active.has(id); }
     }
   }

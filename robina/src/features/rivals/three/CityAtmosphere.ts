@@ -42,7 +42,7 @@ export class CityAtmosphere {
     this.renderer.toneMappingExposure=p.exposure;this.material.uniforms.uNight.value=p.night;this.material.uniforms.uDay.value=preset==='daylight'?1:0;this.material.uniforms.uElevation.value=p.elevation;
     this.scene.environmentIntensity=preset==='night'?.26:preset==='daylight'?.8:1;
   }
-  quality(quality:QualityId){const size=quality==='high'?2048:quality==='balanced'?768:512;if(this.sun.shadow.mapSize.x!==size){this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.sun.shadow.mapSize.set(size,size);}this.sun.shadow.normalBias=.025;}
+  quality(quality:QualityId){const size=quality==='high'?(navigator.maxTouchPoints>0?1024:2048):quality==='balanced'?768:512;if(this.sun.shadow.mapSize.x!==size){this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.sun.shadow.mapSize.set(size,size);}this.sun.shadow.normalBias=.025;}
   follow(player:T.Vector3,pov:POV='third') {
     // An orthographic eye is deliberately outside the district. Its distance
     // is not the viewer's distance to the street; using it for exponential fog

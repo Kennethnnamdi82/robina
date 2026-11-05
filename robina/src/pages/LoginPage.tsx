@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import { Check, ChevronRight, Loader2, ShieldCheck, Wallet } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { closeWalletModal, openWalletModal } from "@/lib/wagmi";
+import './login-command.css';
 
 function GoogleIcon() {
   return (
@@ -57,14 +57,12 @@ export default function LoginPage() {
     signInWithWallet,
   } = useAuth();
   const { address, chainId, isConnected } = useAccount();
-  const navigate = useNavigate();
   const [localError, setLocalError] = useState<string | null>(null);
   const pendingEvmAuthentication = useRef(false);
   const signingConnectedWallet = useRef(false);
 
-  useEffect(() => {
-    if (isLoggedIn) navigate("/", { replace: true });
-  }, [isLoggedIn, navigate]);
+  // AppRoutes swaps the login for the game in place. Do not navigate to '/'
+  // here: it discards intended mission links and races OAuth/session restore.
 
   useEffect(() => {
     if (!pendingEvmAuthentication.current || signingConnectedWallet.current || !isConnected || !address || !chainId) return;
@@ -113,7 +111,7 @@ export default function LoginPage() {
 
   return (
     <main
-      className="user-experience relative grid min-h-screen place-items-center overflow-hidden bg-background px-5 py-10 text-foreground"
+      className="rivals-login user-experience relative grid min-h-screen place-items-center overflow-hidden bg-background px-5 py-10 text-foreground"
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[130px]" />

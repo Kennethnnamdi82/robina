@@ -13,11 +13,13 @@ function EquipmentGlyph({ id }: { id: string }) {
 export function SoldierControls({ session,runtime,pov }: { session: SandboxSession; runtime: RaidRuntime | undefined; pov: string }) {
   const state = useArenaValue(session,s => s.soldier),status = useArenaValue(session,s => s.status),cooldown = useArenaValue(session,s => s.dodgeCooldown),nearby = useArenaValue(session,s => s.nearby),sprint = useArenaValue(session,s => s.mobileSprint);
   const disabled = status !== 'playing' || Boolean(state?.blocked);
+  if(runtime?.vehicles?.current)return <DrivingControls runtime={runtime} disabled={disabled}/>;
   return <div className="rv-controls r3-soldier-controls" data-mobile="auto">
     <TouchStick kind="move" disabled={disabled} onMove={session.setMovement}/>
     <TouchStick kind="aim" disabled={disabled} onMove={session.setAim} onPress={held => session.input.setFire(held && session.canControl())}/>
     <button className="rv-sprint-control rv-touch-only" disabled={disabled} aria-label="Toggle sprint" aria-pressed={sprint} {...press(session.toggleSprint)}><Wind size={19}/><span>{sprint ? 'SPRINT ON' : 'SPRINT'}</span></button>
     <div className="rv-action-buttons">
+      <button className="r3-reload" aria-label="Reload weapon" disabled={disabled||Boolean(state?.slots[state.active]?.kind==='melee')} {...press(session.reload)}><span>↻</span><span>RELOAD</span></button>
       <button className="rv-dodge-control" aria-label="Dodge" disabled={disabled || cooldown > .01} {...press(session.dodge)}><Zap size={20}/><span>{cooldown > .01 ? cooldown.toFixed(1) + 's' : 'EVADE'}</span></button>
       <button className="rv-interact-control" aria-label="Inspect nearby equipment" disabled={disabled || !nearby} {...press(session.interact)}><Crosshair size={19}/><span>COLLECT</span></button>
       <button className="rv-fire-control" aria-label="Fire weapon" disabled={disabled} onClick={e => { if (e.detail === 0) { session.input.setFire(true); session.input.setFire(false); } }} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); session.input.setFire(true); }} onPointerUp={() => session.input.setFire(false)} onPointerCancel={() => session.input.setFire(false)} onLostPointerCapture={() => session.input.setFire(false)}><Crosshair size={22}/><span>FIRE</span></button>
@@ -26,6 +28,12 @@ export function SoldierControls({ session,runtime,pov }: { session: SandboxSessi
       {(pov === 'first' || pov === 'third') && <button className="r3-ads" aria-label="Aim down sights" disabled={disabled || state?.slots[state.active]?.kind === 'melee'} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); if (runtime) runtime.rig.ads = true; }} onPointerUp={() => { if (runtime) runtime.rig.ads = false; }} onPointerCancel={() => { if (runtime) runtime.rig.ads = false; }} onLostPointerCapture={() => { if (runtime) runtime.rig.ads = false; }}><Crosshair size={19}/><span>SIGHTS</span></button>}
     </div>
   </div>;
+}
+function DrivingControls({runtime,disabled}:{runtime:RaidRuntime;disabled:boolean}){
+  const vehicle=runtime.vehicles!.snapshot;
+  const release=(value:Parameters<RaidRuntime['setDriving']>[0])=>runtime.setDriving(Object.fromEntries(Object.keys(value).map(key=>[key,key==='brake'?false:0])));
+  const held=(value:Parameters<RaidRuntime['setDriving']>[0])=>({onPointerDown:(e:React.PointerEvent<HTMLButtonElement>)=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);runtime.setDriving(value);},onPointerUp:()=>release(value),onPointerCancel:()=>release(value),onLostPointerCapture:()=>release(value)});
+  return <div className="r3-driving-controls" aria-label="Driving controls"><div className="r3-steering"><button aria-label="Steer left" disabled={disabled} {...held({steer:-1})}>←</button><button aria-label="Steer right" disabled={disabled} {...held({steer:1})}>→</button></div><output className="r3-speed">{vehicle.speed}<small>KM/H · {vehicle.kind?.toUpperCase()} · {vehicle.health} HP</small></output><div className="r3-pedals"><button aria-label="Reverse vehicle" disabled={disabled} {...held({throttle:-1})}>REVERSE</button><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button><button aria-label="Accelerate vehicle" disabled={disabled} {...held({throttle:1})}>DRIVE ↑</button></div><button className="r3-exit-car" disabled={disabled} onClick={runtime.vehicleInteract}>EXIT VEHICLE · F</button></div>;
 }
 export function SoldierDock({ session,runtime }: { session: SandboxSession; runtime: RaidRuntime | undefined }) {
   const soldier = useArenaValue(session,s => s.soldier),weapon = useArenaValue(session,s => s.weapon),security = useArenaValue(session,s => s.security);
