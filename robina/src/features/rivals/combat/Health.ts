@@ -1,4 +1,4 @@
-export type Team = 'operative' | 'security';
+export type Team = 'operative' | 'security' | 'civilian';
 export interface DamageEvent {
   id: string; sourceId: string; team: Team; amount: number; angle: number;
 }

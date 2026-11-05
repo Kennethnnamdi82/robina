@@ -1,6 +1,6 @@
 import { Health, type DamageEvent } from '../combat/Health';
 import { clearSight, NavigationGrid, type Point } from './navigation';
-import { AI_RULES, ENEMY_TYPES, type EnemySpawn, type EnemyState } from './definitions';
+import { AI_RULES, ENEMY_TYPES, type EnemySpawn, type EnemyState, type EnemyConfig } from './definitions';
 export interface Perception { player: Point; alive: boolean; permitted: boolean; near?: boolean }
 export class EnemyController implements Point {
   readonly config; readonly health: Health; readonly home: Point;
@@ -10,8 +10,8 @@ export class EnemyController implements Point {
   private decision = 0; private repath = 0; private cooldown = 1; private unseen = 0; private stuck = 0; private alarmSeen = 0;
   private goal: Point | null = null; private lastX: number; private lastY: number;
   private returningHome = false;
-  constructor(readonly spawn: EnemySpawn, private navigation: NavigationGrid, stagger = 0) {
-    this.config = ENEMY_TYPES[spawn.type]; this.health = new Health(this.config.health, .12);
+  constructor(readonly spawn: EnemySpawn, private navigation: NavigationGrid, stagger = 0,profile?:Partial<EnemyConfig>) {
+    this.config = profile?{...ENEMY_TYPES[spawn.type],...profile}:ENEMY_TYPES[spawn.type]; this.health = new Health(this.config.health, .12);
     this.x = this.lastX = spawn.x; this.y = this.lastY = spawn.y; this.angle = spawn.angle; this.home = { x: spawn.x, y: spawn.y }; this.decision = stagger;
   }
   get alive() { return this.health.current > 0; }

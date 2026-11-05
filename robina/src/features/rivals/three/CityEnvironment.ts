@@ -25,6 +25,8 @@ export class CityEnvironment {
   private grounding:CityGrounding;private roadDetail:CityRoadDetail;
   private nightLights:T.PointLight[]=[];
   private night={value:0};
+  private pedestrianObstacles:Solid3D[]=[];private nightClock=1;private architectureFingerprint='';
+  private lampPositions=STREET_CENTRES.flatMap(x=>STREET_CENTRES.map(z=>({x:x-5.4,z:z-6.1})));
   lighting:CityWeather='golden';
   constructor(readonly assets:CityAssets,readonly solids:Solid3D[],grassAlpha:T.Texture,readonly venue=0,readonly seed=0) {
     this.plan=cityPlan(venue,seed);this.root.name=this.plan.label;this.root.add(this.detail);this.geometries.add(this.box);
@@ -66,7 +68,7 @@ export class CityEnvironment {
     const closures:Placement[]=[];for(const centre of STREET_CENTRES)for(const edge of [.8,95.2]){closures.push({x:centre,z:edge,width:8.6,height:1.25,depth:1.4});closures.push({x:edge,z:centre,width:8.6,height:1.25,depth:1.4,yaw:Math.PI/2});}
     // Weathered concrete barricades replace oversized red/white toy barriers.
     for(const p of closures){this.cube({...p,width:8.6,height:.78,depth:.48},concrete);for(const side of [-1,1])this.cube({...p,x:p.x+Math.cos(p.yaw??0)*side*3.1,z:p.z-Math.sin(p.yaw??0)*side*3.1,y:.78,width:.15,height:.55,depth:.16},metal);}
-    this.traffic=new CityTrafficArt(assets,seed);this.crowd=new CityCrowd(seed,assets.humanoid!);this.root.add(this.traffic.root,this.crowd.root);solids.push(...this.traffic.colliders);
+    this.pedestrianObstacles=solids.filter(s=>!s.id.startsWith('city-traffic'));this.traffic=new CityTrafficArt(assets,seed);this.crowd=new CityCrowd(seed,assets.humanoid!);this.root.add(this.traffic.root,this.crowd.root);solids.push(...this.traffic.colliders);
     for(let i=0;i<3;i++){const light=new T.PointLight(0xffc184,180,22,2);this.nightLights.push(light);this.root.add(light);}
     this.flushBoxes();this.setLighting('golden');
   }
@@ -157,20 +159,20 @@ export class CityEnvironment {
     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=64;const c=canvas.getContext('2d')!;c.fillStyle=background;c.fillRect(0,0,512,64);c.fillStyle=color;c.fillRect(8,7,3,50);c.textAlign='center';c.textBaseline='middle';c.font='600 25px sans-serif';c.fillText(text,263,34,470);
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;this.textures.add(texture);const material=new T.MeshStandardMaterial({map:texture,emissiveMap:texture,emissive:0xffffff,emissiveIntensity:.32,roughness:.7});this.materials.add(material);const geometry=new T.PlaneGeometry(w,h);this.geometries.add(geometry);const mesh=new T.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.rotation.y=yaw;this.root.add(mesh);
   }
-  setQuality(quality:QualityId){this.quality=quality;const mobile=navigator.maxTouchPoints>0;this.architectureShadows.visible=quality!=='high'||mobile;for(const mesh of this.architecture)mesh.castShadow=quality==='high'&&!mobile&&!mesh.userData.citySkyline;this.assets.setQuality(quality);this.crowd.setQuality(quality);this.detail.visible=quality!=='low';this.traffic.active=quality==='low'?18:quality==='balanced'?24:28;this.crowd.active=quality==='low'?24:quality==='balanced'?36:48;if(this.grass)this.grass.count=quality==='low'?135:quality==='balanced'?324:540;}
+  setQuality(quality:QualityId){this.quality=quality;this.trees.setQuality(quality);const mobile=navigator.maxTouchPoints>0;this.architectureShadows.visible=quality!=='high'||mobile;for(const mesh of this.architecture)mesh.castShadow=quality==='high'&&!mobile&&!mesh.userData.citySkyline;this.assets.setQuality(quality);this.crowd.setQuality(quality);this.detail.visible=quality!=='low';this.traffic.active=quality==='low'?18:quality==='balanced'?24:28;this.crowd.active=quality==='low'?24:quality==='balanced'?36:48;if(this.grass)this.grass.count=quality==='low'?135:quality==='balanced'?324:540;}
   setLighting(lighting:CityWeather){this.lighting=lighting;const night=lighting==='night';this.night.value=night?1:0;this.nightLights.forEach(l=>l.visible=night);this.lamps.forEach(m=>m.emissiveIntensity=night?3.2:.65);this.windowMaterials.forEach(m=>m.emissiveIntensity=night?.8:.15);}
   threat(point:CityPoint){this.crowd.threat(point,this.lastTime);}
   update(time:number,_pov:POV,reduced:boolean,player=new T.Vector3(7.2,0,7.2),shots=0,actors:readonly CityPoint[]=[],camera?:T.Camera){
-    let delta=Math.min(.12,Math.max(0,time-this.lastTime));this.lastTime=time;this.wind.value=reduced?0:time;
+    let delta=Math.min(.12,Math.max(0,time-this.lastTime));this.nightClock+=delta;this.lastTime=time;this.wind.value=reduced?0:time;
     if(shots!==this.shots){this.threat(player);this.shots=shots;}
     const obstacles:CityPoint[]=[player,...actors,...this.solids.filter(s=>s.enabled&&s.kind==='cover'&&!s.id.startsWith('city-traffic')).map(s=>({x:(s.box.min.x+s.box.max.x)/2,z:(s.box.min.z+s.box.max.z)/2}))];
-    const pedestrianObstacles=this.solids.filter(s=>s.enabled&&!s.id.startsWith('city-traffic'));
+    const pedestrianObstacles=this.pedestrianObstacles;
     while(delta>0){const dt=Math.min(delta,1/30);this.traffic.simulation.step(dt,[...obstacles,...this.crowd.people.slice(0,this.crowd.active)],this.traffic.active);this.crowd.step(dt,this.traffic.simulation.time,this.traffic.simulation.cars.slice(0,this.traffic.active),player,pedestrianObstacles);delta-=dt;}
     const signal=trafficPhase(this.traffic.simulation.time);this.signalLenses.forEach(l=>{const active=signal[l.axis]===l.color;l.material.emissiveIntensity=active?2.2:.025;l.material.color.setScalar(active?1:.13).multiply(new T.Color(l.color==='red'?0xe83f30:l.color==='amber'?0xf2bb39:0x56d59a));});
     this.traffic.draw(player,this.lighting==='night',camera);this.crowd.draw(time,camera);this.trees.update(this.wind.value);this.grounding.update(this.traffic.simulation.cars.slice(0,this.traffic.active),this.crowd.people.slice(0,this.crowd.active));
-    if(this.lighting==='night'){const lamps=STREET_CENTRES.flatMap(x=>STREET_CENTRES.map(z=>({x:x-5.4,z:z-6.1}))).sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));this.nightLights.forEach((l,i)=>l.position.set(lamps[i].x,4.8,lamps[i].z));}
+    if(this.lighting==='night'&&this.nightClock>.35){this.nightClock=0;this.lampPositions.sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));this.nightLights.forEach((l,i)=>l.position.set(this.lampPositions[i].x,4.8,this.lampPositions[i].z));}
   }
-  private architectureHash(){let hash=2166136261;for(const mesh of this.architecture){for(const value of mesh.instanceMatrix.array){hash=Math.imul(hash^Math.round(value*10000),16777619);}hash=Math.imul(hash^mesh.geometry.getAttribute('position').count,16777619);}return(hash>>>0).toString(16);}
+  private architectureHash(){if(this.architectureFingerprint)return this.architectureFingerprint;let hash=2166136261;for(const mesh of this.architecture){for(const value of mesh.instanceMatrix.array){hash=Math.imul(hash^Math.round(value*10000),16777619);}hash=Math.imul(hash^mesh.geometry.getAttribute('position').count,16777619);}return this.architectureFingerprint=(hash>>>0).toString(16);}
   get stats(){return{architecture:'photo-textured-fixed-meshes',architectureHash:this.architectureHash(),models:this.assets.models.size,detailModels:this.assets.details.size,grass:this.grass?.count??0,windTime:this.wind.value,quality:this.quality,district:this.plan.district,seed:this.seed,outdoor:true,buildings:this.plan.buildings.length,signature:this.plan.signature,lighting:this.lighting,traffic:{active:this.traffic.active,...this.traffic.simulation.stats},civilians:this.crowd.stats};}
   dispose(){this.traffic.dispose();this.crowd.dispose();this.trees.dispose();this.grounding.dispose();this.roadDetail.dispose();this.root.traverse(node=>{if(node instanceof T.InstancedMesh)node.dispose();});this.geometries.forEach(g=>g.dispose());this.materials.forEach(m=>m.dispose());this.textures.forEach(t=>t.dispose());this.root.clear();}
 }

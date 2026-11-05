@@ -7,6 +7,7 @@ export interface HumanoidFrame {
   aiming: boolean; angle: number; pov: POV; dodgeRemaining: number; dodgeSerial: number;
   health: number; hitSerial: number; shots: number; reload: number; reloadDuration?: number;
   equipment?: string; action?: string; actionRemaining?: number;
+  independentAim?: boolean;
 }
 export type HumanoidMotion = 'idle' | 'walk' | 'backward' | 'strafe-left' | 'strafe-right' | 'jog' | 'run' | 'sprint' | 'takeoff' | 'fall' | 'land' | 'dodge' | 'hit' | 'death';
 const lower = /^(root|pelvis|thigh_[lr]|calf_[lr]|foot_[lr]|ball_(?:leaf_)?[lr])\./;
@@ -111,6 +112,7 @@ export class HumanoidAnimator {
       const horizontal = frame.aiming ? Math.cos(frame.angle) : frame.vx;
       desired = (Math.abs(horizontal) > .05 ? horizontal : Math.sin(this.yaw) || 1) >= 0 ? Math.PI / 2 : -Math.PI / 2;
     }
+    if(frame.independentAim)desired=this.speed>.08?Math.atan2(frame.vx,frame.vz):this.initialized?this.yaw:desired;
     const turn = Math.atan2(Math.sin(desired - this.yaw), Math.cos(desired - this.yaw));
     if (!this.initialized) { this.yaw = desired; this.initialized = true; }
     else this.yaw += turn * (1 - Math.exp(-dt * 18));
@@ -175,6 +177,12 @@ export class HumanoidAnimator {
       this.pelvis.quaternion.premultiply(correction.setFromAxisAngle(direction, lowerTwist)); this.pelvis.updateMatrixWorld(true);
       direction.copy(up).applyQuaternion(this.chest.parent!.getWorldQuaternion(inverse).invert());
       this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction, -lowerTwist));
+    }
+    if(!full&&frame.independentAim&&frame.aiming){
+      if(!this.corrected){this.pelvisSample.copy(this.pelvis.quaternion);this.chestSample.copy(this.chest.quaternion);this.corrected=true;}
+      this.actor.root.updateMatrixWorld(true);direction.copy(up).applyQuaternion(this.chest.parent!.getWorldQuaternion(inverse).invert());
+      const offset=Math.atan2(Math.sin(Math.PI/2-frame.angle-this.yaw),Math.cos(Math.PI/2-frame.angle-this.yaw));
+      this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction,MathUtils.clamp(offset,-.9,.9)));
     }
     this.actor.recoil = Math.max(0, this.actor.recoil - dt * 9); this.actor.muzzle.visible = this.actor.recoil > .6;
     this.actionTime = this.base.time; this.activeActions = 0;

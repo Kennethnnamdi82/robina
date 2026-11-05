@@ -58,10 +58,10 @@ export class VehicleController {
   exit(p:Vector3,solids:readonly Solid3D[]){const car=this.current;if(!car)return false;if(Math.abs(car.speed)>2){this.message='BRAKE BEFORE EXITING';return false;}const point=this.exitPoint(car,solids);if(!point){this.message='DOOR BLOCKED / MOVE TO AN OPEN SPACE';return false;}p.copy(point);car.mode=(car.health??0)>0?'parked':'disabled';car.speed=0;car.door=1;this.doors.set(car.id,.8);this.current=null;return true;}
   step(dt:number,input:DrivingInput,solids:readonly Solid3D[],body:Vector3){
     for(const [id,time]of this.doors){const car=this.cars.find(c=>c.id===id);if(car)car.door=Math.max(0,time/.8);if(time<=0)this.doors.delete(id);else this.doors.set(id,time-dt);}
-    for(const car of this.cars)if((car.health??200)>0&&(car.health??200)<35){car.health=Math.max(0,car.health!-dt*3);if(car.health<=0){car.mode='disabled';car.speed=0;}}
+    for(const car of this.cars){if((car.fire??0)>0){car.fire=Math.max(0,car.fire!-dt);if((car.health??200)>0)this.damage(car,dt*8);}else if((car.health??200)>0&&(car.health??200)<35){car.fire=15;}}
     if(this.current){driveVehicle(this.current,input,dt,solids);body.set(this.current.x,.55,this.current.z);}
   }
-  blast(point:Vector3,radius:number,damage=150){for(const car of this.cars){const distance=Math.max(0,Math.hypot(point.x-car.x,point.z-car.z)-car.length*.4);if(distance<=radius)this.damage(car,damage*(1-distance/radius*.8));}}
-  damage(car:CityCar,amount:number){if(!Number.isFinite(amount)||amount<=0||(car.health??200)<=0)return 0;const taken=Math.min(car.health??200,amount);car.health=(car.health??200)-taken;if(car.health<=0){car.mode='disabled';car.speed=0;}return taken;}
+  blast(point:Vector3,radius:number,damage=150){for(const car of this.cars){const distance=Math.max(0,Math.hypot(point.x-car.x,point.z-car.z)-car.length*.4);if(distance<=radius){const amount=damage*(1-distance/radius*.8);this.damage(car,amount);if(amount>=30)car.fire=Math.max(car.fire??0,24);}}}
+  damage(car:CityCar,amount:number){if(!Number.isFinite(amount)||amount<=0||(car.health??200)<=0)return 0;const taken=Math.min(car.health??200,amount);car.health=(car.health??200)-taken;if(car.health<=0){car.mode='disabled';car.speed=0;car.fire=Math.max(car.fire??0,18);}return taken;}
   get snapshot(){return{driving:Boolean(this.current),id:this.current?.id??null,kind:this.current?.kind??null,speed:Math.round(Math.abs(this.current?.speed??0)*3.6),health:Math.round(this.current?.health??0),nearby:this.nearby?.kind??null,message:this.message};}
 }

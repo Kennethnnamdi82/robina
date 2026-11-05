@@ -13,7 +13,9 @@ export class CityPostProcess {
  quality(quality:QualityId){this.qualityId=quality;if(quality!=='high')this.releaseComposer();}
  resize(width:number,height:number,dpr:number){this.width=width;this.height=height;this.dpr=dpr;this.composer?.setPixelRatio(dpr);this.composer?.setSize(width,height);}
  render(camera:T.Camera,_time:number){
-  if(this.qualityId!=='high'){this.renderer.render(this.scene,camera);return;}
+  // Mobile High retains the same authored PBR/detail/shadows, but uses native
+  // framebuffer AA instead of a full-resolution HDR + multi-pass bloom chain.
+  if(this.qualityId!=='high'||navigator.maxTouchPoints>0){this.renderer.render(this.scene,camera);return;}
   if(!this.composer){
    const hdr=this.renderer.extensions.has('EXT_color_buffer_float');
    const mobile=navigator.maxTouchPoints>0;

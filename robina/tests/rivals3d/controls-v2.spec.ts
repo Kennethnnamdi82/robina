@@ -21,7 +21,7 @@ test('visible map, single-tap view cycle, zoom, direct silhouettes, automatic au
   await writeFile(info.outputPath('desktop-controls.json'),JSON.stringify(await combat(page),null,2)); expect(errors).toEqual([]);
 });
 
-test('fire stick turns aim without translating the player; sprint works with simultaneous fingers; HUD fits phones',async ({ browser },info) => {
+test('fire stick aims the gun without moving the player or camera; sprint works with simultaneous fingers; HUD fits phones',async ({ browser },info) => {
   test.setTimeout(240000);const context = await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true}),page = await context.newPage();
   try {await page.goto(String(info.project.use.baseURL));await page.getByRole('button',{name:'ENTER 3D RAID'}).tap();await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing',{timeout:90000});await selectPOV(page,'THIRD-PERSON / TPS');
     const cdp = await context.newCDPSession(page),a = (await page.getByTestId('aim-stick').boundingBox())!,m = (await page.getByTestId('movement-stick').boundingBox())!,s = (await page.getByRole('button',{name:'Toggle sprint'}).boundingBox())!;
@@ -29,7 +29,7 @@ test('fire stick turns aim without translating the player; sprint works with sim
     const before = {x:Number(await state(page).getAttribute('data-x')),z:Number(await state(page).getAttribute('data-z')),yaw:(await combat(page)).view.yaw};
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aim]});await expect.poll(async () => (await combat(page)).inventory.shots).toBeGreaterThan(1);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...aim,x:a.x+a.width/2-25,y:a.y+a.height/2-12}]});await expect.poll(async () => (await combat(page)).inventory.shots).toBeGreaterThan(2);
-    expect(Number(await state(page).getAttribute('data-x'))).toBeCloseTo(before.x);expect(Number(await state(page).getAttribute('data-z'))).toBeCloseTo(before.z);expect((await combat(page)).view.yaw).not.toBeCloseTo(before.yaw,2);
+    expect(Number(await state(page).getAttribute('data-x'))).toBeCloseTo(before.x);expect(Number(await state(page).getAttribute('data-z'))).toBeCloseTo(before.z);expect((await combat(page)).view.yaw).toBeCloseTo(before.yaw,3);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     const stoppedShots=(await combat(page)).inventory.shots,stoppedTime=Number(await position(page).getAttribute('data-mission-elapsed'));await expect.poll(async()=>Number(await position(page).getAttribute('data-mission-elapsed'))-stoppedTime).toBeGreaterThan(.35);expect((await combat(page)).inventory.shots).toBe(stoppedShots);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[move]});await expect.poll(async () => Number(await position(page).getAttribute('data-speed'))).toBeGreaterThan(20);await expect(position(page)).toHaveAttribute('data-aiming','false');await expect.poll(async () => Math.abs(Math.sin(JSON.parse((await state(page).getAttribute('data-character'))!).yaw-(await combat(page)).view.yaw))).toBeGreaterThan(.9);const walk = Number(await position(page).getAttribute('data-speed'));

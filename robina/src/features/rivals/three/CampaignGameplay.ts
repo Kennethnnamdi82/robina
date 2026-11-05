@@ -13,7 +13,7 @@ export class CampaignGameplay {
     if(this.mission.state==='FAILED'){this.recovery=Math.min(1,this.recovery+dt/2);return;}
     if(this.mission.state!=='ACTIVE')return;
     const a=this.assignment,car=this.vehicles.current,transport=this.vehicles.cars.find(c=>c.id===3);
-    if(Math.hypot(p.x-a.site.x,p.z-a.site.z)<7)this.mission.event('site-entered');
+    if(Math.hypot(p.x-a.site.x,p.z-a.site.z)<7&&this.mission.event('site-entered')){this.police.alert();this.message=(a.id==='reserve'?'BANK':'SITE')+' ALARM / POLICE INBOUND';}
     if(livingGuards===0)this.mission.event('site-secured');
     if(a.convoy&&transport){
       for(const id of ['task-0','cargo-recovered']){const object=this.world.level.objects.find(o=>o.id===id);if(object){object.x=transport.x*40;object.y=transport.z*40;}}

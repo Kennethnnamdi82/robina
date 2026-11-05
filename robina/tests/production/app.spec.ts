@@ -211,6 +211,7 @@ test('admin pages contain service failures without crashing', async ({ page }) =
 test('campaign GPS, real driving and landscape action groups remain usable',async({browser},info)=>{
   test.setTimeout(240000);
   const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();
+  try{
   const errors=await prepare(page,'authenticated');
   await page.goto(new URL('/settings',info.project.use.baseURL).href);await page.getByRole('button',{name:'LOW graphics'}).click();
   await page.getByRole('tab',{name:'Controls'}).click();await page.getByLabel('Default camera').selectOption('tactical');
@@ -234,25 +235,38 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
   await page.getByRole('button',{name:/ENTER SEDAN/}).click();
   await expect(page.getByRole('group',{name:'Driving joystick'})).toBeVisible();
   await expect(page.getByRole('button',{name:'Steer left'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Steer right'})).toHaveCount(0);
+  for(const [width,height]of [[568,320],[844,390],[320,740],[390,844]]){
+    await page.setViewportSize({width,height});
+    const invalid=await page.locator('.r3-driving-controls').evaluate(root=>{const frame=root.getBoundingClientRect(),stick=root.querySelector('.rivals-stick')!.getBoundingClientRect();return [...root.querySelectorAll('button')].map(button=>({name:button.getAttribute('aria-label')??button.textContent,r:button.getBoundingClientRect()})).filter(({r})=>r.width<48||r.height<44||r.left<frame.left||r.right>frame.right+1||r.top<frame.top||r.bottom>frame.bottom+1||(r.left<stick.right&&r.right>stick.left&&r.top<stick.bottom&&r.bottom>stick.top)).map(({name})=>name);});
+    expect(invalid,`${width}x${height} driving pedals`).toEqual([]);
+  }
+  await page.setViewportSize({width:844,height:390});
   const drivingStick=await page.getByTestId('driving-stick').boundingBox();expect(drivingStick).toBeTruthy();
-  await page.mouse.move(drivingStick!.x+drivingStick!.width/2,drivingStick!.y+drivingStick!.height/2-30);await page.mouse.down();
+  const gas=page.getByRole('button',{name:'Accelerate vehicle'});await gas.hover();await page.mouse.down();
   await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBeGreaterThan(5);await page.mouse.up();
   const brake=page.getByRole('button',{name:'Brake vehicle'});await brake.hover();await page.mouse.down();await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBe(0);await page.mouse.up();
+  const reverse=page.getByRole('button',{name:'Reverse vehicle'});await reverse.hover();await page.mouse.down();await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBeGreaterThan(2);await page.mouse.up();await brake.hover();await page.mouse.down();await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBe(0);await page.mouse.up();
   await page.getByRole('button',{name:'EXIT VEHICLE · F'}).click();await expect(page.getByRole('button',{name:'Jump',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Cycle camera view'}).click();await page.getByRole('button',{name:'Cycle camera view'}).click();
   await expect(page.getByTestId('three-state')).toHaveAttribute('data-pov','third');
-  const beforeAim=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!),aimStick=await page.getByTestId('aim-stick').boundingBox();
-  await page.mouse.move(aimStick!.x+aimStick!.width/2+24,aimStick!.y+aimStick!.height/2);await page.mouse.down();
-  await expect.poll(async()=>Math.abs(JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).view.yaw-beforeAim.view.yaw)).toBeGreaterThan(.12);
-  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).lastShot?.serial??0).toBeGreaterThan(beforeAim.lastShot?.serial??0);await page.mouse.up();
+  const beforeAim=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!),beforeBody=await page.getByTestId('three-state').evaluate(n=>({x:Number(n.dataset.x),z:Number(n.dataset.z),yaw:JSON.parse(n.dataset.character!).yaw})),aimStick=await page.getByTestId('aim-stick').boundingBox();
+  const cdp=await context.newCDPSession(page),finger={id:1,x:aimStick!.x+aimStick!.width/2+24,y:aimStick!.y+aimStick!.height/2};await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});
+  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).lastShot?.serial??0).toBeGreaterThan(beforeAim.lastShot?.serial??0);
+  const rightShot=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).lastShot;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...finger,x:aimStick!.x+aimStick!.width/2-24}]});
+  await expect.poll(async()=>{const shot=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).lastShot;return shot.serial>rightShot.serial&&Math.hypot(...shot.direction.map((v:number,i:number)=>v-rightShot.direction[i]))>.3;}).toBe(true);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  const afterAim=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!),afterBody=await page.getByTestId('three-state').evaluate(n=>({x:Number(n.dataset.x),z:Number(n.dataset.z),yaw:JSON.parse(n.dataset.character!).yaw}));
+  expect(afterAim.view.yaw).toBeCloseTo(beforeAim.view.yaw,3);expect(afterBody.x).toBeCloseTo(beforeBody.x,3);expect(afterBody.z).toBeCloseTo(beforeBody.z,3);expect(afterBody.yaw).toBeCloseTo(beforeBody.yaw,2);expect(afterAim.lastShot.direction.every(Number.isFinite)).toBe(true);
   const stoppedYaw=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).view.yaw;await page.waitForTimeout(200);
   expect(JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).view.yaw).toBeCloseTo(stoppedYaw,3);
-  await page.screenshot({path:info.outputPath('campaign-landscape.png')});expect(errors).toEqual([]);await context.close();
+  await page.screenshot({path:info.outputPath('campaign-landscape.png')});expect(errors).toEqual([]);
+  }finally{await context.close();}
 });
 
 test('High graphics renders authored detail and red road guidance without shader errors',async({browser},info)=>{
   test.setTimeout(240000);
   const context=await browser.newContext({viewport:{width:1000,height:600},hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();
+  try{
   const errors=await prepare(page,'authenticated',1),graphicsErrors:string[]=[];
   page.on('console',message=>{if(message.type()==='error'&&/WebGLProgram|Shader Error|VALIDATE_STATUS|GL_INVALID/.test(message.text()))graphicsErrors.push(message.text());});
   await page.goto(new URL('/settings',info.project.use.baseURL).href);await page.getByRole('button',{name:'HIGH graphics'}).click();
@@ -266,5 +280,22 @@ test('High graphics renders authored detail and red road guidance without shader
   await page.setViewportSize({width:844,height:390});await page.screenshot({path:info.outputPath('high-phone-first-person.png')});
   await page.getByRole('button',{name:'Cycle camera view'}).click();await expect(page.getByTestId('three-state')).toHaveAttribute('data-pov','tactical');
   await page.screenshot({path:info.outputPath('red-road-route.png')});
-  expect(graphicsErrors).toEqual([]);expect(errors).toEqual([]);await context.close();
+  expect(graphicsErrors).toEqual([]);expect(errors).toEqual([]);
+  }finally{await context.close();}
+});
+
+test('bank entrance raises police response and Collect actually takes the briefcase',async({browser},info)=>{
+  test.setTimeout(300000);const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();
+  try{
+    const errors=await prepare(page,'authenticated');await page.goto(new URL('/settings',info.project.use.baseURL).href);await page.getByRole('button',{name:'LOW graphics'}).click();await page.getByRole('tab',{name:'Controls'}).click();await page.getByLabel('Default camera').selectOption('tactical');
+    await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'LOBBY',exact:true}).click();await page.getByRole('link',{name:'PLAY',exact:true}).click();await page.getByRole('button',{name:'DEPLOY / START HEIST'}).click();await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing',{timeout:120000});
+    // Use the sidewalk rather than trying to walk down an occupied traffic
+    // lane. Keep the lobby guard's centre clear when approaching the case.
+    await move(page,'x',512,8);await move(page,'y',1280,8);await move(page,'x',1760,8);await move(page,'y',1000,8);
+    await expect(page.getByLabel('Active objective')).toContainText('Recover Classified briefcase');
+    await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-pursuit'))!).units).toBeGreaterThan(0);
+    await move(page,'x',1800,5);await move(page,'y',750,8);
+    await expect(page.getByLabel('Nearby equipment',{exact:true})).toContainText('Classified briefcase');await expect(page.getByRole('button',{name:'Inspect nearby equipment'})).toBeEnabled();await page.getByRole('button',{name:'Inspect nearby equipment'}).click();
+    await expect(page.getByLabel('Active objective')).toContainText('Break police contact');await page.getByRole('button',{name:'Pause game'}).click();await page.screenshot({path:info.outputPath('bank-case-collected.png')});expect(errors).toEqual([]);
+  }finally{await context.close();}
 });

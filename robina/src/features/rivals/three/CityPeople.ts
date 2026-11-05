@@ -12,6 +12,7 @@ const FRAMES=32;
 export class CityPeople {
   readonly root=new T.Group();
   private atlas:T.DataTexture;
+  private deathDuration=1;
   private batches:{mesh:T.InstancedMesh;local:T.Matrix4;pose:T.InstancedBufferAttribute;tint:T.InstancedBufferAttribute;dense:T.BufferGeometry;light:T.BufferGeometry;normal:T.Texture|null;roughness:T.Texture|null}[]=[];
   private transform=new T.Object3D();private matrix=new T.Matrix4();
   private frustum=new T.Frustum();private view=new T.Matrix4();private sphere=new T.Sphere(new T.Vector3(),1.25);rendered=0;
@@ -21,19 +22,20 @@ export class CityPeople {
     model.getObjectByName('Operative-vis-or')?.removeFromParent();
     const skins:T.SkinnedMesh[]=[];model.traverse(n=>{if(n instanceof T.SkinnedMesh)skins.push(n);});
     if(!skins.length)throw new Error('City civilians require the authored humanoid skeleton.');
-    const skeleton=skins[0].skeleton,bones=skeleton.bones.length,width=bones*4,data=new Float32Array(width*FRAMES*3*4);
+    const skeleton=skins[0].skeleton,bones=skeleton.bones.length,width=bones*4,data=new Float32Array(width*FRAMES*4*4);
     const mixer=new T.AnimationMixer(model);
-    for(const [clipIndex,name]of ['Idle_Loop','Walk_Loop','Jog_Fwd_Loop'].entries()){
+    for(const [clipIndex,name]of ['Idle_Loop','Walk_Loop','Jog_Fwd_Loop','Death01'].entries()){
       const clip=source.animations.find(c=>c.name===name);if(!clip)throw new Error('Missing civilian gait '+name);
-      const action=mixer.clipAction(clip).play();
+      if(name==='Death01')this.deathDuration=clip.duration;
+      const action=mixer.clipAction(clip);if(name==='Death01'){action.setLoop(T.LoopOnce,1);action.clampWhenFinished=true;}action.play();
       for(let frame=0;frame<FRAMES;frame++){
-        mixer.setTime(clip.duration*frame/FRAMES);model.updateMatrixWorld(true);skeleton.update();
+        mixer.setTime(clip.duration*frame/(name==='Death01'?FRAMES-1:FRAMES));model.updateMatrixWorld(true);skeleton.update();
         data.set(skeleton.boneMatrices,(clipIndex*FRAMES+frame)*bones*16);
       }
       action.stop();
     }
     mixer.stopAllAction();mixer.uncacheRoot(model);model.updateMatrixWorld(true);
-    this.atlas=new T.DataTexture(data,width,FRAMES*3,T.RGBAFormat,T.FloatType);this.atlas.needsUpdate=true;
+    this.atlas=new T.DataTexture(data,width,FRAMES*4,T.RGBAFormat,T.FloatType);this.atlas.needsUpdate=true;
     this.atlas.minFilter=this.atlas.magFilter=T.NearestFilter;this.atlas.generateMipmaps=false;
     for(const skin of skins){
       const geometry=crowdGeometry(skin.geometry,skin.getWorldScale(new T.Vector3())),dense=skin.geometry.clone(),pose=new T.InstancedBufferAttribute(new Float32Array(48*4),4),tint=new T.InstancedBufferAttribute(new Float32Array(48*3),3);
@@ -47,7 +49,7 @@ export class CityPeople {
       material.vertexColors=false;material.roughness=skin.name==='Eyes'?.2:.8;material.metalness=0;material.normalScale.set(.65,.65);material.envMapIntensity=.65;
       material.customProgramCacheKey=()=>'city-authored-bone-atlas-v3-'+skin.name;
       material.onBeforeCompile=shader=>{
-        shader.uniforms.cityBones={value:this.atlas};shader.uniforms.cityBoneSize={value:new T.Vector2(width,FRAMES*3)};
+        shader.uniforms.cityBones={value:this.atlas};shader.uniforms.cityBoneSize={value:new T.Vector2(width,FRAMES*4)};
         shader.uniforms.cityBind={value:skin.bindMatrix.clone()};shader.uniforms.cityBindInverse={value:skin.bindMatrixInverse.clone()};
         shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
           attribute vec4 skinIndex;attribute vec4 skinWeight;attribute vec4 cityPose;attribute vec3 cityTint;
@@ -89,15 +91,16 @@ export class CityPeople {
   setQuality(quality:QualityId){for(const b of this.batches){b.mesh.geometry=quality==='high'?b.dense:b.light;const m=b.mesh.material as T.MeshStandardMaterial,normal=quality==='low'?null:b.normal,roughness=quality==='low'?null:b.roughness;if(m.normalMap!==normal||m.roughnessMap!==roughness){m.normalMap=normal;m.roughnessMap=roughness;m.needsUpdate=true;}}}
   draw(people:readonly Civilian[],count:number,time:number,camera?:T.Camera){
     if(camera){camera.updateMatrixWorld(true);this.view.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.view);}
-    const visible:number[]=[];for(let i=0;i<count;i++){this.sphere.center.set(people[i].x,.95,people[i].z);if(!camera||this.frustum.intersectsSphere(this.sphere))visible.push(i);}this.rendered=visible.length;
+    const visible:number[]=[];for(let i=0;i<count;i++){if((people[i].deathAge??0)>25)continue;this.sphere.center.set(people[i].x,.95,people[i].z);if(!camera||this.frustum.intersectsSphere(this.sphere))visible.push(i);}this.rendered=visible.length;
     for(const batch of this.batches){batch.mesh.count=visible.length;
       for(let slot=0;slot<visible.length;slot++){const i=visible[slot];
         const p=people[i],walking=p.moving,run=p.panicUntil>time;
         const walkPhase=(p.distance/1.65+i*.317)%1*FRAMES,runPhase=(p.distance/2.75+i*.317)%1*FRAMES;
         const blend=T.MathUtils.clamp(p.motion,0,1);
         batch.pose.setXYZW(slot,(time*.33+i*.173)%1*FRAMES,(run?64+runPhase:32+walkPhase),blend,i%4);
+        if((p.health??60)<=0){const frame=96+Math.min(31,(p.deathAge??0)/this.deathDuration*31);batch.pose.setXYZW(slot,frame,frame,0,i%4);}
         const color=this.palettes[i%this.palettes.length];batch.tint.setXYZ(slot,color.r,color.g,color.b);
-        this.transform.position.set(p.x,.025,p.z);this.transform.rotation.set(0,p.yaw,0);
+        this.transform.position.set(p.x,.025,p.z);this.transform.rotation.set((p.health??60)>0?-(p.hitRemaining??0)*.6:0,p.yaw,0);
         const scale=.93+(i%5)*.025;this.transform.scale.set(.96*scale,scale,.96*scale);this.transform.updateMatrix();
         this.matrix.multiplyMatrices(this.transform.matrix,batch.local);batch.mesh.setMatrixAt(slot,this.matrix);
       }

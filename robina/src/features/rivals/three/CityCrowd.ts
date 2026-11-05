@@ -1,10 +1,12 @@
 import * as T from 'three';
 import { cityRandom, ROAD_HALF, STREET_CENTRES, trafficPhase, type CityPoint } from './LivingCityPlan';
 import { CityPeople, type HumanSource } from './CityPeople';
-export interface Civilian extends CityPoint { route:CityPoint[]; target:number; speed:number; yaw:number; crossing:boolean; panicUntil:number; idleUntil:number; distance:number;moving:boolean;motion:number }
+import {CivilianCombat} from './CivilianCombat';
+export interface Civilian extends CityPoint { route:CityPoint[]; target:number; speed:number; yaw:number; crossing:boolean; panicUntil:number; idleUntil:number; distance:number;moving:boolean;motion:number;health?:number;hitRemaining?:number;deathAge?:number }
 /** Sidewalk navigation and crowd reactions are independent of the enemy AI. */
 export class CityCrowd {
   readonly root=new T.Group();readonly people:Civilian[]=[];
+  readonly combat:CivilianCombat;
   private humans:CityPeople;
   active=36;fled=0;
   constructor(seed:number,source:HumanSource) {
@@ -17,16 +19,17 @@ export class CityCrowd {
       this.people.push({x:T.MathUtils.lerp(p.x,next.x,t),z:T.MathUtils.lerp(p.z,next.z,t),route,target:(edge+1)%4,speed:.72+random()*.52,yaw:Math.atan2(next.x-p.x,next.z-p.z),crossing:false,panicUntil:0,idleUntil:i%9===0?2+random()*4:0,distance:0,moving:false,motion:0});
       const person=this.people[this.people.length-1];if(long)for(const centre of STREET_CENTRES)if(Math.abs(person.z-centre)<5.6)person.z=centre+(person.z<centre?-5.9:5.9);
     }
-    this.draw(0);
+    this.combat=new CivilianCombat(this.people);this.draw(0);
   }
   threat(point:CityPoint,time:number) {
-    for(const p of this.people)if(Math.hypot(point.x-p.x,point.z-p.z)<22){if(p.panicUntil<time)this.fled++;p.panicUntil=time+7;p.idleUntil=0;}
+    for(const p of this.people)if((p.health??60)>0&&Math.hypot(point.x-p.x,point.z-p.z)<22){if(p.panicUntil<time)this.fled++;p.panicUntil=time+7;p.idleUntil=0;}
   }
-  ejectDriver(car:CityPoint&{dx:number;dz:number}){const p=this.people[this.active-1];if(!p)return;p.x=car.x-car.dz*1.8;p.z=car.z+car.dx*1.8;p.route=[{x:p.x-car.dz*6,z:p.z+car.dx*6},{x:p.x-car.dz*8,z:p.z+car.dx*8}];p.target=0;p.idleUntil=0;p.panicUntil=this.people.reduce((n,p)=>Math.max(n,p.panicUntil),0)+8;p.speed=1.4;p.moving=true;}
+  ejectDriver(car:CityPoint&{dx:number;dz:number}){const p=this.people.slice(0,this.active).reverse().find(p=>(p.health??60)>0);if(!p)return;p.x=car.x-car.dz*1.8;p.z=car.z+car.dx*1.8;p.route=[{x:p.x-car.dz*6,z:p.z+car.dx*6},{x:p.x-car.dz*8,z:p.z+car.dx*8}];p.target=0;p.idleUntil=0;p.panicUntil=this.people.reduce((n,p)=>Math.max(n,p.panicUntil),0)+8;p.speed=1.4;p.moving=true;}
   step(dt:number,time:number,cars:readonly (CityPoint&{length:number})[],player:CityPoint,obstacles:readonly {enabled:boolean;box:T.Box3}[]=[]) {
+    this.combat.step(dt);
     const phase=trafficPhase(time);
     for(let i=0;i<this.active;i++) {
-      const p=this.people[i];p.motion=T.MathUtils.damp(p.motion,p.moving?1:0,10,dt);p.moving=false;
+      const p=this.people[i];if((p.health??60)<=0){p.moving=false;p.motion=0;continue;}p.motion=T.MathUtils.damp(p.motion,p.moving?1:0,10,dt);p.moving=false;
       const target=p.route[p.target],x=target.x-p.x,z=target.z-p.z,d=Math.hypot(x,z);if(d<.12){p.target=(p.target+1)%p.route.length;if((i+Math.floor(time))%23===0&&p.panicUntil<time)p.idleUntil=time+1.8;continue;}
       if(p.idleUntil>time)continue;
       const pace=p.speed*(p.panicUntil>time?2.6:1),travel=Math.min(d,pace*dt),dx=x/d,dz=z/d;
@@ -46,8 +49,8 @@ export class CityCrowd {
       p.x=nx;p.z=nz;p.distance+=travel;p.moving=true;
     }
   }
-  draw(time:number,camera?:T.Camera) {this.humans.draw(this.people,this.active,time,camera);}
+  draw(time:number,camera?:T.Camera) {this.combat.sync(this.active);this.humans.draw(this.people,this.active,time,camera);}
   setQuality(quality:import('../core/presentation').QualityId){this.humans.setQuality(quality);}
-  get stats(){return{active:this.active,rendered:this.humans.rendered,animation:'authored-skeletal-walk-run',fled:this.fled,walking:this.people.slice(0,this.active).reduce((n,p)=>n+p.distance,0),crossing:this.people.slice(0,this.active).filter(p=>p.crossing).length};}
+  get stats(){return{active:this.active,rendered:this.humans.rendered,animation:'authored-skeletal-walk-run',...this.combat.snapshot,fled:this.fled,walking:this.people.slice(0,this.active).reduce((n,p)=>n+p.distance,0),crossing:this.people.slice(0,this.active).filter(p=>p.crossing).length};}
   dispose(){this.humans.dispose();this.root.clear();}
 }

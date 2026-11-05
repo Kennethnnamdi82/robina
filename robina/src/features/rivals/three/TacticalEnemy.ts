@@ -10,7 +10,7 @@ export class TacticalEnemy extends EnemyController {
   private clock=0; private evadeUntil=0; private nextEvade=0; private coverUntil=0; private reconsider=0;
   private strafe:Point={x:0,y:0}; private coverGoal:Point|null=null; private pending:Point|null=null; private reactAt=Infinity;
   private coverPath:Point[]=[];
-  constructor(spawn:EnemySpawn,private grid:NavigationGrid,stagger=0){super(spawn,grid,stagger);}
+  constructor(spawn:EnemySpawn,private grid:NavigationGrid,stagger=0){super(spawn,grid,stagger,spawn.id.startsWith('police-')?{vision:1000,cone:Math.PI,detectionSeconds:.08,attackDistance:720,minimumDistance:65,interval:.65,windup:.12,damage:5,pursuit:4000,speed:155,searchSeconds:12}:undefined);}
   threat(origin:Point,direction:Point) {
     if(!this.alive||this.clock<this.nextEvade||!clearSight(this,origin,this.grid.blockers))return;
     const dx=this.x-origin.x,dy=this.y-origin.y,along=dx*direction.x+dy*direction.y;
@@ -32,7 +32,7 @@ export class TacticalEnemy extends EnemyController {
         const p={x:b.x+dx/length*(b.width/2+this.grid.radius+14)-dy/length*side*48,y:b.y+dy/length*(b.height/2+this.grid.radius+14)+dx/length*side*48};
         const distance=Math.hypot(p.x-this.x,p.y-this.y);if(distance<16||distance>230||p.x<64||p.y<64||p.x>(this.grid.width-1)*64||p.y>(this.grid.height-1)*64)continue;
         if(clearSight(player,p,this.grid.blockers)||!clearSight(p,p,this.grid.blockers,this.grid.radius))continue;
-        const path=this.grid.path(this,p);if(!path.length)continue;
+        if(distance>=score)continue;const path=this.grid.path(this,p);if(!path.length)continue;
         if(distance<score){best=p;score=distance;this.coverPath=path;}
       }
     }return best;

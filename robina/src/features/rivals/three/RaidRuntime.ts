@@ -47,11 +47,12 @@ import { CityPeople } from './CityPeople';
 import type { Civilian } from './CityCrowd';
 import { MissionNavigation } from './MissionNavigation';
 import { RoadGuide, routeBearing } from './RoadGuide';
-import { aimStickResponse } from './stickResponse';
+import {WorldFires} from './WorldFires';
 
 interface CombatDiagnostics {
   inventory: ReturnType<Loadout['snapshot']>; field: ReturnType<FieldItems['snapshot']>; flashError: number;
   ready: boolean;
+  fires?:WorldFires['snapshot'];
   view: { ads: boolean; fov: number; visible: boolean; hands: boolean; sight: number[]; yaw: number; pitch: number;feedback:CameraFeedback['snapshot'] };
   grip: number; support: number; supported: boolean; alignment: number; muzzle: number[];
   lastShot: { origin: number[]; muzzle: number[]; direction: number[]; blocked: boolean; serial: number } | null;
@@ -69,6 +70,7 @@ export class RaidRuntime {
   private vehicleTargets:Target3D[]=[];private drivingInput={throttle:0,steer:0,brake:false};private burnClock=0;
   private recoveryAge=0;private evidenceDropped=false;private recoveryPath:{x:number;y:number}[]=[];private recoveryRouteAge=1;
   private alertedShots=0;
+  private fires?:WorldFires;private carriedCase?:T.Object3D;
   readonly scene = new T.Scene(); readonly renderer: T.WebGLRenderer; readonly rig = new CameraRig();
   readonly world: WorldState; readonly controller = new CharacterController(true); readonly loadout = new Loadout(); readonly field = new FieldItems();
   get weapon() { return this.loadout.current.controller; }
@@ -96,7 +98,9 @@ export class RaidRuntime {
   private unsubscribe: () => void; private disposed = false; private raf = 0; private last = 0; private accumulator = 0; private hudClock = 0; private elapsed = 0;
   private frames = new FrameMetrics(); private fpsClock = 0; private fps = 0; private p95 = 0; private quality: QualityId; private slow = 0; private dpr = 1;
   private command = emptyCommand(); private legacy = { x: 288,y: 288 }; private revision = -1;
-  private touchAim = { x: 0,y: 1 };
+  // Touch has separate movement/aim sticks from the first frame. Camera POV
+  // changes must not start a delayed idle body turn before the first aim touch.
+  private independentAim = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
   private mouse = new T.Vector2(); private ray = new T.Raycaster(); private aim = new T.Vector3(); private direction = new T.Vector3(); private origin = new T.Vector3();
   private jump = false; private jumpHeld = false; private drag = false; private lookPointer: number | null = null; private touchLook = false; private lookX = 0; private lookY = 0; private collisions = 0; private distance = 0; private hits = 0; private hitSerial = 0; private damageSerial = 0; private alarmSerial = 0;
   private geometry = new Set<T.BufferGeometry>(); private materials = new Set<T.Material>(); private needsDraw = true;
@@ -202,6 +206,7 @@ export class RaidRuntime {
         this.vehicles=new VehicleController(this.art.city.traffic.simulation.cars);
         this.art.city.traffic.simulation.blocked=car=>this.solids.some(s=>!s.id.startsWith('city-traffic-')&&vehicleOverlap(car,car.x,car.z,Math.atan2(car.dx,car.dz),s));
         this.vehicleTargets=this.vehicles.cars.map(car=>({id:'vehicle-'+car.id,team:'security',box:this.art.city!.traffic.colliders[car.id].box,alive:()=>(car.health??200)>0,damage:event=>this.vehicles!.damage(car,event.amount)}));this.targets.push(...this.vehicleTargets);
+        this.targets.push(...this.art.city.crowd.combat.targets);this.art.city.crowd.combat.onCrime=()=>this.pursuit?.alert();
         if(this.session.operation.assignment!==undefined){
           const a=assignmentAt(this.session.operation.assignment);this.assignmentSite=new AssignmentSite(a,this.world);this.scene.add(this.assignmentSite.root);
           this.pursuit=new PolicePursuit(this.vehicles.cars,new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers,46),this.solids,a.response,this.deployOfficer);
@@ -213,6 +218,8 @@ export class RaidRuntime {
       this.scene.add(this.roadGuide.root);
       this.art.city?.setLighting(this.atmosphere.preset);
       this.effects = new CombatEffects({ flash: this.assets.textures.get('combat-flash')!,smoke: this.assets.textures.get('combat-smoke')!,blast: this.assets.textures.get('combat-blast')! }); this.effects.setQuality(this.quality); this.scene.add(this.effects.root);
+      this.fires=new WorldFires({smoke:this.assets.textures.get('combat-smoke')!,blast:this.assets.textures.get('combat-blast')!});this.scene.add(this.fires.root);
+      const caseModel=this.art.devices.get('cargo-recovered')?.getObjectByName('recovery-hard-case');if(caseModel&&this.campaign&&!this.campaign.assignment.hostage){this.carriedCase=caseModel.clone(true);this.carriedCase.position.set(.02,-.22,-.08);this.carriedCase.scale.setScalar(.8);this.carriedCase.visible=false;this.humanoid.sockets.leftHand.add(this.carriedCase);}
       this.viewScene.add(this.viewCamera,new T.HemisphereLight(0xb9e3ff,0x233346,2.5));
       const viewLight = new T.DirectionalLight(0xffffff,2); viewLight.position.set(2,3,2); this.viewScene.add(viewLight);
       this.field.add('supply-charge',point3(224,576),{ kind: 'bomb',amount: 2 });
@@ -364,7 +371,7 @@ export class RaidRuntime {
     const command = this.session.input.read(this.command);
     const throttle=-command.y,steer=command.x;
     if(this.vehicles?.current){command.fire=false;command.dodge=false;command.aiming=false;}
-    this.touchAim.x = command.aimX; this.touchAim.y = command.aimY;
+    if(this.session.input.touchAiming)this.independentAim=true;
     // Aim uses the latest unshaken render camera. Updating the follow rig in
     // every fixed substep AND again in render doubled its damping and jitter.
     this.updateAim();
@@ -405,13 +412,14 @@ export class RaidRuntime {
     const nearest = this.npcs.filter(n => n.model.alive).sort((a,b) => Math.hypot(a.model.x - this.legacy.x,a.model.y - this.legacy.y) - Math.hypot(b.model.x - this.legacy.x,b.model.y - this.legacy.y)).slice(0,2);
     for (const n of this.npcs) {
       if (this.security.alarmRemaining > 0) n.model.alarm(this.security.alarmSerial,this.security.alarmPosition);
-      n.model.step(dt,{ player: this.legacy,alive: this.controller.health > 0,permitted: nearest.includes(n) },(enemy,angle) => this.shootSecurity(enemy.spawn.id,enemy.x,enemy.y,angle,enemy.config.damage));
+      n.model.step(dt,{ player: this.legacy,alive: this.controller.health > 0,permitted: nearest.includes(n)||n.model.spawn.id.startsWith('police-'),near:Math.hypot(n.model.x-this.legacy.x,n.model.y-this.legacy.y)<1200 },(enemy,angle) => this.shootSecurity(enemy.spawn.id,enemy.x,enemy.y,angle,enemy.config.damage));
       for(const solid of this.art.city?.traffic.colliders??[]){if(!solid.enabled)continue;const hit=horizontalContact(n.model.x*METRES,n.model.y*METRES,.36,solid);if(hit){n.model.x+=hit.x*hit.depth/METRES;n.model.y+=hit.z*hit.depth/METRES;}}
       this.setBox(n.target.box,point3(n.model.x,n.model.y),.36,1.8); n.collider.enabled = n.model.alive;
     }
     this.setBox(this.bossBox,point3(this.boss.x,this.boss.y),.55,2.7); this.occupants[this.occupants.length - 1].enabled = this.boss.active;
     if (this.throwRelease >= 0) { this.throwRelease -= dt; if (this.throwRelease <= 0) { if (this.controller.health > 0) this.field.throw(this.body.position,this.aim,true); this.throwRelease = -1; } }
-    this.field.step(dt,this.solids,this.targets.filter(t=>!t.id.startsWith('vehicle-')),(p,radius) => { const s = this.spatial(p); this.effects?.blast(p,radius,this.solids);this.vehicles?.blast(p,radius);this.pursuit?.alert(); this.art.city?.threat(p);this.combatAudio.blast(s.distance,s.pan); });
+    this.field.step(dt,this.solids,this.targets.filter(t=>!t.id.startsWith('vehicle-')),(p,radius) => { const s = this.spatial(p); this.effects?.blast(p,radius,this.solids);this.fires?.blast(p,radius,this.solids);this.vehicles?.blast(p,radius);this.pursuit?.alert(); this.art.city?.threat(p);this.combatAudio.blast(s.distance,s.pan); });
+    this.fires?.step(dt,this.vehicles?.cars??[]);
     const previousReload = this.weapon.reloadRemaining,empty = this.weapon.ammo === 0;
     const fired = this.loadout.step(dt,command.fire,command.reload,this.controller.canAttack && !interaction,this.session.input.touchAiming);
     if (previousReload === 0 && this.weapon.reloadRemaining > 0) { if (empty && command.fire) this.combatAudio.empty(); this.combatAudio.reload(); }
@@ -446,6 +454,7 @@ export class RaidRuntime {
   private animatePlayer(dt: number) {
     this.player.root.position.copy(this.body.position);
     Object.assign(this.humanoidFrame,{ vertical: this.body.vertical,grounded: this.body.grounded,sprinting: this.controller.sprinting,aiming: this.controller.aiming,angle: this.controller.aimAngle,pov: this.rig.pov,dodgeRemaining: this.controller.dodgeRemaining,dodgeSerial: this.controller.dodgeSerial,health: this.controller.health,hitSerial: this.session.getSnapshot().damage.serial,shots: this.loadout.shots,reload: this.weapon.reloadRemaining,reloadDuration: this.loadout.definition.reloadSeconds,equipment: this.loadout.current.id,action: this.loadout.action,actionRemaining: this.loadout.remaining });
+    this.humanoidFrame.independentAim=this.independentAim;
     this.humanoid?.update(dt,this.humanoidFrame); this.gun?.decay(dt); this.gun?.pose(this.aim,this.humanoidFrame);
   }
   private setBox(box: T.Box3,p: T.Vector3,radius: number,height: number) { box.min.set(p.x - radius,p.y,p.z - radius); box.max.set(p.x + radius,p.y + height,p.z + radius); }
@@ -454,18 +463,18 @@ export class RaidRuntime {
     return this.gun!.muzzleWorld(out);
   }
   private updateAim() {
-    const input = this.session.input,rect = this.renderer.domElement.getBoundingClientRect();
+    const input = this.session.input;
     if (this.rig.pov === 'tactical' || this.rig.pov === 'side') {
       if (input.touchAiming) { const length=Math.hypot(input.touchAimX,input.touchAimY),c={x:input.touchAimX/length,y:input.touchAimY/length};this.aim.copy(this.body.position).add(new T.Vector3(c.x * 12,this.rig.pov === 'side' ? 1.1 - c.y * 10 : 1.1,this.rig.pov === 'side' ? 0 : c.y * 12)); return; }
       if (!input.mouseActive) { this.aim.copy(this.body.position).add(new T.Vector3(Math.cos(this.controller.aimAngle) * 12,1.23,Math.sin(this.controller.aimAngle) * 12)); return; }
-      this.mouse.set((input.mouseClientX - rect.left) / rect.width * 2 - 1,-(input.mouseClientY - rect.top) / rect.height * 2 + 1);
-    } else this.mouse.set(0,0);
+      const rect=this.renderer.domElement.getBoundingClientRect();this.mouse.set((input.mouseClientX - rect.left) / rect.width * 2 - 1,-(input.mouseClientY - rect.top) / rect.height * 2 + 1);
+    } else this.mouse.set(input.touchAiming ? input.touchAimX*.72 : 0,input.touchAiming ? -input.touchAimY*.65 : 0);
     this.host.parentElement?.style.setProperty('--r3-aim-x',`${(this.mouse.x + 1) * 50}%`);
     this.host.parentElement?.style.setProperty('--r3-aim-y',`${(1 - this.mouse.y) * 50}%`);
     this.ray.setFromCamera(this.mouse,this.rig.camera);
     let nearest = traceSolids(this.ray.ray.origin,this.ray.ray.direction,this.solids,120);
     let aimedTarget = false;
-    for (const t of this.targets) if (t.team === 'security' && t.alive()) { const p = this.ray.ray.intersectBox(t.box,new T.Vector3()); if (p && p.distanceTo(this.ray.ray.origin) <= nearest) { nearest = p.distanceTo(this.ray.ray.origin); aimedTarget = true; } }
+    for (const t of this.targets) if (t.team !== 'operative' && t.alive()) { const p = this.ray.ray.intersectBox(t.box,new T.Vector3()); if (p && p.distanceTo(this.ray.ray.origin) <= nearest) { nearest = p.distanceTo(this.ray.ray.origin); aimedTarget = true; } }
     if (this.rig.pov === 'side' && !aimedTarget) { const p = this.ray.ray.intersectPlane(new T.Plane(new T.Vector3(0,0,1),-this.body.position.z),this.aim); if (p) return; }
     if (this.rig.pov === 'tactical' && nearest >= 120) {
       const p = this.ray.ray.intersectPlane(new T.Plane(new T.Vector3(0,1,0),-1.1),this.aim); if (p) return;
@@ -478,12 +487,8 @@ export class RaidRuntime {
     const wallDt=this.last?Math.max(0,(now-this.last)/1000):0;
     const dt = this.last ? Math.min(.1,(now - this.last) / 1000) : 0; this.last = now;
     const active = this.modelsReady && this.session.getSnapshot().status === 'playing' && !this.session.getSnapshot().hack && !this.session.blocked;
-    // Apply the latest analog look before fixed-step shooting, not once per
-    // physics substep. Small motions stay precise; outer travel turns freely.
-    if(active&&!this.vehicles?.current&&this.session.input.touchAiming&&['first','third'].includes(this.rig.pov)){
-      this.rig.rotate(aimStickResponse(this.session.input.touchAimX)*900*dt,aimStickResponse(this.session.input.touchAimY)*620*dt);
-      this.rig.refreshLook();this.updateAim();
-    }
+    // The fire stick owns weapon aim only. Camera look remains a separate
+    // playfield swipe; locomotion remains exclusively the left stick/keys.
     // Age existing effects before simulation so new short flashes survive their
     // first rendered frame even on a slow device. Pause freezes these clocks.
     if (active) this.effects?.age(dt);
@@ -532,9 +537,10 @@ export class RaidRuntime {
       });
     }
     this.roadGuide.update(this.body.position,this.gps?.route??[],this.gps?.goal,this.elapsed,this.session.getSnapshot().reducedMotion);
+    this.fires?.draw(this.rig.camera,this.elapsed,this.body.position);if(this.carriedCase)this.carriedCase.visible=Boolean(this.campaign?.carrying)&&!this.vehicles?.current;
     this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.body.position,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
     if(this.witnessArt&&this.witnessPose&&this.campaign){const w=this.witnessPose,p=this.campaign.witness;w.yaw=Math.atan2(p.x*.025-w.x,p.y*.025-w.z);w.x=p.x*.025;w.z=p.y*.025;w.moving=this.campaign.witnessMoving;w.motion=w.moving?1.5:0;this.witnessArt.draw([w],this.campaign.witnessBoarded?0:1,this.elapsed,this.rig.camera);}
-    if(active){this.burnClock+=dt;if(this.burnClock>.18){this.burnClock=0;for(const car of this.vehicles?.cars??[])if((car.health??200)<35&&Math.hypot(car.x-this.body.position.x,car.z-this.body.position.z)<45)this.effects?.burn(new T.Vector3(car.x,1.05,car.z));for(const [id,time]of this.burning){const npc=this.npcs.find(n=>n.model.spawn.id===id);if(npc)this.effects?.burn(point3(npc.model.x,npc.model.y,.75));if(time<=0)this.burning.delete(id);else this.burning.set(id,time-.18);}}}
+    if(active){this.burnClock+=dt;if(this.burnClock>.18){this.burnClock=0;for(const [id,time]of this.burning){const npc=this.npcs.find(n=>n.model.spawn.id===id);if(npc)this.effects?.burn(point3(npc.model.x,npc.model.y,.75));if(time<=0)this.burning.delete(id);else this.burning.set(id,time-.18);}}}
     // Small render-only recoil cannot change the ray used for authoritative
     // shots. The rig restores the camera before the next aim sample.
     const settings = this.session.getSnapshot().settings;
@@ -563,7 +569,7 @@ export class RaidRuntime {
     const flashError = flash && marker ? flash.root.getWorldPosition(new T.Vector3()).distanceTo(marker.getWorldPosition(new T.Vector3())) : 0;
     return { inventory: this.loadout.snapshot(),field: this.field.snapshot(),flashError,view: { ads: this.rig.ads,fov: this.viewCamera.fov,visible: this.rig.pov === 'first',hands: Boolean(this.viewGun?.handsVisible && this.viewGun?.handsAttachedToWeapon),sight,yaw: this.rig.yaw,pitch: this.rig.pitch,feedback:this.cameraFeedback.snapshot },ready: !this.loadout.busy && (this.loadout.definition.kind !== 'melee' || this.loadout.meleeCooldown <= .00001) && this.controller.canAttack && this.weapon.cooldown <= .00001 && this.weapon.reloadRemaining === 0,grip: gun?.rightGripError ?? 0,support: gun?.leftGripError ?? 0,supported: gun?.supportEngaged ?? false,alignment: gun?.alignment ?? 1,muzzle: this.gun ? this.firingMuzzle(new T.Vector3()).toArray() : [],lastShot: this.lastShot,audio: this.combatAudio.snapshot(),effects: this.effects?.snapshot(),
       enemies: this.npcs.map(n => ({ id: n.model.spawn.id,dead: n.presentation?.dead ?? false,transitions: n.presentation?.deathTransitions ?? 0,age: n.presentation?.deathAge ?? 0,height: n.presentation?.height ?? 0,floorError: n.presentation?.floorError ?? 0,collider: n.collider.enabled,visible: n.presentation?.fall.visible ?? false,tactic:n.model.tactic,evasions:n.model.evasions,covers:n.model.covers,speed:Math.hypot(n.model.vx,n.model.vy),motion:n.actor.current,hits: n.presentation?.hitCount ?? 0 })),
-      boss: b ? { dead: b.dead,transitions: b.deathTransitions,age: b.deathAge,height: b.height,floorError: b.floorError } : null };
+      fires:this.fires?.snapshot,boss: b ? { dead: b.dead,transitions: b.deathTransitions,age: b.deathAge,height: b.height,floorError: b.floorError } : null };
   }
   private publish() {
     if (this.disposed) return;
@@ -590,7 +596,7 @@ export class RaidRuntime {
     this.flash?.dispose(); this.viewFlash?.dispose(); this.securityFlashes.forEach(f => f.dispose()); this.fieldArt?.dispose(); this.combatAudio?.dispose(); this.effects?.dispose(); this.bossPresentation?.dispose(); this.npcs.forEach(n => n.presentation?.dispose());
     this.humanoid?.dispose(); this.viewGun?.dispose(); disposeActor(this.bossActor); this.npcs.forEach(n => disposeActor(n.actor));
     [this.bossActor,...this.npcs.map(n => n.actor)].forEach(actor => { actor.muzzle.geometry.dispose(); (actor.muzzle.material as T.Material).dispose(); });
-    this.roadGuide.dispose();this.assignmentSite?.dispose();this.witnessArt?.dispose();this.art?.dispose();this.atmosphere?.dispose();this.post?.dispose(); this.geometry.forEach(g => g.dispose()); this.materials.forEach(m => m.dispose());
+    this.fires?.dispose();this.roadGuide.dispose();this.assignmentSite?.dispose();this.witnessArt?.dispose();this.art?.dispose();this.atmosphere?.dispose();this.post?.dispose(); this.geometry.forEach(g => g.dispose()); this.materials.forEach(m => m.dispose());
     for (const id of ['rifle','smg','pistol'] as const) this.assets.models.get(id)?.scene.traverse(node => { if (node instanceof T.Mesh) for (const material of Array.isArray(node.material) ? node.material : [node.material]) if (material instanceof T.MeshStandardMaterial) material.envMap = null; });
     this.assets.dispose(); this.weaponEnvironment?.dispose(); this.scene.clear(); this.viewScene.clear(); this.renderer.dispose(); this.renderer.forceContextLoss(); this.renderer.domElement.remove(); this.session.dispose();
   }

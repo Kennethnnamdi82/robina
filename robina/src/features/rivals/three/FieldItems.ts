@@ -41,7 +41,7 @@ export class FieldItems {
       if (b.position.y <= .1) { b.position.y = .1; b.velocity.x *= .92; b.velocity.z *= .92; b.velocity.y = Math.abs(b.velocity.y) * .25; }
       b.life -= dt; if (b.life > 0) continue; b.active = false; this.exploded++;
       for (const target of targets) {
-        if (target.team !== 'security' || !target.alive()) continue; target.box.clampPoint(b.position,this.nearest); this.delta.subVectors(this.nearest,b.position); const d = this.delta.length(); if (d > BOMB.radius) continue;
+        if (target.team === 'operative' || !target.alive()) continue; target.box.clampPoint(b.position,this.nearest); this.delta.subVectors(this.nearest,b.position); const d = this.delta.length(); if (d > BOMB.radius) continue;
         this.direction.copy(this.delta).normalize(); if (d > .01 && traceSolids(b.position,this.direction,solids,d) < d - .01) continue;
         target.damage({ id: 'pulse-bomb:' + b.serial,sourceId: 'operative',team: 'operative',amount: Math.round(BOMB.damage * (1 - .65 * Math.min(1,d / BOMB.radius))),angle: Math.atan2(this.delta.z,this.delta.x) });
       }

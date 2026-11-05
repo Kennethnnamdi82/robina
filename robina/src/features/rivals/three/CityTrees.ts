@@ -24,5 +24,6 @@ export class CityTrees {
     trees.forEach((tree,i)=>{dummy.position.set(tree.x+.6,.071,tree.z+.4);dummy.rotation.set(-Math.PI/2,0,0);dummy.scale.setScalar((tree.height??6)/6);dummy.updateMatrix();shadows.setMatrixAt(i,dummy.matrix);});shadows.computeBoundingSphere();this.root.add(shadows);
   }
   update(time:number){this.wind.value=time;}
+  setQuality(quality:import('../core/presentation').QualityId){const mobile=navigator.maxTouchPoints>0;for(const child of this.root.children)if(child instanceof T.InstancedMesh)child.castShadow=child.geometry===this.geometries[0]||(!mobile&&quality==='high'&&child.geometry===this.geometries[1]);}
   dispose(){this.root.children.forEach(n=>{if(n instanceof T.InstancedMesh)n.dispose();});this.geometries.forEach(g=>g.dispose());this.materials.forEach(m=>m.dispose());this.shadow.dispose();this.root.clear();}
 }
