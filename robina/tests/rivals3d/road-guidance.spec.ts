@@ -1,5 +1,17 @@
 import {test,expect} from '@playwright/test';
 
+test('nearby vehicle prompt leaves the red bearing visible at every phone angle',async({page})=>{
+  await page.route('**/tests/rivals3d/entry.tsx',route=>route.abort());await page.goto('/tests/rivals3d/index.html');
+  await page.evaluate(async()=>{for(const url of ['/src/features/rivals/rivals.css','/src/features/rivals/three/sandbox.css','/src/features/rivals/three/command-hud.css'])await import(url);document.body.innerHTML='<main class="rivals-shell r3-shell"><section class="rivals-game-view r3-game"><aside class="r3-direction-guide" data-nearby="true"><svg viewBox="0 0 48 48"><path d="M24 3 43 42 24 33 5 42Z"/></svg><strong>45 m</strong><span>FOLLOW RED ROUTE</span></aside><button class="r3-enter-car">ENTER SEDAN · F</button></section></main>';});
+  for(const [width,height]of [[568,320],[667,375],[740,360],[812,375],[844,390],[896,414],[390,844]]){
+    await page.setViewportSize({width,height});
+    for(const angle of [0,30,45,60,90,135,180,225]){
+      const gap=await page.evaluate(angle=>{const arrow=document.querySelector<SVGElement>('.r3-direction-guide svg')!;arrow.style.transform=`rotate(${angle}deg)`;const a=arrow.getBoundingClientRect(),b=document.querySelector('.r3-enter-car')!.getBoundingClientRect();return {gap:a.top-b.bottom,arrow:{top:a.top,height:a.height},button:{top:b.top,bottom:b.bottom},style:getComputedStyle(arrow).width};},angle);
+      expect(gap.gap,JSON.stringify({width,height,angle,...gap})).toBeGreaterThanOrEqual(2);
+    }
+  }
+});
+
 test('red road arrows survive road rendering but remain occluded by real walls',async({page},info)=>{
   await page.route('**/tests/rivals3d/entry.tsx',route=>route.abort());
   await page.goto('/tests/rivals3d/index.html');
