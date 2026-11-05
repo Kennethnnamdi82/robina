@@ -163,7 +163,7 @@ export class CityEnvironment {
   setLighting(lighting:CityWeather){this.lighting=lighting;const night=lighting==='night';this.night.value=night?1:0;this.nightLights.forEach(l=>l.visible=night);this.lamps.forEach(m=>m.emissiveIntensity=night?3.2:.65);this.windowMaterials.forEach(m=>m.emissiveIntensity=night?.8:.15);}
   threat(point:CityPoint){this.crowd.threat(point,this.lastTime);}
   update(time:number,_pov:POV,reduced:boolean,player=new T.Vector3(7.2,0,7.2),shots=0,actors:readonly CityPoint[]=[],camera?:T.Camera){
-    let delta=Math.min(.12,Math.max(0,time-this.lastTime));this.nightClock+=delta;this.lastTime=time;this.wind.value=reduced?0:time;
+    let delta=Math.min(.2,Math.max(0,time-this.lastTime));this.nightClock+=delta;this.lastTime=time;this.wind.value=reduced?0:time;
     if(shots!==this.shots){this.threat(player);this.shots=shots;}
     const obstacles:CityPoint[]=[player,...actors,...this.solids.filter(s=>s.enabled&&s.kind==='cover'&&!s.id.startsWith('city-traffic')).map(s=>({x:(s.box.min.x+s.box.max.x)/2,z:(s.box.min.z+s.box.max.z)/2}))];
     const pedestrianObstacles=this.pedestrianObstacles;

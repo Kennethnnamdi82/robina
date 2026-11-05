@@ -3,7 +3,17 @@ import type { CityCar } from './CitySimulation';
 import { carActive, VEHICLE_LENGTH,sampleRoute } from './CitySimulation';
 import type { Solid3D } from './world3d';
 import { horizontalContact,traceSolids } from './physics3d';
-export interface DrivingInput { throttle:number; steer:number; brake:boolean }
+export interface DrivingInput { throttle:number; steer:number; brake:boolean;heading?:number;stickX?:number;stickY?:number;cameraYaw?:number }
+/** Screen-direction steering; pulling back is always reverse. Pedals still
+ * work when the stick rests. Releasing the stick applies a gentle auto-brake. */
+export function directionalDriving(input:DrivingInput):DrivingInput {
+  if(input.stickX===undefined||input.stickY===undefined)return input;
+  const x=input.stickX,y=input.stickY,magnitude=Math.min(1,Math.hypot(x,y));
+  if(magnitude<.12)return{...input,brake:input.brake||!input.throttle};
+  if(y>.35&&Math.abs(x)<y*.7)return{...input,throttle:-magnitude,steer:0};
+  const yaw=input.cameraYaw??0,worldX=x*Math.cos(yaw)+y*Math.sin(yaw),worldZ=-x*Math.sin(yaw)+y*Math.cos(yaw);
+  return{...input,throttle:Math.max(.55,magnitude),steer:0,heading:Math.atan2(worldX,worldZ)};
+}
 const width=(car:CityCar)=>['lorry','tanker','bus'].includes(car.kind)?2.35:1.85;
 /** Exact horizontal SAT, not a point-sized car collision check. */
 export function vehicleOverlap(car:CityCar,x:number,z:number,yaw:number,s:Solid3D){
@@ -25,7 +35,7 @@ export function driveVehicle(car:CityCar,input:DrivingInput,dt:number,solids:rea
   car.speed=Math.sign(car.speed)*Math.max(0,Math.abs(car.speed)-deceleration);
   const steps=Math.max(1,Math.ceil(Math.abs(car.speed)*dt/.15));
   for(let i=0;i<steps;i++){
-    const oldYaw=Math.atan2(car.dx,car.dz),yaw=oldYaw+Math.max(-1,Math.min(1,input.steer||0))*Math.sign(car.speed)*Math.min(1.4,Math.abs(car.speed)*.22)*dt/steps;
+    const oldYaw=Math.atan2(car.dx,car.dz),turn=input.heading===undefined?Math.max(-1,Math.min(1,input.steer||0))*Math.sign(car.speed)*Math.min(1.4,Math.abs(car.speed)*.22)*dt/steps:Math.max(-6*dt/steps,Math.min(6*dt/steps,Math.atan2(Math.sin(input.heading-oldYaw),Math.cos(input.heading-oldYaw)))),yaw=oldYaw+turn;
     const x=car.x+Math.sin(yaw)*car.speed*dt/steps,z=car.z+Math.cos(yaw)*car.speed*dt/steps;
     if(solids.some(s=>s.id!=='city-traffic-'+car.id&&vehicleOverlap(car,x,z,yaw,s))){if(Math.abs(car.speed)>3)car.health=Math.max(0,(car.health??200)-Math.abs(car.speed)*2);car.speed=0;break;}
     car.x=x;car.z=z;car.dx=Math.sin(yaw);car.dz=Math.cos(yaw);car.travelled+=Math.abs(car.speed)*dt/steps;
@@ -59,7 +69,7 @@ export class VehicleController {
   step(dt:number,input:DrivingInput,solids:readonly Solid3D[],body:Vector3){
     for(const [id,time]of this.doors){const car=this.cars.find(c=>c.id===id);if(car)car.door=Math.max(0,time/.8);if(time<=0)this.doors.delete(id);else this.doors.set(id,time-dt);}
     for(const car of this.cars){if((car.fire??0)>0){car.fire=Math.max(0,car.fire!-dt);if((car.health??200)>0)this.damage(car,dt*8);}else if((car.health??200)>0&&(car.health??200)<35){car.fire=15;}}
-    if(this.current){driveVehicle(this.current,input,dt,solids);body.set(this.current.x,.55,this.current.z);}
+    if(this.current){driveVehicle(this.current,directionalDriving(input),dt,solids);body.set(this.current.x,.55,this.current.z);}
   }
   blast(point:Vector3,radius:number,damage=150){for(const car of this.cars){const distance=Math.max(0,Math.hypot(point.x-car.x,point.z-car.z)-car.length*.4);if(distance<=radius){const amount=damage*(1-distance/radius*.8);this.damage(car,amount);if(amount>=30)car.fire=Math.max(car.fire??0,24);}}}
   damage(car:CityCar,amount:number){if(!Number.isFinite(amount)||amount<=0||(car.health??200)<=0)return 0;const taken=Math.min(car.health??200,amount);car.health=(car.health??200)-taken;if(car.health<=0){car.mode='disabled';car.speed=0;car.fire=Math.max(car.fire??0,18);}return taken;}

@@ -10,7 +10,7 @@ export class GameAudio {
   private effects = new Map<Sound, HTMLAudioElement>();
   private paused = false;
   private disposed = false;
-  constructor(private settings: GameSettings) {}
+  constructor(private settings: GameSettings,private readonly soundtrack=true) {}
   configure(settings: GameSettings) {
     this.settings = settings;
     if (this.music) this.music.volume = settings.masterVolume * settings.musicVolume;
@@ -19,7 +19,7 @@ export class GameAudio {
   }
   playMusic() {
     const s = this.settings;
-    if (this.disposed || this.paused || s.muted || !s.masterVolume || !s.musicVolume) return;
+    if (!this.soundtrack || this.disposed || this.paused || s.muted || !s.masterVolume || !s.musicVolume) return;
     this.music ??= new Audio(assetUrl('audio/neon_ambient.wav'));
     this.music.loop = true; this.music.volume = s.masterVolume * s.musicVolume;
     void this.music.play().catch(() => { /* Device audio may be unavailable; gameplay remains usable. */ });

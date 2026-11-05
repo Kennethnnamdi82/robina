@@ -33,15 +33,13 @@ export function routeBearing(player: T.Vector3, next: Point, camera: T.Camera) {
   return Math.atan2(direction.dot(right), direction.dot(forward));
 }
 
-/** Two bounded draws: road-projected red triangles and a destination marker.
+/** One road-projected direction triangle, following the accessible route.
  * Depth testing deliberately stays on: directions never erase buildings. */
 export class RoadGuide {
   readonly root = new T.Group();
   private geometry = new T.BufferGeometry();
   private material = new T.MeshBasicMaterial({ color: 0xff332c, toneMapped: false, side: T.DoubleSide, transparent: true, opacity: .96, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
   private arrows: T.InstancedMesh;
-  private marker: T.Mesh;
-  private markerGeometry = new T.ConeGeometry(.48, .9, 3);
   private dummy = new T.Object3D();
   private route?: readonly Point[];
   private anchor = new T.Vector3(Infinity, 0, Infinity);
@@ -50,23 +48,21 @@ export class RoadGuide {
     this.root.name = 'Red mission road guidance';
     this.geometry.setAttribute('position', new T.Float32BufferAttribute([0, 0, .56, -.34, 0, -.36, 0, 0, -.16, 0, 0, .56, 0, 0, -.16, .34, 0, -.36], 3));
     this.geometry.computeVertexNormals();
-    this.arrows = new T.InstancedMesh(this.geometry, this.material, 56);
+    this.arrows = new T.InstancedMesh(this.geometry, this.material, 1);
     this.arrows.instanceMatrix.setUsage(T.DynamicDrawUsage); this.arrows.frustumCulled = false; this.arrows.count = 0;
-    this.marker = new T.Mesh(this.markerGeometry, this.material); this.marker.rotation.z = Math.PI;
-    this.root.add(this.arrows, this.marker); this.root.visible = false;
+    this.root.add(this.arrows); this.root.visible = false;
   }
   update(player: T.Vector3, route: readonly Point[], goal: Point | undefined, time: number, reduced = false) {
     this.root.visible = Boolean(goal); if (!goal) { this.count = this.arrows.count = 0; return; }
-    if (route !== this.route || player.distanceToSquared(this.anchor) > .36) {
+    if (route !== this.route || player.distanceToSquared(this.anchor) > .01) {
       this.route = route; this.anchor.copy(player);
-      const points = roadGuidePoints({ x: player.x * 40, y: player.z * 40 }, route);
+      const points = roadGuidePoints({ x: player.x * 40, y: player.z * 40 }, route, 1.8, 1);
       for (const [i, p] of points.entries()) {
-        this.dummy.position.set(p.x, .105, p.z); this.dummy.rotation.set(0, p.yaw, 0); this.dummy.updateMatrix();
+        this.dummy.position.set(p.x, .105, p.z); this.dummy.rotation.set(0, p.yaw, 0);this.dummy.scale.setScalar(1.3); this.dummy.updateMatrix();
         this.arrows.setMatrixAt(i, this.dummy.matrix);
       }
       this.count = this.arrows.count = points.length; this.arrows.instanceMatrix.needsUpdate = true;
     }
-    this.marker.position.set(goal.x * .025, 2.8 + (reduced ? 0 : Math.sin(time * 2.5) * .12), goal.y * .025);
   }
-  dispose() { this.arrows.dispose(); this.geometry.dispose(); this.markerGeometry.dispose(); this.material.dispose(); this.root.clear(); this.root.removeFromParent(); }
+  dispose() { this.arrows.dispose(); this.geometry.dispose(); this.material.dispose(); this.root.clear(); this.root.removeFromParent(); }
 }

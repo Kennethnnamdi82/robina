@@ -22,7 +22,7 @@ export class CameraRig {
     try { localStorage.setItem(ZOOM_KEY,JSON.stringify(this.zoom)); } catch { /* Session preference still works. */ }
   }
   cycleZoom() { const presets = [.7,1,1.4],at = presets.findIndex(n => n > this.zoom[this.pov] + .05); this.setZoom(presets[at < 0 ? 0 : at]); }
-  rotate(dx: number,dy: number) { this.yaw -= dx * .003 * this.sensitivity; this.pitch = MathUtils.clamp(this.pitch - dy * .0025 * this.sensitivity,-1.05,.9); }
+  rotate(dx: number,dy: number) { if(!Number.isFinite(dx)||!Number.isFinite(dy))return;this.yaw -= dx * .003 * this.sensitivity; this.pitch = MathUtils.clamp(this.pitch - dy * .0025 * this.sensitivity,-1.05,this.pov==='third'?.24:.9); }
   /** Refresh aim orientation without advancing follow/zoom damping twice. */
   refreshLook() {
     if(this.pov!=='first'&&this.pov!=='third')return;
@@ -69,8 +69,12 @@ export class CameraRig {
         } else this.desired.copy(this.focus).addScaledVector(offset,Math.max(.03,safe - .12));
       }
     }
+    // A TPS orbit is not allowed to pass below the drivable ground plane,
+    // including wide zoom, collision recovery and an already-invalid orbit.
+    if(this.pov==='third'||this.pov==='first')this.desired.y=Math.max(.42,this.desired.y);
     const camera = this.camera;
     camera.position.lerp(this.desired,this.switched || reduced || this.pov === 'first' ? 1 : 1 - Math.exp(-dt * 13));
+    if(this.pov==='third'||this.pov==='first')camera.position.y=Math.max(.42,camera.position.y);
     if (this.pov === 'first' || this.pov === 'third') {
       this.direction.set(-Math.sin(this.yaw) * Math.cos(this.pitch),Math.sin(this.pitch) + recoil * .012,-Math.cos(this.yaw) * Math.cos(this.pitch));
       camera.lookAt(this.focus.clone().addScaledVector(this.direction,this.pov === 'third' ? 5 : 20));

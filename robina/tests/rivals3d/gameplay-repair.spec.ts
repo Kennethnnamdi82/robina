@@ -19,6 +19,15 @@ test('real driving controls have separate touch targets on small phones',async({
   await page.setViewportSize({width:320,height:568});await page.screenshot({path:info.outputPath('small-phone-driving-controls.png')});
 });
 
+test('original score renders stereo audio with pursuit layers and no old ambient download',async({page})=>{
+  await page.route('**/tests/rivals3d/entry.tsx',r=>r.fulfill({contentType:'application/javascript',body:''}));await page.goto('/tests/rivals3d/index.html');
+  const result=await page.evaluate(async()=>{
+    const path='/src/features/rivals/three/HeistScore.ts',{HeistScore}=await import(path),settingsPath='/src/features/rivals/core/settings.ts',{defaultSettings}=await import(settingsPath);
+    const context=new OfflineAudioContext(2,44100*2,44100),score=new HeistScore(context,{...defaultSettings(),muted:false,masterVolume:1,musicVolume:.7});score.setAlert(true);const buffer=await context.startRendering();score.dispose();let peak=0,energy=0;const left=buffer.getChannelData(0),right=buffer.getChannelData(1);for(let i=0;i<left.length;i++){peak=Math.max(peak,Math.abs(left[i]),Math.abs(right[i]));energy+=left[i]*left[i];}return{peak,rms:Math.sqrt(energy/left.length),channels:buffer.numberOfChannels};
+  });
+  expect(result.channels).toBe(2);expect(result.peak).toBeGreaterThan(.05);expect(result.peak).toBeLessThan(.95);expect(result.rms).toBeGreaterThan(.01);
+});
+
 test('authored civilian terminal fall and persistent surface fire render without shader errors',async({page},info)=>{
   test.setTimeout(120000);const errors:string[]=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/Shader|WebGLProgram|GL_INVALID/.test(m.text()))errors.push(m.text());});

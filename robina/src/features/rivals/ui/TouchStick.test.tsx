@@ -27,11 +27,11 @@ describe('responsive owned analog sticks',()=>{
     const runtime={vehicles:{snapshot:{speed:0,kind:'sedan',health:200}},setDriving:vi.fn(),vehicleInteract:vi.fn()} as unknown as RaidRuntime;
     render(<DrivingControls runtime={runtime} disabled={false}/>);expect(screen.queryByRole('button',{name:'Steer left'})).toBeNull();expect(screen.queryByRole('button',{name:'Steer right'})).toBeNull();
     const stick=screen.getByRole('group',{name:'Driving joystick'});fireEvent.pointerDown(stick,{pointerId:1,clientX:75,clientY:30});
-    expect(runtime.setDriving).toHaveBeenLastCalledWith({steer:expect.any(Number)});
-    const before=vi.mocked(runtime.setDriving).mock.lastCall![0];expect(before.steer).toBeGreaterThan(0);expect(before.throttle).toBeUndefined();
+    expect(runtime.setDriving).toHaveBeenLastCalledWith({stickX:expect.any(Number),stickY:expect.any(Number)});
+    const before=vi.mocked(runtime.setDriving).mock.lastCall![0];expect(before.stickX).toBeGreaterThan(0);expect(before.stickY).toBeLessThan(0);expect(before.throttle).toBeUndefined();
     const gas=screen.getByRole('button',{name:'Accelerate vehicle'});fireEvent.pointerDown(gas,{pointerId:2});expect(runtime.setDriving).toHaveBeenLastCalledWith({throttle:1});fireEvent.pointerUp(gas,{pointerId:2});expect(runtime.setDriving).toHaveBeenLastCalledWith({throttle:0});
     const reverse=screen.getByRole('button',{name:'Reverse vehicle'});fireEvent.pointerDown(reverse,{pointerId:2});expect(runtime.setDriving).toHaveBeenLastCalledWith({throttle:-1});fireEvent.pointerUp(reverse,{pointerId:2});expect(runtime.setDriving).toHaveBeenLastCalledWith({throttle:0});
     const brake=screen.getByRole('button',{name:'Brake vehicle'});fireEvent.pointerDown(brake,{pointerId:2});expect(runtime.setDriving).toHaveBeenLastCalledWith({brake:true});fireEvent.pointerUp(brake,{pointerId:2});expect(runtime.setDriving).toHaveBeenLastCalledWith({brake:false});
-    fireEvent.pointerUp(stick,{pointerId:1});expect(runtime.setDriving).toHaveBeenLastCalledWith({steer:0});
+    fireEvent.pointerUp(stick,{pointerId:1});expect(runtime.setDriving).toHaveBeenLastCalledWith({stickX:0,stickY:0});
   });
 });

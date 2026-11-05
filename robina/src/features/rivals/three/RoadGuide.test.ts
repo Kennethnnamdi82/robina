@@ -15,7 +15,7 @@ describe('visible road guidance and analog controls',()=>{
   });
   it('bounds the geometry and removes guidance when there is no destination',()=>{
     const guide=new RoadGuide();guide.update(new T.Vector3(),[{x:0,y:100000}],{x:0,y:100000},0,true);
-    expect(guide.count).toBe(56);expect(guide.root.visible).toBe(true);
+    expect(guide.count).toBe(1);expect(guide.root.children).toHaveLength(1);expect(guide.root.visible).toBe(true);
     expect((guide.root.children[0] as T.InstancedMesh).material).toMatchObject({depthTest:true,depthWrite:false,transparent:true});
     guide.update(new T.Vector3(),[],undefined,0);expect(guide.root.visible).toBe(false);expect(guide.count).toBe(0);guide.dispose();
   });

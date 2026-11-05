@@ -4,7 +4,6 @@ import type { RaidRuntime } from './RaidRuntime';
 import { useArenaValue } from '../ui/useArenaValue';
 import { TouchStick } from '../ui/TouchStick';
 import { press } from './controlPress';
-import { drivingStick } from './stickResponse';
 
 function EquipmentGlyph({ id }: { id: string }) {
   return <svg className="r3-equipment-glyph" viewBox="0 0 88 30" aria-hidden="true" fill="currentColor">
@@ -35,10 +34,10 @@ export function DrivingControls({runtime,disabled}:{runtime:RaidRuntime;disabled
   const release=(value:Parameters<RaidRuntime['setDriving']>[0])=>runtime.setDriving(Object.fromEntries(Object.keys(value).map(key=>[key,key==='brake'?false:0])));
   const held=(value:Parameters<RaidRuntime['setDriving']>[0])=>({onPointerDown:(e:React.PointerEvent<HTMLButtonElement>)=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);runtime.setDriving(value);},onPointerUp:()=>release(value),onPointerCancel:()=>release(value),onLostPointerCapture:()=>release(value)});
   return <div className="r3-driving-controls" aria-label="Driving controls">
-    <TouchStick kind="drive" disabled={disabled} onMove={vector=>runtime.setDriving({steer:drivingStick(vector).steer})}/>
+    <TouchStick kind="drive" disabled={disabled} onMove={vector=>runtime.setDriving({stickX:vector.x,stickY:vector.y})}/>
     <output className="r3-speed">{vehicle.speed}<small>KM/H · {vehicle.kind?.toUpperCase()} · {vehicle.health} HP</small></output>
-    <div className="r3-pedals"><button aria-label="Reverse vehicle" disabled={disabled} {...held({throttle:-1})}>REVERSE</button><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button><button aria-label="Accelerate vehicle" disabled={disabled} {...held({throttle:1})}>ACCELERATE</button></div>
-    <span className="r3-drive-hint">JOYSTICK STEERS · PEDALS CONTROL SPEED</span>
+    <div className="r3-pedals"><button aria-label="Reverse vehicle" disabled={disabled} {...held({throttle:-1})}>REVERSE</button><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button><button aria-label="Accelerate vehicle" disabled={disabled} {...held({throttle:1})}>ACCEL</button></div>
+    <span className="r3-drive-hint">POINT TO DRIVE · PULL BACK TO REVERSE</span>
     <button className="r3-exit-car" disabled={disabled} onClick={runtime.vehicleInteract}>EXIT VEHICLE · F</button>
   </div>;
 }

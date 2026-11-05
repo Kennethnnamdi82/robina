@@ -10,7 +10,7 @@ export class TacticalEnemy extends EnemyController {
   private clock=0; private evadeUntil=0; private nextEvade=0; private coverUntil=0; private reconsider=0;
   private strafe:Point={x:0,y:0}; private coverGoal:Point|null=null; private pending:Point|null=null; private reactAt=Infinity;
   private coverPath:Point[]=[];
-  constructor(spawn:EnemySpawn,private grid:NavigationGrid,stagger=0){super(spawn,grid,stagger,spawn.id.startsWith('police-')?{vision:1000,cone:Math.PI,detectionSeconds:.08,attackDistance:720,minimumDistance:65,interval:.65,windup:.12,damage:5,pursuit:4000,speed:155,searchSeconds:12}:undefined);}
+  constructor(spawn:EnemySpawn,private grid:NavigationGrid,stagger=0){super(spawn,grid,stagger,spawn.id.startsWith('police-')?{vision:1200,cone:Math.PI,detectionSeconds:.08,attackDistance:1000,minimumDistance:95,interval:.48,windup:.1,damage:5,pursuit:6000,speed:170,searchSeconds:15,alertRange:4000,hearing:1600,accuracy:.035}:undefined);}
   threat(origin:Point,direction:Point) {
     if(!this.alive||this.clock<this.nextEvade||!clearSight(this,origin,this.grid.blockers))return;
     const dx=this.x-origin.x,dy=this.y-origin.y,along=dx*direction.x+dy*direction.y;
@@ -50,7 +50,12 @@ export class TacticalEnemy extends EnemyController {
       if(this.coverGoal){this.x=start.x;this.y=start.y;while(this.coverPath.length&&Math.hypot(this.coverPath[0].x-this.x,this.coverPath[0].y-this.y)<10)this.coverPath.shift();const goal=this.coverPath[0]??this.coverGoal,dx=goal.x-this.x,dy=goal.y-this.y,d=Math.hypot(dx,dy);if(Math.hypot(this.coverGoal.x-this.x,this.coverGoal.y-this.y)<12){this.coverUntil=this.clock+1.3;this.coverGoal=null;this.covers++;this.tactic='cover';}else if(d>0){this.grid.move(this,dx/d*Math.min(d,155*dt),dy/d*Math.min(d,155*dt));this.tactic='seek-cover';this.sprinting=true;this.angle=Math.atan2(dy,dx);}}
       else if(this.clock<this.coverUntil){this.x=start.x;this.y=start.y;this.tactic='cover';this.angle=Math.atan2(context.player.y-this.y,context.player.x-this.x);}
       else if(['CHASE','INVESTIGATE','RETURN_TO_PATROL'].includes(this.state)&&Math.hypot(this.x-start.x,this.y-start.y)>.01){const dx=this.x-start.x,dy=this.y-start.y;this.grid.move(this,dx*.65,dy*.65);this.sprinting=true;this.tactic='pursuit';}
-      else this.tactic='patrol';
+      else if(this.spawn.id.startsWith('police-')&&this.state==='ATTACK'&&context.permitted&&clearSight(this,context.player,this.grid.blockers)){
+        // Short lateral relocations while firing, alternating by squad member.
+        const angle=Math.atan2(context.player.y-this.y,context.player.x-this.x),side=this.spawn.id.endsWith('-0')?1:-1;
+        if(Math.sin(this.clock*1.7)>0)this.grid.move(this,-Math.sin(angle)*side*85*dt,Math.cos(angle)*side*85*dt);
+        this.tactic='pursuit';
+      }else this.tactic='patrol';
     }
     this.vx=(this.x-start.x)/dt;this.vy=(this.y-start.y)/dt;
   }

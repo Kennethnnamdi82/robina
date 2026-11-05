@@ -13,7 +13,7 @@ export class SandboxSession extends ArenaSession {
   cityLighting:CityWeather='golden';
   onCityLighting?:(preset:CityWeather)=>void;
   /** Called synchronously by ENTER/RESTART, inside the browser's audio gesture. */
-  startAudio() { const settings = this.getSnapshot().settings; this.audio ??= new GameAudio(settings); this.combatAudio ??= new CombatAudio(settings);this.cityAudio??=new CityAmbience(settings); this.audio.playMusic(); this.combatAudio.configure(settings);this.cityAudio.configure(settings); }
+  startAudio() { const settings = this.getSnapshot().settings; this.audio ??= new GameAudio(settings,false); this.combatAudio ??= new CombatAudio(settings);this.cityAudio??=new CityAmbience(settings); this.combatAudio.configure(settings);this.cityAudio.configure(settings); }
   override dispose() { this.audio?.dispose(); this.combatAudio?.dispose();this.cityAudio?.dispose(); super.dispose(); }
   override canControl = () => { const s = this.getSnapshot(); return s.status === 'playing' && s.health > 0 && !s.hack && s.boss?.state !== 'INTRO' && !this.blocked; };
   constructor(options: ConstructorParameters<typeof ArenaSession>[0] = {},readonly operation:Operation3D=createOperation()) { super({...options,missionDefinition:operation.mission}); this.input.aimShoots = true; }

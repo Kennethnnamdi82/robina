@@ -93,7 +93,7 @@ export class HumanoidAnimator {
     if (fired) this.shotRemaining = .16;
     let motion: HumanoidMotion;
     if (frame.health <= 0) motion = 'death';
-    else if (hit) { motion = 'hit'; this.specialRemaining = .22; }
+    else if (hit && this.speed < .08) { motion = 'hit'; this.specialRemaining = .22; }
     else if (this.motion === 'hit' && this.specialRemaining > 0) motion = 'hit';
     else if (dodge) { motion = 'dodge'; this.specialRemaining = .28; }
     else if (this.motion === 'dodge' && this.specialRemaining > 0) motion = 'dodge';
@@ -142,8 +142,8 @@ export class HumanoidAnimator {
     const clipName = special[motion] || (directional ? frame.sprinting ? 'Sprint_Loop' : this.speed > 2.8 ? 'Jog_Fwd_Loop' : 'Walk_Loop' : gaitClip[motion]!);
     const once = full && motion !== 'fall';
     const duration = motion === 'dodge' ? .28 : motion === 'takeoff' ? .14 : motion === 'land' ? .15 : motion === 'hit' ? .22 : 0;
-    const referenceSpeed = clipName === 'Sprint_Loop' ? 7.5 : clipName === 'Jog_Fwd_Loop' ? 4.5 : 2.1;
-    const rate = duration ? this.clips.get(clipName)!.duration / duration : full || !moving ? 1 : MathUtils.clamp(this.speed / referenceSpeed, .2, 2.8) * (reverse ? -1 : 1);
+    const stride = clipName === 'Sprint_Loop' ? 4.3 : clipName === 'Jog_Fwd_Loop' ? 2.75 : 1.65;
+    const rate = duration ? this.clips.get(clipName)!.duration / duration : full || !moving ? 1 : MathUtils.clamp(this.speed*this.clips.get(clipName)!.duration/stride, .2, 2.8) * (reverse ? -1 : 1);
     this.base = this.switchAction(this.base, this.action('base-' + motion + ':' + clipName, clipName, full ? 'full' : 'lower', once), rate);
     if (full) {
       if (this.upper) { this.upper.fadeOut(.08); this.fading.push({ action: this.upper, remaining: .09 }); this.upper = undefined; }

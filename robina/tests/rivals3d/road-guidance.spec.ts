@@ -29,6 +29,7 @@ test('red road arrows survive road rendering but remain occluded by real walls',
     // The buffer remains available for the accompanying visual artifact.
     return {visible,occluded};
   });
-  expect(result.visible).toBeGreaterThan(100);expect(result.occluded).toBe(0);
+  // One local arrow now replaces the former full-road trail.
+  expect(result.visible).toBeGreaterThan(20);expect(result.occluded).toBe(0);
   await page.screenshot({path:info.outputPath('road-arrow-render.png')});
 });

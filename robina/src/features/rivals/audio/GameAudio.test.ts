@@ -10,6 +10,9 @@ class TestAudio {
 }
 afterEach(() => { vi.unstubAllGlobals(); TestAudio.created.length = 0; });
 describe('optional game audio', () => {
+  it('disables the old ambient loop for 3D without disabling effect cues',()=>{
+    vi.stubGlobal('Audio',TestAudio);const settings={...defaultSettings(),muted:false},audio=new GameAudio(settings,false);audio.playMusic();audio.configure(settings);expect(TestAudio.created).toHaveLength(0);audio.effect('player_dash');expect(TestAudio.created).toHaveLength(1);expect(TestAudio.created[0].src).toContain('player_dash.wav');audio.dispose();
+  });
   it('does not eagerly download muted audio and applies separate music/effect gains', () => {
     vi.stubGlobal('Audio', TestAudio);
     const defaults = defaultSettings(), audio = new GameAudio(defaults);

@@ -33,6 +33,6 @@ export function TouchStick({ onMove, onPress, disabled, kind = 'move' }: { onMov
       onPointerCancel={event => { if (owner.current === event.pointerId) reset(); }}
       onLostPointerCapture={event => { if (owner.current === event.pointerId) reset(); }}>
       <span className="rivals-stick-cross" /><span className="rivals-stick-knob" style={{ transform: 'translate(var(--stick-x,0px),var(--stick-y,0px))' }} />
-    </div><span className="rivals-stick-label">{kind === 'move' ? 'MOVE' : kind === 'drive' ? 'STEER' : 'AIM / FIRE'}</span>
+    </div><span className="rivals-stick-label">{kind === 'move' ? 'MOVE' : kind === 'drive' ? 'DRIVE / REVERSE' : 'AIM / FIRE'}</span>
   </div>;
 }

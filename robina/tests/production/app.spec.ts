@@ -209,7 +209,7 @@ test('admin pages contain service failures without crashing', async ({ page }) =
 });
 
 test('campaign GPS, real driving and landscape action groups remain usable',async({browser},info)=>{
-  test.setTimeout(240000);
+  test.setTimeout(420000);
   const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();
   try{
   const errors=await prepare(page,'authenticated');
@@ -221,7 +221,7 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
   await expect(page.getByRole('img',{name:'Live player and objective navigation'}).last()).toBeVisible();
   await expect(page.locator('.r3-mission-radar [aria-label="Accessible GPS route"]')).toHaveCount(1);
   await expect(page.getByRole('img',{name:'Red direction arrow'})).toBeVisible();
-  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-navigation'))!).roadArrows).toBeGreaterThan(0);
+  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-navigation'))!).roadArrows).toBe(1);
   for(const [width,height]of [[568,320],[667,375],[740,360],[812,375],[844,390],[896,414],[390,844]]){
     await page.setViewportSize({width,height});
     const invalid=await page.evaluate(()=>{const root=document.querySelector('.r3-game')!.getBoundingClientRect(),vitals=document.querySelector('.rv-vitals')!.getBoundingClientRect(),radar=document.querySelector('.r3-mission-radar .rivals-minimap')!.getBoundingClientRect();return [...document.querySelectorAll('.rv-action-buttons>button,.rv-sprint-control')].filter(n=>getComputedStyle(n).display!=='none').map(n=>({name:n.getAttribute('aria-label'),r:n.getBoundingClientRect()})).filter(({r})=>r.width<43||r.height<43||r.top<root.top||r.bottom>root.bottom+1||r.left<root.left||r.right>root.right+1||(r.left<radar.right&&r.right>radar.left&&r.top<radar.bottom&&r.bottom>radar.top)||(r.left<vitals.right&&r.right>vitals.left&&r.top<vitals.bottom&&r.bottom>vitals.top)).map(({name})=>name);});
@@ -242,6 +242,17 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
   }
   await page.setViewportSize({width:844,height:390});
   const drivingStick=await page.getByTestId('driving-stick').boundingBox();expect(drivingStick).toBeTruthy();
+  const driveCdp=await context.newCDPSession(page),driveFinger={id:1,x:drivingStick!.x+drivingStick!.width/2+28,y:drivingStick!.y+drivingStick!.height/2};
+  const startCarX=Number(await page.getByTestId('three-state').getAttribute('data-x'));
+  await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[driveFinger]});
+  await expect.poll(async()=>Number(await page.getByTestId('three-state').getAttribute('data-x'))).toBeGreaterThan(startCarX+.6);
+  await driveCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed,{timeout:15000}).toBe(0);
+  const forwardCarX=Number(await page.getByTestId('three-state').getAttribute('data-x'));
+  await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...driveFinger,x:drivingStick!.x+drivingStick!.width/2,y:drivingStick!.y+drivingStick!.height/2+28}]});
+  await expect.poll(async()=>Number(await page.getByTestId('three-state').getAttribute('data-x')),{timeout:15000}).toBeLessThan(forwardCarX-.4);
+  await driveCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed,{timeout:15000}).toBe(0);
   const gas=page.getByRole('button',{name:'Accelerate vehicle'});await gas.hover();await page.mouse.down();
   await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBeGreaterThan(5);await page.mouse.up();
   const brake=page.getByRole('button',{name:'Brake vehicle'});await brake.hover();await page.mouse.down();await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed).toBe(0);await page.mouse.up();
@@ -259,6 +270,10 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
   expect(afterAim.view.yaw).toBeCloseTo(beforeAim.view.yaw,3);expect(afterBody.x).toBeCloseTo(beforeBody.x,3);expect(afterBody.z).toBeCloseTo(beforeBody.z,3);expect(afterBody.yaw).toBeCloseTo(beforeBody.yaw,2);expect(afterAim.lastShot.direction.every(Number.isFinite)).toBe(true);
   const stoppedYaw=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).view.yaw;await page.waitForTimeout(200);
   expect(JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).view.yaw).toBeCloseTo(stoppedYaw,3);
+  const explosions=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).field.exploded;
+  await page.getByRole('button',{name:'Throw bomb'}).click();
+  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).field.exploded,{timeout:30000}).toBeGreaterThan(explosions);
+  await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).fires.aftermath).toBeGreaterThan(0);
   await page.screenshot({path:info.outputPath('campaign-landscape.png')});expect(errors).toEqual([]);
   }finally{await context.close();}
 });
@@ -297,6 +312,6 @@ test('bank entrance raises police response and Collect actually takes the briefc
     await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-pursuit'))!).units).toBeGreaterThan(0);
     await walk('y',750);
     await expect(page.getByLabel('Nearby equipment',{exact:true})).toContainText('Classified briefcase');await expect(page.getByRole('button',{name:'Inspect nearby equipment'})).toBeEnabled();await page.getByRole('button',{name:'Inspect nearby equipment'}).click();
-    await expect(page.getByLabel('Active objective')).toContainText('Break police contact');await page.getByRole('button',{name:'Pause game'}).click();await page.screenshot({path:info.outputPath('bank-case-collected.png')});expect(errors).toEqual([]);
+    await expect(page.getByLabel('Active objective')).toContainText('Break police contact');await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-pursuit'))!).hunting).toBe(true);await page.getByRole('button',{name:'Pause game'}).click();await page.screenshot({path:info.outputPath('bank-case-collected.png')});expect(errors).toEqual([]);
   }catch(error){console.log('Bank traversal diagnostics:',await page.getByTestId('three-state').evaluate(n=>({x:n.dataset.x,z:n.dataset.z,fps:n.dataset.fps,character:n.dataset.character,pursuit:n.dataset.pursuit,campaign:n.dataset.campaign})).catch(()=>null));throw error;}finally{await context.close();}
 });

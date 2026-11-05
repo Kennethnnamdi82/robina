@@ -35,6 +35,7 @@ export class CharacterController {
     this.recoveryRemaining = Math.max(0, this.recoveryRemaining - dt);
     if (wasDashing && this.dodgeRemaining <= 0) this.recoveryRemaining = MOVEMENT.dodgeRecovery;
     const alive = this.health > 0, canAct = alive && this.hurtRemaining <= 0 && this.interactionRemaining <= 0;
+    const canMove=alive&&this.interactionRemaining<=0&&(this.evasiveDodge||this.hurtRemaining<=0);
     const length = Math.hypot(input.x, input.y), moving = length > .01;
     const x = input.x / Math.max(1, length), y = input.y / Math.max(1, length);
     this.aiming = canAct && input.aiming;
@@ -57,19 +58,19 @@ export class CharacterController {
       this.dodgeRemaining = MOVEMENT.dodgeDuration; this.dodgeCooldown = MOVEMENT.dodgeCooldown; this.dodgeSerial++;
     }
     const dashing = canAct && this.dodgeRemaining > 0;
-    this.sprinting = canAct && moving && input.sprint && !dashing;
-    if (!canAct) { this.vx = 0; this.vy = 0; }
+    this.sprinting = canMove && moving && input.sprint && !dashing;
+    if (!canMove) { this.vx = 0; this.vy = 0; }
     else if (dashing) { const speed = this.evasiveDodge ? MOVEMENT.evadeSpeed : MOVEMENT.dodgeSpeed; this.vx = this.dashX * speed; this.vy = this.dashY * speed; }
     else {
       const speed = MOVEMENT.walkSpeed * (input.sprint ? MOVEMENT.sprintMultiplier : 1);
-      const blend = 1 - Math.exp(-(moving ? MOVEMENT.acceleration : MOVEMENT.stopping) * dt);
+      const blend = 1 - Math.exp(-(moving ? this.evasiveDodge?55:MOVEMENT.acceleration : this.evasiveDodge?65:MOVEMENT.stopping) * dt);
       this.vx += (x * speed - this.vx) * blend; this.vy += (y * speed - this.vy) * blend;
       if (!moving && Math.hypot(this.vx, this.vy) < .5) { this.vx = 0; this.vy = 0; }
     }
     const interact = input.interact && canAct && !dashing;
     const intent = this.intent;
     intent.alive = alive; intent.hurt = this.hurtRemaining > 0; intent.dashing = dashing;
-    intent.interacting = this.interactionRemaining > 0; intent.moving = canAct && (moving || Math.hypot(this.vx, this.vy) > 3);
+    intent.interacting = this.interactionRemaining > 0; intent.moving = canMove && (moving || Math.hypot(this.vx, this.vy) > 3);
     intent.running = this.sprinting; intent.aiming = this.aiming;
     intent.attacking = this.attackRemaining > 0; this.animations.resolve(intent);
     return interact;
@@ -82,7 +83,7 @@ export class CharacterController {
   receiveDamage(event: DamageEvent): number {
     const taken = this.vitality.damage(event, this.dodgeImmune); if (!taken) return 0;
     this.hurtRemaining = MOVEMENT.hurtDuration;
-    this.dodgeRemaining = 0; this.stop(); this.intent.alive = this.health > 0; this.intent.hurt = true;
+    this.dodgeRemaining = 0;if(!this.evasiveDodge||this.health<=0)this.stop(); this.intent.alive = this.health > 0; this.intent.hurt = true;
     this.animations.resolve(this.intent); return taken;
   }
   stop() { this.vx = 0; this.vy = 0; this.dodgeRemaining = 0; this.sprinting = false; this.aiming = false; }

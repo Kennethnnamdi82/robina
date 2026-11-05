@@ -39,7 +39,7 @@ export class CampaignGameplay {
       if(this.assignment.hostage&&Math.hypot(this.witness.x*.025-p.x,this.witness.y*.025-p.z)>4){this.message='WAIT FOR YOUR WITNESS';return true;}
       if(this.mission.event('extraction')){this.world.extracted=true;this.carrying=false;this.message='EXTRACTION CONFIRMED';}return true;
     }
-    if(objective.id==='recover'){this.carrying=true;this.police.alert();}
+    if(objective.id==='recover'){this.carrying=true;this.police.alert(true);}
     if(objective.id.startsWith('task-'))this.police.alert();
     this.mission.event(object.id);this.world.grantFlag(object.id);this.message=objective.title.toUpperCase()+' / CONFIRMED';return true;
   }
