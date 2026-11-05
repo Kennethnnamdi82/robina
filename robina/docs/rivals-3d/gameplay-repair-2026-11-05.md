@@ -21,6 +21,7 @@
 - RIVALS automated suite: 243 tests across 39 files passed; focused repair/animation/touch tests passed again after the touch-facing correction.
 - Application and build-tool TypeScript checks passed; production Vite build passed (existing shared-platform chunk-size and Privy annotation warnings remain).
 - Isolated real Chrome/WebGL visual fixture verifies the supplied civilian terminal fall plus persistent surface fire, with no shader errors. Generated screenshots stay under ignored test-results, not the user's existing art reports.
+- The real driving-controls component has non-overlapping touch targets at six viewport sizes, including 320×568 portrait. Portrait Exit/speed/hint positions clear the joystick's full labelled touch region.
 - Production browser regressions cover all three pedals, seven mobile HUD dimensions, actual CDP right-stick touches and changing bullet direction, High graphics and physical movement into the bank followed by Collect. These tests use intercepted authentication and do not mutate a real account or backend.
 
 Desktop Chrome/device emulation is not a physical-phone FPS certification. No universal 60 FPS, instant cold network load, AAA asset replacement, structural building destruction or zero-defect guarantee is claimed.

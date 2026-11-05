@@ -1,5 +1,24 @@
 import {expect,test} from '@playwright/test';
 
+test('real driving controls have separate touch targets on small phones',async({page},info)=>{
+  await page.route('**/tests/rivals3d/entry.tsx',r=>r.fulfill({contentType:'application/javascript',body:''}));await page.goto('/tests/rivals3d/index.html');
+  await page.evaluate(async()=>{
+    const load=(url:string)=>import(/* @vite-ignore */url);
+    for(const url of ['/src/features/rivals/rivals.css','/src/features/rivals/three/sandbox.css','/src/features/rivals/three/command-hud.css'])await load(url);
+    const React=(await load('/node_modules/.vite-rivals3d/deps/react.js')).default,{createRoot}=(await load('/node_modules/.vite-rivals3d/deps/react-dom_client.js')).default,{DrivingControls}=await load('/src/features/rivals/three/SoldierHUD.tsx');
+    document.body.innerHTML='<main class="rivals-shell r3-shell"><section class="rivals-game-view r3-game"><div id="driving-fixture"></div></section></main>';
+    createRoot(document.getElementById('driving-fixture')).render(React.createElement(DrivingControls,{runtime:{vehicles:{snapshot:{speed:0,kind:'sedan',health:200}},setDriving:()=>{},vehicleInteract:()=>{}},disabled:false}));
+  });
+  await expect(page.getByRole('button',{name:'Accelerate vehicle'})).toBeVisible();
+  for(const [width,height]of [[320,568],[320,740],[390,844],[568,320],[667,375],[844,390]]){
+    await page.setViewportSize({width,height});
+    const invalid=await page.locator('.r3-driving-controls').evaluate(root=>{const frame=root.getBoundingClientRect(),targets=[...root.querySelectorAll('button,.rivals-stick')].map(n=>({name:n.getAttribute('aria-label')??n.textContent,r:n.getBoundingClientRect()}));return targets.filter(({r},i)=>r.width<48||r.height<44||r.left<frame.left||r.right>frame.right+1||r.top<frame.top||r.bottom>frame.bottom+1||targets.some((other,j)=>i!==j&&r.left<other.r.right&&r.right>other.r.left&&r.top<other.r.bottom&&r.bottom>other.r.top)).map(n=>n.name);});
+    const layout=await page.locator('.r3-driving-controls').evaluate(root=>[...root.querySelectorAll('button,.rivals-stick')].map(n=>({name:n.getAttribute('aria-label')??n.textContent,bottom:getComputedStyle(n).bottom,rect:n.getBoundingClientRect().toJSON()})));
+    expect(invalid,`${width}x${height} touch targets: ${JSON.stringify(layout)}`).toEqual([]);
+  }
+  await page.setViewportSize({width:320,height:568});await page.screenshot({path:info.outputPath('small-phone-driving-controls.png')});
+});
+
 test('authored civilian terminal fall and persistent surface fire render without shader errors',async({page},info)=>{
   test.setTimeout(120000);const errors:string[]=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/Shader|WebGLProgram|GL_INVALID/.test(m.text()))errors.push(m.text());});

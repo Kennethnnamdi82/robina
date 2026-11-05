@@ -5,7 +5,7 @@
 .r3-game .rv-stick-aim .rivals-stick-label:after{content:none}
 .r3-driving-controls .r3-pedals{gap:6px}.r3-driving-controls .r3-pedals button{width:clamp(48px,8vw,72px);min-width:48px;height:68px!important;font-size:8px}.r3-driving-controls .r3-pedals button:last-child{height:88px!important}
 .r3-direction-guide[data-nearby=true]{bottom:max(8px,env(safe-area-inset-bottom));gap:1px}.r3-direction-guide[data-nearby=true] svg{width:24px;height:24px}.r3-direction-guide[data-nearby=true] strong{font-size:10px}.r3-direction-guide[data-nearby=true] span{display:none}
-@media(max-width:600px) and (orientation:portrait){.r3-direction-guide[data-driving=true]{bottom:252px}.r3-drive-hint{bottom:105px}}
+@media(max-width:600px) and (orientation:portrait){.r3-direction-guide[data-driving=true]{bottom:312px}.r3-drive-hint{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 220px)}}
 .r3-game .rv-vitals,.r3-game .rv-objective,.r3-loadout,.r3-game .rivals-minimap,.r3-game .rivals-pause-panel{background:#111719d9;color:#ecf1ec;border-color:#cad4cf40;border-radius:3px;box-shadow:none}
 .r3-game>.rivals-minimap{display:none}.r3-mission-radar{display:contents}.r3-game .rv-field-status,.r3-game .rv-security-status,.r3-game .r3-alarm{display:none}
 .r3-dispatch{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:38%;text-align:center;color:#e2e9e4;font:9px/1.5 Arial,sans-serif;letter-spacing:.08em;padding:5px 8px;background:#0c1113b5;pointer-events:none}
@@ -26,4 +26,4 @@
  .r3-game .rv-controls[data-mobile] .rv-action-buttons>.rv-interact-control{width:68px}
  .r3-game .rv-controls[data-mobile] .rv-action-buttons>.rv-fire-control{display:none}
 }
-@media(max-width:600px) and (orientation:portrait){.r3-driving-controls .r3-exit-car{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 112px)}.r3-driving-controls .r3-speed{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 176px)}.r3-driving-controls .r3-steering button{width:60px}.r3-driving-controls .r3-pedals{gap:7px}.r3-driving-controls .r3-pedals button{min-width:50px}}
+@media(max-width:600px) and (orientation:portrait){.r3-driving-controls .r3-exit-car{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 160px)}.r3-driving-controls .r3-speed{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 236px)}.r3-driving-controls .r3-steering button{width:60px}.r3-driving-controls .r3-pedals{gap:7px}.r3-driving-controls .r3-pedals button{min-width:50px}}
