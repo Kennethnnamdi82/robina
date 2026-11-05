@@ -4,6 +4,7 @@ import type { RaidRuntime } from './RaidRuntime';
 import { useArenaValue } from '../ui/useArenaValue';
 import { TouchStick } from '../ui/TouchStick';
 import { press } from './controlPress';
+import { drivingStick } from './stickResponse';
 
 function EquipmentGlyph({ id }: { id: string }) {
   return <svg className="r3-equipment-glyph" viewBox="0 0 88 30" aria-hidden="true" fill="currentColor">
@@ -29,11 +30,17 @@ export function SoldierControls({ session,runtime,pov }: { session: SandboxSessi
     </div>
   </div>;
 }
-function DrivingControls({runtime,disabled}:{runtime:RaidRuntime;disabled:boolean}){
+export function DrivingControls({runtime,disabled}:{runtime:RaidRuntime;disabled:boolean}){
   const vehicle=runtime.vehicles!.snapshot;
   const release=(value:Parameters<RaidRuntime['setDriving']>[0])=>runtime.setDriving(Object.fromEntries(Object.keys(value).map(key=>[key,key==='brake'?false:0])));
   const held=(value:Parameters<RaidRuntime['setDriving']>[0])=>({onPointerDown:(e:React.PointerEvent<HTMLButtonElement>)=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);runtime.setDriving(value);},onPointerUp:()=>release(value),onPointerCancel:()=>release(value),onLostPointerCapture:()=>release(value)});
-  return <div className="r3-driving-controls" aria-label="Driving controls"><div className="r3-steering"><button aria-label="Steer left" disabled={disabled} {...held({steer:-1})}>←</button><button aria-label="Steer right" disabled={disabled} {...held({steer:1})}>→</button></div><output className="r3-speed">{vehicle.speed}<small>KM/H · {vehicle.kind?.toUpperCase()} · {vehicle.health} HP</small></output><div className="r3-pedals"><button aria-label="Reverse vehicle" disabled={disabled} {...held({throttle:-1})}>REVERSE</button><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button><button aria-label="Accelerate vehicle" disabled={disabled} {...held({throttle:1})}>DRIVE ↑</button></div><button className="r3-exit-car" disabled={disabled} onClick={runtime.vehicleInteract}>EXIT VEHICLE · F</button></div>;
+  return <div className="r3-driving-controls" aria-label="Driving controls">
+    <TouchStick kind="drive" disabled={disabled} onMove={vector=>runtime.setDriving(drivingStick(vector))}/>
+    <output className="r3-speed">{vehicle.speed}<small>KM/H · {vehicle.kind?.toUpperCase()} · {vehicle.health} HP</small></output>
+    <div className="r3-pedals"><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button></div>
+    <span className="r3-drive-hint">STICK UP: DRIVE · DOWN: REVERSE</span>
+    <button className="r3-exit-car" disabled={disabled} onClick={runtime.vehicleInteract}>EXIT VEHICLE · F</button>
+  </div>;
 }
 export function SoldierDock({ session,runtime }: { session: SandboxSession; runtime: RaidRuntime | undefined }) {
   const soldier = useArenaValue(session,s => s.soldier),weapon = useArenaValue(session,s => s.weapon),security = useArenaValue(session,s => s.security);

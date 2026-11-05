@@ -47,6 +47,7 @@ export class CityCrowd {
     }
   }
   draw(time:number,camera?:T.Camera) {this.humans.draw(this.people,this.active,time,camera);}
+  setQuality(quality:import('../core/presentation').QualityId){this.humans.setQuality(quality);}
   get stats(){return{active:this.active,rendered:this.humans.rendered,animation:'authored-skeletal-walk-run',fled:this.fled,walking:this.people.slice(0,this.active).reduce((n,p)=>n+p.distance,0),crossing:this.people.slice(0,this.active).filter(p=>p.crossing).length};}
   dispose(){this.humans.dispose();this.root.clear();}
 }

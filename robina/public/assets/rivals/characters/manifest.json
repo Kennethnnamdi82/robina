@@ -1,7 +1,8 @@
 {
   "source": {
     "model": "src/features/Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf",
-    "animations": "src/features/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb"
+    "animations": "src/features/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
+    "hairstyle": "src/features/Universal Base Characters[Standard]/Hairstyles/Rigged to Head Bone/glTF (Godot -Unreal)/Hair_SimpleParted.gltf"
   },
   "license": "CC0-1.0 / Quaternius",
   "skeleton": [
@@ -73,7 +74,7 @@
   ],
   "height": 1.75,
   "forward": "+Z",
-  "triangles": 14330,
+  "triangles": 15631,
   "strategy": "T-pose world-rest retarget; fixed bone lengths; vertical pelvis only; physics owns travel",
   "clips": [
     {
@@ -195,6 +196,6 @@
     "turn in place",
     "rifle-specific aim"
   ],
-  "bytes": 2896408,
-  "sha256": "001e88fc4b1385db0371f05c89c17f353e071cf41a484a997fc20e2b0440098c"
+  "bytes": 3055804,
+  "sha256": "89532a10987627b80d8fffd8f66af45a063ae8a2be7c30eee13778b7d77fbae0"
 }

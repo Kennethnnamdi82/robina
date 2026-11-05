@@ -6,6 +6,7 @@ import type { EquipmentId } from './Loadout';
 import { CityAssets, CITY_BINARY_URLS } from './CityAssets';
 import {loadAssetBytes,warmAssetBytes} from './AssetBytes';
 import { securityGaits } from './SecurityLocomotion';
+import { finishOperative } from './OperativeFinish';
 
 /** The older batching helper removes original meshes even when a merge fails.
  * Keep mixed UV/normal layouts intact instead of losing supplied body parts. */
@@ -35,7 +36,7 @@ export function batchRaidRigid(root:Object3D,clips:AnimationClip[]){
  const replaced=new Set<BufferGeometry>();for(const mesh of meshes)if(mesh.geometry.index){const original=mesh.geometry;mesh.geometry=original.toNonIndexed();replaced.add(original);}replaced.forEach(g=>g.dispose());
  if(compatibleForBatching(root))batchRigidParts(root,clips);
 }
-const modelURL=(id:ModelId,path:string)=>id==='player'?'/assets/rivals/characters/universal-operative.glb?v=evasive-controls-4':['rifle','smg','pistol'].includes(id)?`/assets/rivals/combat3d/weapons/${id}.glb?v=combat-polish-2`:assetURL(path);
+const modelURL=(id:ModelId,path:string)=>id==='player'?'/assets/rivals/characters/universal-operative.glb?v=field-operative-5':['rifle','smg','pistol'].includes(id)?`/assets/rivals/combat3d/weapons/${id}.glb?v=combat-polish-2`:assetURL(path);
 export const preloadRaidAssets=(progress?:(fraction:number)=>void)=>warmAssetBytes([...CITY_BINARY_URLS,...Object.entries(models).map(([id,path])=>modelURL(id as ModelId,path))],progress,Boolean(progress));
 /** Load only compatible actors/weapons needed by this raid, using the existing asset owner. */
 export class RaidAssets extends MissionAssets {
@@ -57,6 +58,7 @@ export class RaidAssets extends MissionAssets {
         if (elbow) { gltf.scene.updateMatrixWorld(true); const hand = elbow.children.find(child => child.name.startsWith('human_gloved_hand')); if (hand) { const centre = new Box3().setFromObject(hand).getCenter(new Vector3()); elbow.userData.rivalsHand = elbow.worldToLocal(centre).toArray(); } }
         if (!['player','rifle','smg','pistol'].includes(id)) batchRaidRigid(gltf.scene,gltf.animations);
         gltf.scene.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } if (o instanceof SkinnedMesh) o.frustumCulled = false; });
+        if(id==='player')finishOperative(gltf.scene);
         this.models.set(id,gltf); progress(++loaded,entries.length + 1);
       }));
       const human=this.models.get('player');if(human)this.city.humanoid={scene:human.scene,animations:human.animations};

@@ -8,7 +8,7 @@ export const CITY_MODELS=['residence','commerce','headquarters','street','sidewa
 export type CityModel=typeof CITY_MODELS[number];
 export const CITY_DETAILS={sedan:'Car_1_1',coupe:'Car_2_2',taxi:'Taxi',police:'Police',van:'Truck_1',lorry:'Main_Truck_1',tanker:'Gas_Truck',bus:'Bus_1',tree:'Tree_1',treeTall:'Tree_2',busStop:'Bus_Stop',hydrant:'Hydrant',newsstand:'Newspaper_Stand',bin:'Trash_Small',dumpster:'Trash_Big',cone:'Cone',streetLamp:'Light',skylineHome:'Building_3',skylineShop:'Building_8',skylineTower:'Building_9',roadBarrier:'Road_Barrier'} as const;
 export type CityDetail=keyof typeof CITY_DETAILS;
-export const CITY_BINARY_URLS=['/assets/rivals/city/optimized/city-blocks.glb?v=fast-city-1','/assets/rivals/city/living-city.glb','/assets/rivals/city/optimized/street-car.glb?v=fast-city-1','/assets/rivals/city/premium/delivery-truck.glb'] as const;
+export const CITY_BINARY_URLS=['/assets/rivals/city/optimized/city-blocks.glb?v=fast-city-1','/assets/rivals/city/living-city.glb','/assets/rivals/city/optimized/street-car.glb?v=full-silhouette-2','/assets/rivals/city/premium/delivery-truck.glb'] as const;
 /** Offline-batched architecture and vehicles; no geometry merges on entry. */
 export class CityAssets {
  readonly models=new Map<CityModel,T.Group>();readonly details=new Map<CityDetail,T.Group>();readonly skyline=new Map<CityModel,T.Group>();
@@ -27,7 +27,7 @@ export class CityAssets {
    const source=details.scene.getObjectByName(name);if(!source)throw Error('City atlas missing '+name);
    const root=new T.Group(),clone=source.clone(true);source.matrixWorld.decompose(clone.position,clone.quaternion,clone.scale);root.add(clone);
    root.traverse(n=>{if(n instanceof T.Mesh)n.castShadow=n.receiveShadow=true;});this.details.set(id as CityDetail,root);this.roots.push(root);
-   if(['newsstand','busStop','bus','tanker'].includes(id))root.traverse(n=>{if(!(n instanceof T.Mesh))return;const neutral=(source:T.Material)=>{const m=(source as T.MeshStandardMaterial).clone();m.roughness=.72;m.metalness=.16;m.customProgramCacheKey=()=>'muted-city-utility-v1';m.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat utilityLuma=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(utilityLuma),.72)*.82;');};return m;};n.material=Array.isArray(n.material)?n.material.map(neutral):neutral(n.material);});
+   if(['newsstand','busStop','bus','tanker'].includes(id))root.traverse(n=>{if(!(n instanceof T.Mesh))return;const neutral=(source:T.Material)=>{const m=(source as T.MeshStandardMaterial).clone();m.roughness=.62;m.metalness=.16;m.customProgramCacheKey=()=>'city-utility-finish-v2';m.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat utilityLuma=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(utilityLuma),.22);');};return m;};n.material=Array.isArray(n.material)?n.material.map(neutral):neutral(n.material);});
   }
   for(const id of ['sedan','coupe','taxi','police'] as const)this.details.set(id,car.scene);
   for(const id of ['van','lorry'] as const)this.details.set(id,truck.scene);

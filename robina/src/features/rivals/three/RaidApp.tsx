@@ -6,6 +6,7 @@ import { RaidRuntime, type Diagnostics3D } from './RaidRuntime';
 import {preloadRaidAssets} from './RaidAssets';
 import { MissionLoading } from './MissionLoading';
 import { MissionRadar } from './MissionRadar';
+import { DirectionGuide } from './DirectionGuide';
 import {GraphicsChooser,readGraphicsQuality,saveGraphicsQuality} from './GraphicsChooser';
 import { ArenaHUD, ArenaTelemetry } from '../ui/ArenaHUD';
 import { SoldierControls, SoldierDock } from './SoldierHUD';
@@ -103,6 +104,7 @@ function Raid({ session,restart,next,exit,development,preferences,renderSettings
   return <main className="rivals-shell r3-shell" data-motion="reduced" data-campaign={session.operation.assignment!==undefined} data-debug={monitor} onKeyDown={e => { if (e.code === 'Space' && e.target instanceof Element && e.target.closest('button')) e.stopPropagation(); }}><section className="rivals-game-view r3-game" data-contrast={preferences?.highContrast} data-status={status} aria-label={development ? "RIVALS 3D development raid" : "RIVALS 3D raid"}>
     <div ref={host} className="rivals-engine-host" data-testid="three-host"/>
     <ArenaHUD session={session} onAudio={audio} pauseRef={pause} securityOnMap level={session.operation.level}/><MissionRadar session={session} metrics={metrics}/><BossHUD session={session}/>
+    {status==='playing'&&<DirectionGuide metrics={metrics}/>}
     {status==='playing'&&<><aside className="r3-dispatch" aria-live="polite">{metrics?.pursuit?.active?`POLICE RESPONSE / ${metrics.pursuit.units} UNITS${metrics.pursuit.evading>0?' / BREAKING CONTACT':''}`:metrics?.pursuit?.lost?'PURSUIT LOST / PROCEED TO EXTRACTION':metrics?.campaign?.carrying?'OBJECTIVE SECURED':'FOLLOW GPS TO THE ACTIVE OBJECTIVE'}</aside>{!metrics?.vehicle?.driving&&metrics?.vehicle?.nearby&&<button className="r3-enter-car" onClick={()=>runtime.current?.vehicleInteract()}>ENTER {metrics.vehicle.nearby.toUpperCase()} · F</button>}</>}
     <div className="r3-utility"><button aria-label="Cycle camera view" title="Cycle view (V)" disabled={status !== 'playing' || Boolean(soldier?.replacement)} {...press(() => runtime.current?.cyclePOV())}><Camera size={18}/><span>{metrics?.pov === 'first' ? 'FPS' : metrics?.pov === 'third' ? 'TPS' : metrics?.pov === 'side' ? 'SIDE' : 'VIEW'}</span></button><button aria-label="Camera zoom" title="Cycle zoom (Z)" disabled={status !== 'playing'} {...press(() => runtime.current?.zoom())}><ZoomIn size={18}/><span>{(metrics?.zoom ?? 1).toFixed(1)}×</span></button></div>
     {status === 'playing' && <><SoldierControls session={session} runtime={runtime.current} pov={metrics?.pov ?? 'tactical'}/><SoldierDock session={session} runtime={runtime.current}/></>}

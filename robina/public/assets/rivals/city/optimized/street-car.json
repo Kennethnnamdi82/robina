@@ -1,7 +1,8 @@
 {
-  "triangles": 17730,
+  "triangles": 31600,
   "drawParts": 10,
   "materials": 6,
   "wheels": 4,
-  "bytes": 1403452
+  "decimation": 0,
+  "bytes": 2028688
 }

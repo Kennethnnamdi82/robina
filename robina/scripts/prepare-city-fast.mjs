@@ -3,15 +3,17 @@ import {chromium} from '@playwright/test';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
+import {gzipSync} from 'node:zlib';
 const root=process.cwd(),out=path.join(root,'public/assets/rivals/city/optimized');await fs.mkdir(out,{recursive:true});
 const server=http.createServer(async(req,res)=>{try{if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end('<link rel="icon" href="data:,"><script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script>');return;}const file=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}if(file.endsWith('.js'))res.setHeader('Content-Type','text/javascript');res.end(await fs.readFile(file));}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
 let browser;
 try{
- browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});const page=await browser.newPage();page.on('pageerror',e=>console.error(e));await page.goto(`http://127.0.0.1:${server.address().port}`);
- await page.exposeFunction('save',async(name,base64,audit)=>{await fs.writeFile(path.join(out,name+'.glb'),Buffer.from(base64,'base64'));await fs.writeFile(path.join(out,name+'.json'),JSON.stringify(audit,null,2));console.log(name,audit);});
+ browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});const page=await browser.newPage();page.on('pageerror',e=>console.error(e));await page.goto(`http://127.0.0.1:${server.address().port}`);await page.evaluate(value=>{window.trafficOnly=value;},process.argv.includes('--traffic-only'));
+ await page.exposeFunction('save',async(name,base64,audit)=>{const bytes=Buffer.from(base64,'base64');await fs.writeFile(path.join(out,name+'.glb'),bytes);await fs.writeFile(path.join(out,name+'.glb.gz'),gzipSync(bytes,{level:9}));await fs.writeFile(path.join(out,name+'.json'),JSON.stringify(audit,null,2));console.log(name,audit);});
  await page.evaluate(async()=>{
   const T=await import('three'),{GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js'),{GLTFExporter}=await import('/node_modules/three/examples/jsm/exporters/GLTFExporter.js'),{mergeGeometries,mergeVertices}=await import('/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js');
   const loader=new GLTFLoader(),exporter=new GLTFExporter(),save=async(name,root,audit)=>{const data=await exporter.parseAsync(root,{binary:true,maxTextureSize:2048});const b64=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result.split(',')[1]);f.readAsDataURL(new Blob([data]));});await window.save(name,b64,{...audit,bytes:data.byteLength});};
+  if(!window.trafficOnly){
   const ids=['residence','commerce','headquarters'],sources=[];for(const id of ids)sources.push((await loader.loadAsync('/public/assets/rivals/city/models/'+id+'.glb')).scene);
   const materials=new Map();for(const root of sources)root.traverse(n=>{if(n.isMesh){const m=n.material;if(Array.isArray(m))throw Error('Unexpected multi-material building');if(!materials.has(m.name))materials.set(m.name,m);}});
   const grid=Math.ceil(Math.sqrt(materials.size)),tile=512,gutter=4,size=grid*tile;
@@ -43,6 +45,7 @@ try{
   // Include only props that the playable district actually instantiates.
   for(const id of ['planter','ac','computer','vent','barrel','crate','platform']){const source=(await loader.loadAsync('/public/assets/rivals/city/models/'+id+'.glb')).scene;source.name=id;packed.add(source);}
   await save('city-blocks',packed,audit);
+  }
   // Consolidate equivalent neutral exterior materials, preserving the shape,
   // paint response, distinct glass, emissive lights and four wheel pivots.
   const car=(await loader.loadAsync('/public/assets/rivals/city/premium/street-car.glb')).scene;car.updateMatrixWorld(true);const result=new T.Group(),byPart=new Map(),carMaterials=new Map();
@@ -53,8 +56,7 @@ try{
    if(kind==='trim'){const colors=new Float32Array(g.getAttribute('position').count*3);for(let k=0;k<colors.length;k+=3){colors[k]=original.color.r;colors[k+1]=original.color.g;colors[k+2]=original.color.b;}g.setAttribute('color',new T.BufferAttribute(colors,3));}
    const key=part+'|'+kind;if(!byPart.has(key))byPart.set(key,{part,material,center,wheel:Boolean(joint),list:[]});byPart.get(key).list.push(g);
   });
-  const {SimplifyModifier}=await import('/node_modules/three/examples/jsm/modifiers/SimplifyModifier.js');
-  const parts=new Map();let triangles=0;for(const batch of byPart.values()){let part=parts.get(batch.part);if(!part){part=new T.Group();part.name=batch.part;if(batch.wheel){part.userData.cityWheel=true;part.position.copy(batch.center);}result.add(part);parts.set(batch.part,part);}let geometry=mergeVertices(mergeGeometries(batch.list));if(geometry.getAttribute('position').count>400)geometry=await new SimplifyModifier().modify(geometry,Math.floor(geometry.getAttribute('position').count*.58));triangles+=(geometry.index?.count??geometry.getAttribute('position').count)/3;part.add(new T.Mesh(geometry,batch.material));}
-  await save('street-car',result,{triangles,drawParts:byPart.size,materials:carMaterials.size,wheels:[...parts.values()].filter(p=>p.userData.cityWheel).length});
+  const parts=new Map();let triangles=0;for(const batch of byPart.values()){let part=parts.get(batch.part);if(!part){part=new T.Group();part.name=batch.part;if(batch.wheel){part.userData.cityWheel=true;part.position.copy(batch.center);}result.add(part);parts.set(batch.part,part);}const geometry=mergeVertices(mergeGeometries(batch.list));triangles+=(geometry.index?.count??geometry.getAttribute('position').count)/3;part.add(new T.Mesh(geometry,batch.material));}
+  await save('street-car',result,{triangles,drawParts:byPart.size,materials:carMaterials.size,wheels:[...parts.values()].filter(p=>p.userData.cityWheel).length,decimation:0});
  });
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

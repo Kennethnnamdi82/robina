@@ -17,7 +17,7 @@ export class InputBuffer {
   aimShoots = false;
   get touchMoving() { return Math.hypot(this.touchX,this.touchY) >= .12; }
   get keyboardMoving() { return ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].some(key => this.keys.has(key)); }
-  get touchAiming() { return Math.hypot(this.aimX, this.aimY) >= .12; }
+  get touchAiming() { return Math.hypot(this.aimX, this.aimY) >= .055; }
   get touchAimX() { return this.aimX; }
   get touchAimY() { return this.aimY; }
   keyDown(code: string, repeat = false) {

@@ -23,6 +23,12 @@ export class CameraRig {
   }
   cycleZoom() { const presets = [.7,1,1.4],at = presets.findIndex(n => n > this.zoom[this.pov] + .05); this.setZoom(presets[at < 0 ? 0 : at]); }
   rotate(dx: number,dy: number) { this.yaw -= dx * .003 * this.sensitivity; this.pitch = MathUtils.clamp(this.pitch - dy * .0025 * this.sensitivity,-1.05,.9); }
+  /** Refresh aim orientation without advancing follow/zoom damping twice. */
+  refreshLook() {
+    if(this.pov!=='first'&&this.pov!=='third')return;
+    this.direction.set(-Math.sin(this.yaw)*Math.cos(this.pitch),Math.sin(this.pitch),-Math.cos(this.yaw)*Math.cos(this.pitch));
+    this.camera.lookAt(this.focus.clone().addScaledVector(this.direction,this.pov==='third'?5:20));this.camera.updateMatrixWorld();
+  }
   resize(width: number,height: number) { this.aspect = Math.max(.1,width / Math.max(1,height)); this.perspective.aspect = this.aspect; this.perspective.updateProjectionMatrix(); }
   update(player: Vector3,solids: readonly Solid3D[],dt: number,reduced = false,recoil = 0,look = { x: 0,y: 0 }) {
     this.displayZoom = MathUtils.lerp(this.displayZoom,this.zoom[this.pov],this.switched || reduced ? 1 : 1 - Math.exp(-dt * 12));

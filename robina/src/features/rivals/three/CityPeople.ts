@@ -2,6 +2,7 @@ import * as T from 'three';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import type { Civilian } from './CityCrowd';
 import { crowdGeometry } from './CityHumanGeometry';
+import type { QualityId } from '../core/presentation';
 
 export interface HumanSource { scene:T.Group; animations:T.AnimationClip[] }
 const FRAMES=32;
@@ -11,7 +12,7 @@ const FRAMES=32;
 export class CityPeople {
   readonly root=new T.Group();
   private atlas:T.DataTexture;
-  private batches:{mesh:T.InstancedMesh;local:T.Matrix4;pose:T.InstancedBufferAttribute;tint:T.InstancedBufferAttribute}[]=[];
+  private batches:{mesh:T.InstancedMesh;local:T.Matrix4;pose:T.InstancedBufferAttribute;tint:T.InstancedBufferAttribute;dense:T.BufferGeometry;light:T.BufferGeometry;normal:T.Texture|null;roughness:T.Texture|null}[]=[];
   private transform=new T.Object3D();private matrix=new T.Matrix4();
   private frustum=new T.Frustum();private view=new T.Matrix4();private sphere=new T.Sphere(new T.Vector3(),1.25);rendered=0;
   private palettes=[0x345e78,0x92705c,0x8b4940,0xb7b2a2,0x4a6253,0x585166,0x353c44].map(c=>new T.Color(c));
@@ -35,16 +36,16 @@ export class CityPeople {
     this.atlas=new T.DataTexture(data,width,FRAMES*3,T.RGBAFormat,T.FloatType);this.atlas.needsUpdate=true;
     this.atlas.minFilter=this.atlas.magFilter=T.NearestFilter;this.atlas.generateMipmaps=false;
     for(const skin of skins){
-      const geometry=crowdGeometry(skin.geometry,skin.getWorldScale(new T.Vector3())),pose=new T.InstancedBufferAttribute(new Float32Array(48*4),4),tint=new T.InstancedBufferAttribute(new Float32Array(48*3),3);
+      const geometry=crowdGeometry(skin.geometry,skin.getWorldScale(new T.Vector3())),dense=skin.geometry.clone(),pose=new T.InstancedBufferAttribute(new Float32Array(48*4),4),tint=new T.InstancedBufferAttribute(new Float32Array(48*3),3);
       if(skin.name==='SuperHero_Male'){
-        const positions=geometry.getAttribute('position');
+        for(const g of [geometry,dense]){const positions=g.getAttribute('position');
         for(let i=0;i<positions.count;i++){const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);if(y>.90&&y<1.46&&Math.abs(x)<.23&&z>0){const loose=.115*Math.sqrt(Math.max(0,1-(x/.27)**2));positions.setZ(i,Math.max(z,loose));}}
-        geometry.computeVertexNormals();
+        g.computeVertexNormals();}
       }
-      pose.setUsage(T.DynamicDrawUsage);geometry.setAttribute('cityPose',pose);geometry.setAttribute('cityTint',tint);
+      pose.setUsage(T.DynamicDrawUsage);for(const g of [geometry,dense]){g.setAttribute('cityPose',pose);g.setAttribute('cityTint',tint);}
       const original=(Array.isArray(skin.material)?skin.material[0]:skin.material) as T.MeshStandardMaterial,material=original.clone();
-      material.vertexColors=false;material.roughness=skin.name==='Eyes'?.2:.88;material.metalness=0;material.normalMap=null;material.roughnessMap=null;
-      material.customProgramCacheKey=()=>'city-authored-bone-atlas-v2-'+skin.name;
+      material.vertexColors=false;material.roughness=skin.name==='Eyes'?.2:.8;material.metalness=0;material.normalScale.set(.65,.65);material.envMapIntensity=.65;
+      material.customProgramCacheKey=()=>'city-authored-bone-atlas-v3-'+skin.name;
       material.onBeforeCompile=shader=>{
         shader.uniforms.cityBones={value:this.atlas};shader.uniforms.cityBoneSize={value:new T.Vector2(width,FRAMES*3)};
         shader.uniforms.cityBind={value:skin.bindMatrix.clone()};shader.uniforms.cityBindInverse={value:skin.bindMatrixInverse.clone()};
@@ -82,9 +83,10 @@ export class CityPeople {
       };
       const mesh=new T.InstancedMesh(geometry,material,48);mesh.name='Authored civilian / '+skin.name;
       mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;
-      this.root.add(mesh);this.batches.push({mesh,local:skin.matrixWorld.clone(),pose,tint});
+      this.root.add(mesh);this.batches.push({mesh,local:skin.matrixWorld.clone(),pose,tint,dense,light:geometry,normal:material.normalMap,roughness:material.roughnessMap});
     }
   }
+  setQuality(quality:QualityId){for(const b of this.batches){b.mesh.geometry=quality==='high'?b.dense:b.light;const m=b.mesh.material as T.MeshStandardMaterial,normal=quality==='low'?null:b.normal,roughness=quality==='low'?null:b.roughness;if(m.normalMap!==normal||m.roughnessMap!==roughness){m.normalMap=normal;m.roughnessMap=roughness;m.needsUpdate=true;}}}
   draw(people:readonly Civilian[],count:number,time:number,camera?:T.Camera){
     if(camera){camera.updateMatrixWorld(true);this.view.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.view);}
     const visible:number[]=[];for(let i=0;i<count;i++){this.sphere.center.set(people[i].x,.95,people[i].z);if(!camera||this.frustum.intersectsSphere(this.sphere))visible.push(i);}this.rendered=visible.length;
@@ -102,5 +104,5 @@ export class CityPeople {
       batch.mesh.instanceMatrix.needsUpdate=true;batch.pose.needsUpdate=true;batch.tint.needsUpdate=true;
     }
   }
-  dispose(){this.atlas.dispose();for(const {mesh}of this.batches){mesh.dispose();mesh.geometry.dispose();(mesh.material as T.Material).dispose();}this.root.clear();}
+  dispose(){this.atlas.dispose();for(const {mesh,dense,light}of this.batches){mesh.dispose();dense.dispose();light.dispose();(mesh.material as T.Material).dispose();}this.root.clear();}
 }

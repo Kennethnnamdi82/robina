@@ -11,7 +11,7 @@ export function MiniMap({ player, openDoors = [], objective, caption,level,route
   return <div className="rivals-minimap" aria-label="Arena minimap">
     <svg viewBox={`0 0 ${(level?.width??TRAINING_VAULT.width) * 4} ${(level?.height??TRAINING_VAULT.height) * 4}`} role="img" aria-label="Live player and objective navigation">
       {map}
-      {route.length>0&&<polyline aria-label="Accessible GPS route" points={[player,...route].map(p=>p.x/16+','+p.y/16).join(' ')} fill="none" stroke="#e9efeb" strokeWidth="2" strokeLinejoin="round"/>}
+      {route.length>0&&<polyline aria-label="Accessible GPS route" points={[player,...route].map(p=>p.x/16+','+p.y/16).join(' ')} fill="none" stroke="#ff493f" strokeWidth="2" strokeLinejoin="round"/>}
       {enemies.map((p,i)=><circle key={i} cx={p.x/16} cy={p.y/16} r="1.8" fill="#ef6a64"/>)}
       {(level??THE_LAUNCH).objects.filter(o => ['door','extraction','vault','terminal'].includes(o.kind)).map(o => <rect key={o.id} x={o.x / 16 - 1.5} y={o.y / 16 - 1.5} width="3" height="3" fill={o.kind === 'door' ? openDoors.includes(o.id) ? '#6bf0b5' : '#ef9d60' : o.kind === 'vault' ? '#ffd069' : o.kind === 'extraction' ? '#79edab' : '#73baff'} />)}
       <circle cx={player.x / 16} cy={player.y / 16} r="2.8" fill="#61e8ff" stroke="#fff" strokeWidth="0.6" />

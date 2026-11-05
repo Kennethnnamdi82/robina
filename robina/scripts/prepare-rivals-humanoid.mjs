@@ -4,6 +4,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import {gzipSync} from 'node:zlib';
 import { chromium } from '@playwright/test';
 
 const root = path.resolve(fileURLToPath(new URL('../', import.meta.url)));
@@ -28,7 +29,9 @@ try {
   page.on('console', message => console.log(message.text()));
   await page.exposeFunction('writeHumanoid', async (data, audit) => {
     const buffer = Buffer.from(data, 'base64');
+    audit.source.hairstyle='src/features/Universal Base Characters[Standard]/Hairstyles/Rigged to Head Bone/glTF (Godot -Unreal)/Hair_SimpleParted.gltf';
     await fs.writeFile(path.join(output, 'universal-operative.glb'), buffer);
+    await fs.writeFile(path.join(output, 'universal-operative.glb.gz'), gzipSync(buffer,{level:9}));
     audit.bytes = buffer.length; audit.sha256 = createHash('sha256').update(buffer).digest('hex');
     await fs.writeFile(path.join(output, 'manifest.json'), JSON.stringify(audit, null, 2) + '\n');
   });
@@ -49,6 +52,21 @@ try {
     target.scene.traverse(node => { if (node.isBone) targetBones.push(node); });
     source.scene.traverse(node => { if (node.isBone) sourceBones.set(node.name, node); });
     if (targetBones.length !== 65 || targetBones.some(b => !sourceBones.has(b.name))) throw new Error('Unexpected Universal skeleton; refusing incompatible retarget.');
+    // Use the supplied authored hairstyle on the SAME target skeleton. Import
+    // only its mesh; a second armature would produce ambiguous animation binds.
+    const hairstyle=await loader.loadAsync('/src/features/Universal Base Characters[Standard]/Hairstyles/Rigged to Head Bone/glTF (Godot -Unreal)/Hair_SimpleParted.gltf');
+    hairstyle.scene.updateMatrixWorld(true);
+    let body;target.scene.traverse(n=>{if(n.isSkinnedMesh&&n.name==='SuperHero_Male')body=n;});
+    if(!body)throw Error('Missing supplied body for hairstyle binding');
+    const hairMeshes=[];hairstyle.scene.traverse(n=>{if(n.isSkinnedMesh)hairMeshes.push(n);});
+    for(const mesh of hairMeshes){
+      const remap=mesh.skeleton.bones.map(b=>body.skeleton.bones.findIndex(target=>target.name===b.name));
+      if(remap.some(index=>index<0))throw Error('Incompatible supplied hairstyle skeleton');
+      if(mesh.matrixWorld.elements.some((value,i)=>Math.abs(value-body.matrixWorld.elements[i])>.0001))throw Error('Unexpected hairstyle bind space');
+      mesh.geometry=mesh.geometry.clone();const indices=mesh.geometry.getAttribute('skinIndex');
+      for(let i=0;i<indices.count;i++)for(let component=0;component<4;component++)indices.setComponent(i,component,remap[indices.getComponent(i,component)]);
+      mesh.bind(body.skeleton,body.bindMatrix);body.parent.add(mesh);mesh.material.roughness=.76;
+    }
     const rest = new Map(targetBones.map(b => [b.name, { position: b.position.clone(), rotation: b.getWorldQuaternion(new T.Quaternion()) }]));
     const referenceMixer = new T.AnimationMixer(source.scene);
     referenceMixer.clipAction(source.animations.find(c => c.name === 'A_TPose')).play(); referenceMixer.setTime(0); source.scene.updateMatrixWorld(true);
