@@ -4,7 +4,7 @@ test('premium store is responsive, navigable and does not run WebGL behind produ
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/tests/rivals3d/store.html');
-  await expect(page.getByRole('heading', { name: 'THE EXCHANGE.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'THE EXCHANGE' })).toBeVisible();
   await page.locator('.rs-card img').first().waitFor();
   for (const [width, height] of [[1440, 1000], [1024, 768], [768, 1024], [390, 844], [320, 568], [844, 390]]) {
     await page.setViewportSize({ width, height });
@@ -21,9 +21,9 @@ test('premium store is responsive, navigable and does not run WebGL behind produ
   }
   await nav.getByRole('link', { name: 'Guns & weapons', exact: true }).click();
   await page.getByRole('button', { name: 'Details for M4A1', exact: true }).click();
-  const dialog = page.getByRole('dialog'); await expect(dialog.getByText(/NOT AVAILABLE FOR PURCHASE/)).toBeVisible();
+  const dialog = page.getByRole('dialog'); await expect(dialog.getByText(/COMING SOON/)).toBeVisible();
   await page.getByRole('button', { name: 'PREVIEW PURCHASE', exact: true }).click();
-  await expect(page.getByText('DESIGN PREVIEW / NO CHARGES')).toBeVisible();
+  await expect(page.getByText('PAYMENT PREVIEW / NO CHARGES')).toBeVisible();
   await page.getByRole('button', { name: /Base USDC/ }).click();
   await page.getByRole('button', { name: 'PREVIEW CONFIRMATION' }).click();
   await expect(page.getByRole('heading', { name: 'PAYMENT PROCESSING' })).toBeVisible();
@@ -56,10 +56,10 @@ test('recovery states stay labeled and static, and fit small phones', async ({ p
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByText('YOUR SOLDIER HAS FALLEN.')).toBeVisible();
+  await expect(page.getByText('YOUR SOLDIER HAS FALLEN')).toBeVisible();
   await page.screenshot({ path: info.outputPath('recovery-phone.png'), fullPage: true });
   await page.getByLabel('Recovery preview state').selectOption('successful');
-  await expect(page.getByText('READY TO RETURN.')).toBeVisible();
+  await expect(page.getByText('READY TO RETURN')).toBeVisible();
   await page.getByLabel('Recovery preview state').selectOption('unconfirmed');
-  await expect(page.getByText('Recovery unconfirmed. Do not assume payment succeeded.')).toBeVisible();
+  await expect(page.getByText('Recovery unconfirmed — Do not assume payment succeeded')).toBeVisible();
 });

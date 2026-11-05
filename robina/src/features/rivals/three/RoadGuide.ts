@@ -2,9 +2,9 @@ import * as T from 'three';
 import type { Point } from '../ai/navigation';
 
 /** Sample the navigation polyline, never a straight line through buildings. */
-export function roadGuidePoints(player: Point, route: readonly Point[], spacing = 1.8, limit = 56) {
+export function roadGuidePoints(player: Point, route: readonly Point[], spacing = 1.8, limit = 56,ahead=1.1) {
   const result: { x: number; z: number; yaw: number }[] = [];
-  let x = player.x * .025, z = player.y * .025, remaining = 1.1;
+  let x = player.x * .025, z = player.y * .025, remaining = ahead;
   for (const point of route) {
     const tx = point.x * .025, tz = point.y * .025, dx = tx - x, dz = tz - z;
     let length = Math.hypot(dx, dz);
@@ -43,6 +43,7 @@ export class RoadGuide {
   private dummy = new T.Object3D();
   private route?: readonly Point[];
   private anchor = new T.Vector3(Infinity, 0, Infinity);
+  private yaw=0;private lastTime=0;private goalKey='';
   count = 0;
   constructor() {
     this.root.name = 'Red mission road guidance';
@@ -52,16 +53,20 @@ export class RoadGuide {
     this.arrows.instanceMatrix.setUsage(T.DynamicDrawUsage); this.arrows.frustumCulled = false; this.arrows.count = 0;
     this.root.add(this.arrows); this.root.visible = false;
   }
-  update(player: T.Vector3, route: readonly Point[], goal: Point | undefined, time: number, reduced = false) {
+  update(player: T.Vector3, route: readonly Point[], goal: Point | undefined, time: number, reduced = false,ahead=1.1) {
     this.root.visible = Boolean(goal); if (!goal) { this.count = this.arrows.count = 0; return; }
-    if (route !== this.route || player.distanceToSquared(this.anchor) > .01) {
+    {
       this.route = route; this.anchor.copy(player);
-      const points = roadGuidePoints({ x: player.x * 40, y: player.z * 40 }, route, 1.8, 1);
+      const points = roadGuidePoints({ x: player.x * 40, y: player.z * 40 }, route, 1.8, 1,ahead);
       for (const [i, p] of points.entries()) {
-        this.dummy.position.set(p.x, .105, p.z); this.dummy.rotation.set(0, p.yaw, 0);this.dummy.scale.setScalar(1.3); this.dummy.updateMatrix();
+        const key=Math.floor(goal.x/32)+':'+Math.floor(goal.y/32),dt=Math.max(0,Math.min(.1,time-this.lastTime)),fresh=!this.count||key!==this.goalKey;
+        const turn=Math.atan2(Math.sin(p.yaw-this.yaw),Math.cos(p.yaw-this.yaw));
+        this.yaw=fresh||reduced?p.yaw:this.yaw+turn*(1-Math.exp(-dt*12));this.goalKey=key;
+        this.dummy.position.set(p.x, .12, p.z); this.dummy.rotation.set(0, this.yaw, 0);this.dummy.scale.setScalar(1.3); this.dummy.updateMatrix();
         this.arrows.setMatrixAt(i, this.dummy.matrix);
       }
       this.count = this.arrows.count = points.length; this.arrows.instanceMatrix.needsUpdate = true;
+      this.lastTime=time;
     }
   }
   dispose() { this.arrows.dispose(); this.geometry.dispose(); this.material.dispose(); this.root.clear(); this.root.removeFromParent(); }

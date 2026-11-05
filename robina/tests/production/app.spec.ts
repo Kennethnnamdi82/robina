@@ -71,7 +71,7 @@ test('premium Exchange integrates with the built game hub without transactions',
   page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/')&&!['GET','HEAD','OPTIONS'].includes(request.method()))mutations.push(request.method()+' '+new URL(request.url()).pathname);});
   await page.setViewportSize({width:390,height:844});await page.goto('/');
   await page.getByRole('link',{name:'STORE',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'THE EXCHANGE.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'THE EXCHANGE'})).toBeVisible();
   await expect(page.locator('canvas')).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.screenshot({path:info.outputPath('exchange-built-phone.png'),fullPage:true});
@@ -79,15 +79,30 @@ test('premium Exchange integrates with the built game hub without transactions',
   await page.getByRole('button',{name:'Details for AK-47',exact:true}).click();
   await expect(page.getByRole('dialog').getByText('12',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'PREVIEW PURCHASE',exact:true}).click();
-  await expect(page.getByText('DESIGN PREVIEW / NO CHARGES')).toBeVisible();
-  await page.getByLabel('PREVIEW A PURCHASE STATE').selectOption('successful');
-  await expect(page.getByText(/No purchase occurred/)).toBeVisible();
+  await expect(page.getByText('PAYMENT PREVIEW / NO CHARGES')).toBeVisible();
+  await expect(page.getByRole('button',{name:'PURCHASES OPEN SOON'})).toBeDisabled();
+  await expect(page.getByLabel('PREVIEW A PURCHASE STATE')).toHaveCount(0);
   await page.getByRole('button',{name:'Close purchase preview'}).click();
   await page.getByRole('link',{name:'My inventory',exact:true}).click();
-  await expect(page.getByText('NO PURCHASE DATA CONNECTED.')).toBeVisible();
+  await expect(page.getByText('YOUR COLLECTION IS EMPTY')).toBeVisible();
   await page.getByRole('link',{name:'BACK TO LOBBY',exact:true}).click();
   await expect(page.getByRole('link',{name:'PLAY',exact:true})).toBeVisible();
   expect(mutations).toEqual([]);expect(errors).toEqual([]);
+});
+
+test('leaderboard ranks stay legible on small phones with clean production copy',async({page},info)=>{
+  const errors=await prepare(page,'authenticated');await page.goto('/leaderboards');
+  await expect(page.getByRole('heading',{name:'THE RIVALS TO BEAT',exact:true})).toBeVisible();
+  for(const [width,height]of [[1440,1000],[390,844],[320,568],[844,390]]){
+    await page.setViewportSize({width,height});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    const readability=await page.locator('.rh-board tbody tr').first().evaluate(row=>{
+      const cell=row.children[0] as HTMLElement,style=getComputedStyle(cell),rgb=(value:string)=>value.match(/[\d.]+/g)!.slice(0,3).map(Number),lum=(values:number[])=>values.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((n,v,i)=>n+v*[.2126,.7152,.0722][i],0);
+      const a=lum(rgb(style.color)),b=lum(rgb(style.backgroundColor));return{font:parseFloat(style.fontSize),contrast:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
+    });expect(readability.font).toBeGreaterThanOrEqual(18);expect(readability.contrast).toBeGreaterThanOrEqual(4.5);
+  }
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:info.outputPath('readable-leaderboard-phone.png'),fullPage:true});
+  await expect(page.getByText(/backend is not connected|FRONTEND BUILD/)).toHaveCount(0);expect(errors).toEqual([]);
 });
 
 test('built production 3D game draws, pauses and exits without changing accounts' + (process.env.PRODUCTION_TEST_WARM_ASSETS === '1' ? ' (warm-cache)' : ''), async ({ page }) => {
@@ -183,7 +198,7 @@ test('frontend hub has complete mobile pages, saved settings and no new backend 
   await expect(page.getByRole('link',{name:'PLAY',exact:true})).toBeVisible({timeout:30000});
   await page.screenshot({path:'docs/rivals-3d/frontend-hub/lobby-phone.png',fullPage:true});
   await page.getByRole('navigation',{name:'Main menu'}).getByRole('link',{name:/^MISSIONS/}).click();
-  await expect(page.getByRole('heading',{name:'OPERATIONS.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'OPERATIONS'})).toBeVisible();
   await expect(page.getByRole('link',{name:'VIEW BRIEFING'})).toHaveCount(1);await expect(page.getByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveCount(6);
   await page.screenshot({path:'docs/rivals-3d/frontend-hub/missions-phone.png',fullPage:true});
   await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'CUSTOMIZATION',exact:true}).click();
@@ -194,12 +209,12 @@ test('frontend hub has complete mobile pages, saved settings and no new backend 
   await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'PLAYER PROFILE',exact:true}).click();
   await expect(page.getByRole('heading',{name:'NIGHT RUNNER',exact:true})).toBeVisible();
   await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'LEADERBOARDS',exact:true}).click();
-  await expect(page.getByText('FRONTEND PREVIEW', {exact:true})).toBeVisible();
+  await expect(page.getByText('EXHIBITION BOARD', {exact:true})).toBeVisible();
   await page.screenshot({path:'docs/rivals-3d/frontend-hub/leaderboard-phone.png',fullPage:true});
   await page.getByRole('button',{name:'MY RECORDED RUNS'}).click();
-  await expect(page.getByText('NO FINISHED HEISTS. YET.')).toBeVisible();
+  await expect(page.getByText('NO FINISHED HEISTS YET')).toBeVisible();
   await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'RANK',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'EARN YOUR NAME.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'EARN YOUR NAME'})).toBeVisible();
   await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'SETTINGS',exact:true}).click();
   await page.getByRole('button',{name:'LOW graphics'}).click();
   await page.screenshot({path:'docs/rivals-3d/frontend-hub/settings-phone.png',fullPage:true});
@@ -268,11 +283,14 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
   const drivingStick=await page.getByTestId('driving-stick').boundingBox();expect(drivingStick).toBeTruthy();
   const driveCdp=await context.newCDPSession(page),driveFinger={id:1,x:drivingStick!.x+drivingStick!.width/2+28,y:drivingStick!.y+drivingStick!.height/2};
   const startCarX=Number(await page.getByTestId('three-state').getAttribute('data-x'));
+  const mountedSteps=JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).audio.footfalls;
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[driveFinger]});
   await expect.poll(async()=>Number(await page.getByTestId('three-state').getAttribute('data-x'))).toBeGreaterThan(startCarX+.6);
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-vehicle'))!).speed,{timeout:15000}).toBe(0);
   const forwardCarX=Number(await page.getByTestId('three-state').getAttribute('data-x'));
+  expect(JSON.parse((await page.getByTestId('three-state').getAttribute('data-combat'))!).audio.footfalls).toBe(mountedSteps);
+  expect(JSON.parse((await page.getByTestId('three-state').getAttribute('data-character'))!).speed).toBe(0);
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...driveFinger,x:drivingStick!.x+drivingStick!.width/2,y:drivingStick!.y+drivingStick!.height/2+28}]});
   await expect.poll(async()=>Number(await page.getByTestId('three-state').getAttribute('data-x')),{timeout:15000}).toBeLessThan(forwardCarX-.4);
   await driveCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
@@ -336,6 +354,6 @@ test('bank entrance raises police response and Collect actually takes the briefc
     await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-pursuit'))!).units).toBeGreaterThan(0);
     await walk('y',750);
     await expect(page.getByLabel('Nearby equipment',{exact:true})).toContainText('Classified briefcase');await expect(page.getByRole('button',{name:'Inspect nearby equipment'})).toBeEnabled();await page.getByRole('button',{name:'Inspect nearby equipment'}).click();
-    await expect(page.getByLabel('Active objective')).toContainText('Break police contact');await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-pursuit'))!).hunting).toBe(true);await page.getByRole('button',{name:'Pause game'}).click();await page.screenshot({path:info.outputPath('bank-case-collected.png')});expect(errors).toEqual([]);
+    await expect(page.getByLabel('Active objective')).toContainText('Reach extraction under pursuit');await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-pursuit'))!).hunting).toBe(true);await page.getByRole('button',{name:'Pause game'}).click();await page.screenshot({path:info.outputPath('bank-case-collected.png')});expect(errors).toEqual([]);
   }catch(error){console.log('Bank traversal diagnostics:',await page.getByTestId('three-state').evaluate(n=>({x:n.dataset.x,z:n.dataset.z,fps:n.dataset.fps,character:n.dataset.character,pursuit:n.dataset.pursuit,campaign:n.dataset.campaign})).catch(()=>null));throw error;}finally{await context.close();}
 });

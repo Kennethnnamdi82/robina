@@ -14,11 +14,12 @@ export class Projectile3D {
   step(dt: number,solids: readonly Solid3D[],targets: readonly Target3D[],impact: (p: Vector3,damage: number,owner: string) => void,travelled?: (bullet: Bullet3D) => void) {
     for (const b of this.entries) {
       if (!b.active) continue; const travel = Math.min(b.speed * dt,b.range,b.life * b.speed);
-      let distance = traceSolids(b.position,b.direction,solids,travel,.045),target: Target3D | null = null;
+      const ownerCar=b.owner.startsWith('police-car-')?'city-traffic-'+b.owner.slice(11):'';
+      let distance = traceSolids(b.position,b.direction,ownerCar?solids.filter(s=>s.id!==ownerCar):solids,travel,.045),target: Target3D | null = null;
       for (const t of targets) {
         if (t.team === b.team || !t.alive()) continue;
         const hit = rayBox(b.position,b.direction,{ id: t.id,box: t.box,enabled: true,kind: 'cover' },travel,.045);
-        if (hit < distance) { distance = hit; target = t; }
+        if (hit < distance || t.id.startsWith('vehicle-')&&hit<=distance+1e-6&&hit<travel) { distance = hit; target = t; }
       }
       b.position.addScaledVector(b.direction,distance); b.range -= distance; b.life -= dt;
       travelled?.(b);

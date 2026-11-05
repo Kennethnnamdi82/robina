@@ -13,7 +13,7 @@ export class CombatAudio {
   private buffers = new Map<Cue, AudioBuffer>(); private voices = new Set<Voice>();
   private abort = new AbortController(); private loading = false; private disposed = false; private paused = false;
   private sequence = 0; private samples = new Float32Array(128);
-  played = 0; dropped = 0; errors = 0; peak = 0; footfallDistance = 0;
+  played = 0; dropped = 0; errors = 0; peak = 0; footfallDistance = 0;footfalls=0;
   constructor(private settings: GameSettings) {
     document.addEventListener('pointerdown', this.unlock); document.addEventListener('keydown', this.unlock);
   }
@@ -66,12 +66,12 @@ export class CombatAudio {
   blast(distance = 0, pan = 0) { this.play('shotgun-0', .7, distance, pan, 3, .65, 950); this.play('metal-0', .65, distance, pan, 2, .6); }
   walk(travel: number, grounded: boolean, sprinting: boolean) {
     if (!grounded) { this.footfallDistance = 0; return; } this.footfallDistance += travel;
-    if (this.footfallDistance >= (sprinting ? 1.12 : .76)) { this.footfallDistance = 0; this.play(`step-${this.sequence++ % 3 as 0 | 1 | 2}`, sprinting ? .5 : .35, 0, this.sequence % 2 ? -.1 : .1, 0, sprinting ? 1.1 : 1); }
+    if (this.footfallDistance >= (sprinting ? 1.12 : .76)) { this.footfalls++;this.footfallDistance = 0; this.play(`step-${this.sequence++ % 3 as 0 | 1 | 2}`, sprinting ? .5 : .35, 0, this.sequence % 2 ? -.1 : .1, 0, sprinting ? 1.1 : 1); }
   }
   pause(paused: boolean) { this.paused = paused; if (paused) this.stop(); this.volume(); if (!paused) this.unlock(); }
   snapshot() {
     if (this.analyser) { this.analyser.getFloatTimeDomainData(this.samples); for (const sample of this.samples) this.peak = Math.max(this.peak, Math.abs(sample)); }
-    return { state: this.context?.state ?? 'locked', buffers: this.buffers.size, voices: this.voices.size, maximum: this.maximumVoices, played: this.played, dropped: this.dropped, errors: this.errors, peak: this.peak, muted: this.settings.muted };
+    return { state: this.context?.state ?? 'locked', buffers: this.buffers.size, voices: this.voices.size, maximum: this.maximumVoices, played: this.played, dropped: this.dropped, errors: this.errors, peak: this.peak,footfalls:this.footfalls, muted: this.settings.muted };
   }
   dispose() { if (this.disposed) return; this.disposed = true; document.removeEventListener('pointerdown', this.unlock); document.removeEventListener('keydown', this.unlock); this.abort.abort(); this.stop(); this.buffers.clear(); void this.context?.close().catch(() => {}); }
 }

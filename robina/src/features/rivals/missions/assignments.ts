@@ -27,7 +27,7 @@ export function assignmentObjectives(a: Assignment): MissionObjective[] {
     ...(a.id==='reserve'?[]:[{id:'security',title:'Overcome the site security',stage:'SECURITY',event:'site-secured',prerequisites:['locate'],marker:marker(a.site.x,a.site.z+2)}]),
     ...tasks,
     {id:'recover',title:a.hostage?'Escort the released witness':'Recover '+a.target,stage:'RECOVERY',event:'cargo-recovered',prerequisites:[a.id==='reserve'?'locate':'task-'+(tasks.length-1)],marker:marker(a.site.x,a.site.z-2)},
-    {id:'escape',title:'Break police contact and lose the pursuit',stage:'EVASION',event:'pursuit-lost',prerequisites:['recover'],marker:marker(a.extraction.x,a.extraction.z)},
+    {id:'escape',title:'Reach extraction under pursuit',stage:'EVASION',event:'extraction-approach',prerequisites:['recover'],marker:marker(a.extraction.x,a.extraction.z)},
     {id:'extract',title:a.vehicleDelivery?'Deliver the recovered cargo vehicle':a.hostage?'Bring the witness to the safehouse':'Deliver '+a.target+' to extraction',stage:'EXTRACTION',event:'extraction',prerequisites:['recover','escape'],marker:marker(a.extraction.x,a.extraction.z)},
   ];
 }

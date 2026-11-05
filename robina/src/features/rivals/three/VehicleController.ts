@@ -25,10 +25,10 @@ export function vehicleOverlap(car:CityCar,x:number,z:number,yaw:number,s:Solid3
   if(Math.abs(x-cx)>Math.abs(oc)*hx+Math.abs(on)*hz+car.length/2+width(car)/2||Math.abs(z-cz)>Math.abs(on)*hx+Math.abs(oc)*hz+car.length/2+width(car)/2)return false;
   for(const axis of [ax,az,bx,bz]){const dot=(a:typeof axis,b:typeof axis)=>Math.abs(a.x*b.x+a.z*b.z);if(Math.abs((x-cx)*axis.x+(z-cz)*axis.z)>=width(car)/2*dot(ax,axis)+car.length/2*dot(az,axis)+hx*dot(bx,axis)+hz*dot(bz,axis)-.015)return false;}return true;
 }
-export function driveVehicle(car:CityCar,input:DrivingInput,dt:number,solids:readonly Solid3D[]){
+export function driveVehicle(car:CityCar,input:DrivingInput,dt:number,solids:readonly Solid3D[],impact?:(car:CityCar,solid:Solid3D,speed:number)=>void){
   if(!Number.isFinite(dt)||dt<=0||dt>.2)return;
   if((car.health??200)<=0){car.speed=0;car.mode='disabled';return;}
-  const heavy=['lorry','tanker','bus'].includes(car.kind),maximum=heavy?13:20;
+  const heavy=['lorry','tanker','bus'].includes(car.kind),maximum=heavy?13:car.kind==='police'&&car.mode==='pursuit'?23:20;
   const throttle=Math.max(-1,Math.min(1,input.throttle||0));
   car.speed=Math.max(-5,Math.min(maximum,car.speed+throttle*(heavy?5:8)*dt));
   const deceleration=(input.brake?18:Math.abs(throttle)<.05?2.8:.25)*dt;
@@ -37,7 +37,8 @@ export function driveVehicle(car:CityCar,input:DrivingInput,dt:number,solids:rea
   for(let i=0;i<steps;i++){
     const oldYaw=Math.atan2(car.dx,car.dz),turn=input.heading===undefined?Math.max(-1,Math.min(1,input.steer||0))*Math.sign(car.speed)*Math.min(1.4,Math.abs(car.speed)*.22)*dt/steps:Math.max(-6*dt/steps,Math.min(6*dt/steps,Math.atan2(Math.sin(input.heading-oldYaw),Math.cos(input.heading-oldYaw)))),yaw=oldYaw+turn;
     const x=car.x+Math.sin(yaw)*car.speed*dt/steps,z=car.z+Math.cos(yaw)*car.speed*dt/steps;
-    if(solids.some(s=>s.id!=='city-traffic-'+car.id&&vehicleOverlap(car,x,z,yaw,s))){if(Math.abs(car.speed)>3)car.health=Math.max(0,(car.health??200)-Math.abs(car.speed)*2);car.speed=0;break;}
+    const contact=solids.find(s=>s.id!=='city-traffic-'+car.id&&vehicleOverlap(car,x,z,yaw,s));
+    if(contact){const speed=Math.abs(car.speed);if(impact)impact(car,contact,speed);else if(speed>3)car.health=Math.max(0,(car.health??200)-speed*2);car.speed=0;break;}
     car.x=x;car.z=z;car.dx=Math.sin(yaw);car.dz=Math.cos(yaw);car.travelled+=Math.abs(car.speed)*dt/steps;
   }
   car.stopped=Math.abs(car.speed)<.2;
@@ -52,6 +53,19 @@ export function addParkedVehicles(cars:CityCar[]){
 }
 export class VehicleController {
   current:CityCar|null=null;nearby:CityCar|null=null;message='';private doors=new Map<number,number>();
+  private events:{kind:'crash'|'explosion';car:CityCar;speed:number}[]=[];crashes=0;explosions=0;
+  drainEvents(){const events=this.events;this.events=[];return events;}
+  collision=(car:CityCar,solid:Solid3D,speed:number)=>{
+    const other=this.cars.find(c=>'city-traffic-'+c.id===solid.id);
+    const closing=Math.max(speed,speed-(other?.speed??0)*(car.dx*(other?.dx??0)+car.dz*(other?.dz??0)));
+    if(closing<2.5)return;this.crashes++;this.events.push({kind:'crash',car,speed:closing});
+    for(const hit of other?[car,other]:[car]){
+      this.damage(hit,closing*closing*.55);if((hit.health??0)>0&&closing>=7){hit.fire=Math.max(hit.fire??0,24);hit.fuse=Math.min(hit.fuse??4.5,4.5);}
+      if(hit===other){hit.speed=0;hit.mode=(hit.health??0)>0?'parked':'disabled';}
+    }
+    if(this.current===car)this.message=closing>=7?'ENGINE FIRE — EXIT VEHICLE':'VEHICLE DAMAGED';
+  };
+  private explode(car:CityCar){if(car.exploded)return;car.exploded=true;car.health=0;car.mode='disabled';car.speed=0;car.fire=Math.max(car.fire??0,24);car.fuse=undefined;this.explosions++;this.events.push({kind:'explosion',car,speed:0});}
   constructor(readonly cars:CityCar[]){}
   scan(p:Vector3,active:number){let distance=4.2;this.nearby=null;for(const car of this.cars){if(!carActive(car,active)||(car.health??200)<=0||Math.abs(car.speed)>2.8)continue;const d=Math.hypot(car.x-p.x,car.z-p.z)-car.length*.35;if(d<distance){distance=d;this.nearby=car;}}return this.nearby;}
   enter(car:CityCar,p:Vector3,solids:readonly Solid3D[],eject?:(car:CityCar)=>void){
@@ -68,10 +82,10 @@ export class VehicleController {
   exit(p:Vector3,solids:readonly Solid3D[]){const car=this.current;if(!car)return false;if(Math.abs(car.speed)>2){this.message='BRAKE BEFORE EXITING';return false;}const point=this.exitPoint(car,solids);if(!point){this.message='DOOR BLOCKED / MOVE TO AN OPEN SPACE';return false;}p.copy(point);car.mode=(car.health??0)>0?'parked':'disabled';car.speed=0;car.door=1;this.doors.set(car.id,.8);this.current=null;return true;}
   step(dt:number,input:DrivingInput,solids:readonly Solid3D[],body:Vector3){
     for(const [id,time]of this.doors){const car=this.cars.find(c=>c.id===id);if(car)car.door=Math.max(0,time/.8);if(time<=0)this.doors.delete(id);else this.doors.set(id,time-dt);}
-    for(const car of this.cars){if((car.fire??0)>0){car.fire=Math.max(0,car.fire!-dt);if((car.health??200)>0)this.damage(car,dt*8);}else if((car.health??200)>0&&(car.health??200)<35){car.fire=15;}}
-    if(this.current){driveVehicle(this.current,directionalDriving(input),dt,solids);body.set(this.current.x,.55,this.current.z);}
+    for(const car of this.cars){if((car.fuse??0)>0){car.fuse=Math.max(0,car.fuse!-dt);if(!car.fuse)this.explode(car);}if((car.fire??0)>0){car.fire=Math.max(0,car.fire!-dt);if((car.health??200)>0)this.damage(car,dt*8);}else if((car.health??200)>0&&(car.health??200)<35){car.fire=15;}}
+    if(this.current){driveVehicle(this.current,directionalDriving(input),dt,solids,this.collision);body.set(this.current.x,.55,this.current.z);}
   }
   blast(point:Vector3,radius:number,damage=150){for(const car of this.cars){const distance=Math.max(0,Math.hypot(point.x-car.x,point.z-car.z)-car.length*.4);if(distance<=radius){const amount=damage*(1-distance/radius*.8);this.damage(car,amount);if(amount>=30)car.fire=Math.max(car.fire??0,24);}}}
-  damage(car:CityCar,amount:number){if(!Number.isFinite(amount)||amount<=0||(car.health??200)<=0)return 0;const taken=Math.min(car.health??200,amount);car.health=(car.health??200)-taken;if(car.health<=0){car.mode='disabled';car.speed=0;car.fire=Math.max(car.fire??0,18);}return taken;}
-  get snapshot(){return{driving:Boolean(this.current),id:this.current?.id??null,kind:this.current?.kind??null,speed:Math.round(Math.abs(this.current?.speed??0)*3.6),health:Math.round(this.current?.health??0),nearby:this.nearby?.kind??null,message:this.message};}
+  damage(car:CityCar,amount:number){if(!Number.isFinite(amount)||amount<=0||(car.health??200)<=0)return 0;const taken=Math.min(car.health??200,amount);car.health=(car.health??200)-taken;if(car.health<=0)this.explode(car);return taken;}
+  get snapshot(){return{driving:Boolean(this.current),id:this.current?.id??null,kind:this.current?.kind??null,speed:Math.round(Math.abs(this.current?.speed??0)*3.6),health:Math.round(this.current?.health??0),burning:Boolean(this.current&&(this.current.fire??0)>0),escapeSeconds:this.current?.fuse??null,crashes:this.crashes,explosions:this.explosions,nearby:this.nearby?.kind??null,message:this.message};}
 }

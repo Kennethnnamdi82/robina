@@ -47,7 +47,7 @@ if(pattern==='--delivery-only'){
   const javascript=await request(entry,'GET');assert.equal(javascript.status,200);
   const entryText=await javascript.text();assert.match(entryText,/Sign in to RIVALS/);
   const hubModule=entryText.match(/GameHub-[a-zA-Z0-9_-]+\.js/)?.[0];assert.ok(hubModule,'Frontend hub must be lazy-loaded by the application');
-  const hub=await request('/assets/'+hubModule,'GET');assert.equal(hub.status,200);const hubText=await hub.text();assert.match(hubText,/FRONTEND PREVIEW/);
+  const hub=await request('/assets/'+hubModule,'GET');assert.equal(hub.status,200);const hubText=await hub.text();assert.match(hubText,/EXHIBITION BOARD/);
   const storeModule=hubText.match(/StorePage-[a-zA-Z0-9_-]+\.js/)?.[0];assert.ok(storeModule,'Store must be lazy-loaded from the game hub');
   const store=await request('/assets/'+storeModule,'GET');assert.equal(store.status,200);assert.match(await store.text(),/THE EXCHANGE/);
   const gamePages=['/missions','/profile','/rank','/settings','/customization','/leaderboards','/play','/store','/store/weapons','/store/health','/inventory','/purchase-history','/recovery'];

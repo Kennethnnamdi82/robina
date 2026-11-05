@@ -10,7 +10,7 @@ export class TacticalEnemy extends EnemyController {
   private clock=0; private evadeUntil=0; private nextEvade=0; private coverUntil=0; private reconsider=0;
   private strafe:Point={x:0,y:0}; private coverGoal:Point|null=null; private pending:Point|null=null; private reactAt=Infinity;
   private coverPath:Point[]=[];
-  constructor(spawn:EnemySpawn,private grid:NavigationGrid,stagger=0){super(spawn,grid,stagger,spawn.id.startsWith('police-')?{vision:1200,cone:Math.PI,detectionSeconds:.08,attackDistance:1000,minimumDistance:95,interval:.48,windup:.1,damage:5,pursuit:6000,speed:170,searchSeconds:15,alertRange:4000,hearing:1600,accuracy:.035}:undefined);}
+  constructor(spawn:EnemySpawn,private grid:NavigationGrid,stagger=0){super(spawn,grid,stagger,spawn.id.startsWith('police-')?{vision:1200,cone:Math.PI,detectionSeconds:.08,attackDistance:1000,minimumDistance:95,interval:.48,windup:.1,damage:5,pursuit:6000,speed:170,searchSeconds:15,alertRange:4000,hearing:1600,accuracy:.035}:spawn.id.startsWith('site-guard-')?{vision:1000,cone:Math.PI*.8,detectionSeconds:.18,attackDistance:800,minimumDistance:100,interval:.85,windup:.18,damage:6,pursuit:5000,speed:155,searchSeconds:18,hearing:1600,accuracy:.055}:undefined);}
   threat(origin:Point,direction:Point) {
     if(!this.alive||this.clock<this.nextEvade||!clearSight(this,origin,this.grid.blockers))return;
     const dx=this.x-origin.x,dy=this.y-origin.y,along=dx*direction.x+dy*direction.y;
