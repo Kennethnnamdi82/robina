@@ -2,8 +2,8 @@ import { expect, type Page } from '@playwright/test';
 
 export const state = (page: Page) => page.getByTestId('arena-position');
 // Release keys inside the browser at the telemetry threshold, avoiding host latency.
-export async function move(page: Page, axis: 'x' | 'y', destination: number, tolerance = 18) {
-  await page.evaluate(({ axis, destination, tolerance }) => new Promise<void>((resolve, reject) => {
+export async function move(page: Page, axis: 'x' | 'y', destination: number, tolerance = 18, timeoutMs = 30000) {
+  await page.evaluate(({ axis, destination, tolerance, timeoutMs }) => new Promise<void>((resolve, reject) => {
     const node = document.querySelector<HTMLElement>('[data-testid="arena-position"]')!;
     const start = Number(node.dataset[axis]), sign = Math.sign(destination - start);
     if (Math.abs(destination - start) < tolerance) { resolve(); return; }
@@ -12,10 +12,10 @@ export async function move(page: Page, axis: 'x' | 'y', destination: number, tol
     const observer = new MutationObserver(() => {
       if ((Number(node.dataset[axis]) - destination) * sign >= -tolerance) { stop(); observer.disconnect(); clearTimeout(timer); resolve(); }
     });
-    const timer = setTimeout(() => { stop(); observer.disconnect(); reject(new Error('Traversal blocked: ' + axis + ' -> ' + destination + ', reached ' + node.dataset[axis])); }, 30000);
+    const timer = setTimeout(() => { stop(); observer.disconnect(); reject(new Error('Traversal blocked: ' + axis + ' -> ' + destination + ', reached ' + node.dataset[axis])); }, timeoutMs);
     observer.observe(node, { attributes: true, attributeFilter: ['data-' + axis] });
     window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
-  }), { axis, destination, tolerance });
+  }), { axis, destination, tolerance, timeoutMs });
   await expect(state(page)).toHaveAttribute('data-speed', '0.00', { timeout: 15000 });
 }
 export async function interact(page: Page, name: string) {

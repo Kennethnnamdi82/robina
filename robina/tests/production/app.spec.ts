@@ -285,17 +285,18 @@ test('High graphics renders authored detail and red road guidance without shader
 });
 
 test('bank entrance raises police response and Collect actually takes the briefcase',async({browser},info)=>{
-  test.setTimeout(300000);const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();
+  test.setTimeout(600000);const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();
   try{
     const errors=await prepare(page,'authenticated');await page.goto(new URL('/settings',info.project.use.baseURL).href);await page.getByRole('button',{name:'LOW graphics'}).click();await page.getByRole('tab',{name:'Controls'}).click();await page.getByLabel('Default camera').selectOption('tactical');
     await page.getByRole('navigation',{name:'Game navigation'}).getByRole('link',{name:'LOBBY',exact:true}).click();await page.getByRole('link',{name:'PLAY',exact:true}).click();await page.getByRole('button',{name:'DEPLOY / START HEIST'}).click();await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing',{timeout:120000});
-    // Use the sidewalk rather than trying to walk down an occupied traffic
-    // lane. Keep the lobby guard's centre clear when approaching the case.
-    await move(page,'x',512,8);await move(page,'y',1280,8);await move(page,'x',1760,8);await move(page,'y',1000,8);
+    // These much longer legs need a wall-time budget for SwiftShader, not a
+    // physics speed change. Walk around the parked van outside the entrance.
+    const walk=(axis:'x'|'y',goal:number)=>move(page,axis,goal,8,90000);
+    await walk('x',1280);await walk('y',1280);await walk('x',1920);await walk('y',1000);await walk('x',1800);
     await expect(page.getByLabel('Active objective')).toContainText('Recover Classified briefcase');
     await expect.poll(async()=>JSON.parse((await page.getByTestId('three-state').getAttribute('data-pursuit'))!).units).toBeGreaterThan(0);
-    await move(page,'x',1800,5);await move(page,'y',750,8);
+    await walk('y',750);
     await expect(page.getByLabel('Nearby equipment',{exact:true})).toContainText('Classified briefcase');await expect(page.getByRole('button',{name:'Inspect nearby equipment'})).toBeEnabled();await page.getByRole('button',{name:'Inspect nearby equipment'}).click();
     await expect(page.getByLabel('Active objective')).toContainText('Break police contact');await page.getByRole('button',{name:'Pause game'}).click();await page.screenshot({path:info.outputPath('bank-case-collected.png')});expect(errors).toEqual([]);
-  }finally{await context.close();}
+  }catch(error){console.log('Bank traversal diagnostics:',await page.getByTestId('three-state').evaluate(n=>({x:n.dataset.x,z:n.dataset.z,fps:n.dataset.fps,character:n.dataset.character,pursuit:n.dataset.pursuit,campaign:n.dataset.campaign})).catch(()=>null));throw error;}finally{await context.close();}
 });
