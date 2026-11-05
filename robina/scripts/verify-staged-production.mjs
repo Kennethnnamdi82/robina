@@ -47,12 +47,15 @@ if(pattern==='--delivery-only'){
   const javascript=await request(entry,'GET');assert.equal(javascript.status,200);
   const entryText=await javascript.text();assert.match(entryText,/Sign in to RIVALS/);
   const hubModule=entryText.match(/GameHub-[a-zA-Z0-9_-]+\.js/)?.[0];assert.ok(hubModule,'Frontend hub must be lazy-loaded by the application');
-  const hub=await request('/assets/'+hubModule,'GET');assert.equal(hub.status,200);assert.match(await hub.text(),/FRONTEND PREVIEW/);
-  const gamePages=['/missions','/profile','/rank','/settings','/customization','/leaderboards','/play'];
+  const hub=await request('/assets/'+hubModule,'GET');assert.equal(hub.status,200);const hubText=await hub.text();assert.match(hubText,/FRONTEND PREVIEW/);
+  const storeModule=hubText.match(/StorePage-[a-zA-Z0-9_-]+\.js/)?.[0];assert.ok(storeModule,'Store must be lazy-loaded from the game hub');
+  const store=await request('/assets/'+storeModule,'GET');assert.equal(store.status,200);assert.match(await store.text(),/THE EXCHANGE/);
+  const gamePages=['/missions','/profile','/rank','/settings','/customization','/leaderboards','/play','/store','/store/weapons','/store/health','/inventory','/purchase-history','/recovery'];
   for(const path of gamePages){const response=await request(path);assert.equal(response.status,200,path);assert.match(response.headers.get('content-type'),/text\/html/,path);}
   const menuArt='/assets/rivals/hub/menu-keyart-v1.webp',art=await request(menuArt);
   assert.equal(art.status,200);assert.equal(Number(art.headers.get('content-length')),statSync('public'+menuArt).size);
-  console.log(JSON.stringify({origin,publicRedirects:pages.length,gamePages:gamePages.length,compressedModels:models.length,entry,hubModule,menuArtBytes:statSync('public'+menuArt).size,frontendOnly:true}));
+  for(const model of ['operative','rifle','ak47','smg','pistol','health']){const path='/assets/rivals/store/'+model+'.png',art=await request(path);assert.equal(art.status,200,path);assert.equal(Number(art.headers.get('content-length')),statSync('public'+path).size,path);}
+  console.log(JSON.stringify({origin,publicRedirects:pages.length,gamePages:gamePages.length,compressedModels:models.length,entry,hubModule,storeModule,storeArt:6,menuArtBytes:statSync('public'+menuArt).size,frontendOnly:true}));
   process.exit(0);
 }
 console.log('Protected staging access prepared; running production browser checks.');

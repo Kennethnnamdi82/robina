@@ -66,6 +66,30 @@ test('production 3D and classic game links remain behind login', async ({ page }
   expect(errors).toEqual([]);
 });
 
+test('premium Exchange integrates with the built game hub without transactions', async ({ page }, info) => {
+  const errors = await prepare(page, 'authenticated'), mutations:string[]=[];
+  page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/')&&!['GET','HEAD','OPTIONS'].includes(request.method()))mutations.push(request.method()+' '+new URL(request.url()).pathname);});
+  await page.setViewportSize({width:390,height:844});await page.goto('/');
+  await page.getByRole('link',{name:'STORE',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'THE EXCHANGE.'})).toBeVisible();
+  await expect(page.locator('canvas')).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:info.outputPath('exchange-built-phone.png'),fullPage:true});
+  await page.getByRole('link',{name:'Guns & weapons',exact:true}).click();
+  await page.getByRole('button',{name:'Details for AK-47',exact:true}).click();
+  await expect(page.getByRole('dialog').getByText('12',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'PREVIEW PURCHASE',exact:true}).click();
+  await expect(page.getByText('DESIGN PREVIEW / NO CHARGES')).toBeVisible();
+  await page.getByLabel('PREVIEW A PURCHASE STATE').selectOption('successful');
+  await expect(page.getByText(/No purchase occurred/)).toBeVisible();
+  await page.getByRole('button',{name:'Close purchase preview'}).click();
+  await page.getByRole('link',{name:'My inventory',exact:true}).click();
+  await expect(page.getByText('NO PURCHASE DATA CONNECTED.')).toBeVisible();
+  await page.getByRole('link',{name:'BACK TO LOBBY',exact:true}).click();
+  await expect(page.getByRole('link',{name:'PLAY',exact:true})).toBeVisible();
+  expect(mutations).toEqual([]);expect(errors).toEqual([]);
+});
+
 test('built production 3D game draws, pauses and exits without changing accounts' + (process.env.PRODUCTION_TEST_WARM_ASSETS === '1' ? ' (warm-cache)' : ''), async ({ page }) => {
   const warmAssets = process.env.PRODUCTION_TEST_WARM_ASSETS === '1';
   const remote = Boolean(process.env.PRODUCTION_TEST_URL);

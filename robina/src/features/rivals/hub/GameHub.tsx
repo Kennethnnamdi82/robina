@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Check, ChevronRight, Clock3, Crosshair, Flag, LogOut, Medal, Shield, SlidersHorizontal, Swords, Target, Trophy, UserRound } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Check, ChevronRight, Clock3, Crosshair, Flag, LogOut, Medal, Shield, ShoppingBag, SlidersHorizontal, Swords, Target, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { HubSettings } from './HubSettings';
 import { addRecord, dossierStats, formatTime, OPERATIONS, PREVIEW_STANDINGS, RANKS, readDossier, readPreferences, runScore, saveDossier, savePreferences,isAssignmentUnlocked, type Dossier, type HeistRecord, type HubPreferences } from './model';
@@ -10,10 +10,13 @@ import './hub.css';
 import './command-theme.css';
 
 const PlayPage = lazy(() => import('./PlayPage'));
+const StorePage = lazy(() => import('../store/StorePage'));
+const RecoveryPage = lazy(() => import('../store/RecoveryPage'));
 const NAV = [
   { to: '/', label: 'LOBBY', icon: Swords }, { to: '/missions', label: 'MISSIONS', icon: Crosshair },
   { to: '/customization', label: 'CUSTOMIZATION', icon: Shield }, { to: '/profile', label: 'PLAYER PROFILE', icon: UserRound },
   { to: '/leaderboards', label: 'LEADERBOARDS', icon: Trophy }, { to: '/rank', label: 'RANK', icon: Medal },
+  { to: '/store', label: 'STORE', icon: ShoppingBag },
   { to: '/settings', label: 'SETTINGS', icon: SlidersHorizontal },
 ];
 const ART = '/assets/rivals/hub/menu-keyart-v1.webp';
@@ -56,6 +59,10 @@ function Hub({ identity }: { identity: string }) {
         <Route path="leaderboards" element={<Leaderboards dossier={dossier}/>}/>
         <Route path="rank" element={<Ranks dossier={dossier}/>}/>
         <Route path="settings" element={settings()}/>
+        <Route path="store/*" element={<Suspense fallback={<p role="status">OPENING THE EXCHANGE…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
+        <Route path="inventory" element={<Suspense fallback={<p role="status">OPENING FIELD LOCKER…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
+        <Route path="purchase-history" element={<Suspense fallback={<p role="status">OPENING PURCHASE HISTORY…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
+        <Route path="recovery" element={<Suspense fallback={<p role="status">OPENING RECOVERY PREVIEW…</p>}><RecoveryPage/></Suspense>}/>
         <Route path="customization" element={<Customization dossier={dossier} onSave={(callsign,emblem) => updateDossier(old => ({...old,callsign,emblem}))} saved={saved}/>}/>
         <Route path="leaderboard" element={<Navigate to="/leaderboards" replace/>}/>
         <Route path="*" element={<Navigate to="/" replace/>}/>

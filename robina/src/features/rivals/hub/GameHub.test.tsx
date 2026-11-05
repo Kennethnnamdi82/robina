@@ -48,4 +48,12 @@ describe('frontend-only game hub',()=>{
   it('does not fetch or mount the 3D runtime before Play is selected',async()=>{
     at();expect(screen.queryByText('3D deployment')).toBeNull();fireEvent.click(screen.getByRole('link',{name:'PLAY'}));expect(await screen.findByText('3D deployment')).toBeTruthy();
   });
+  it('opens the lazy store and inventory without mounting the game or changing the dossier',async()=>{
+    const network=vi.spyOn(globalThis,'fetch');at();
+    fireEvent.click(screen.getByRole('link',{name:'STORE'}));
+    expect(await screen.findByRole('heading',{name:'THE EXCHANGE.'})).toBeTruthy();
+    fireEvent.click(screen.getByRole('link',{name:'My inventory'}));
+    expect(screen.getByText('NO PURCHASE DATA CONNECTED.')).toBeTruthy();
+    expect(screen.queryByText('3D deployment')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();
+  });
 });

@@ -40,11 +40,11 @@ describe("game-only public entry", () => {
     expect(await screen.findByRole("heading", { name: "RIVALS game menu" })).toBeTruthy();
     expect(screen.getByTestId("location").textContent).toBe("/");
   });
-  it("does not let an old bookmark bypass login", async () => {
-    render(<AppAt path="/rank" />);
+  it.each(['/rank','/store','/store/weapons','/inventory','/purchase-history','/recovery'])("does not let %s bypass login", async path => {
+    render(<AppAt path={path} />);
     expect(await screen.findByRole("heading", { name: "Sign in to RIVALS" })).toBeTruthy();
     expect(screen.queryByText("RIVALS game menu")).toBeNull();
-    expect(screen.getByTestId("location").textContent).toBe("/rank");
+    expect(screen.getByTestId("location").textContent).toBe(path);
   });
   it("preserves existing game query settings on redirects", async () => {
     auth.isLoggedIn = true;
