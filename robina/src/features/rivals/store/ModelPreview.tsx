@@ -5,11 +5,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { studioPose } from './studioPose';
 import type { ModelAsset } from './catalog';
-import { MODEL_URLS } from './modelAssets';
+import { CHARACTER_MODELS, MODEL_URLS, modelArt } from './modelAssets';
 /** Only mounted on explicit request inside one dialog. Demand rendering, no
  * animation loop, game asset owner, mixer, skeleton or shared material mutation. */
 export default function ModelPreview({ model, finish, reduced = false }: { model: ModelAsset; finish?: string; reduced?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
+  const [retry, setRetry] = useState(0);
+  const character = CHARACTER_MODELS.has(model);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   useEffect(() => {
     let disposed = false, renderer: WebGLRenderer | undefined, controls: OrbitControls | undefined;
@@ -26,7 +28,7 @@ export default function ModelPreview({ model, finish, reduced = false }: { model
         renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         renderer.outputColorSpace = SRGBColorSpace; renderer.toneMapping = ACESFilmicToneMapping;
-        renderer.domElement.setAttribute('aria-label', 'Interactive reference model'); renderer.domElement.setAttribute('role', 'img');
+        renderer.domElement.setAttribute('aria-label', 'Interactive ' + model + ' collection model'); renderer.domElement.setAttribute('role', 'img');
         host.current?.appendChild(renderer.domElement);
         scene = new Scene();
         const generator = new PMREMGenerator(renderer), room = new RoomEnvironment();
@@ -45,9 +47,9 @@ export default function ModelPreview({ model, finish, reduced = false }: { model
         if (finish) root.traverse(node => { if (node instanceof Mesh) for (const m of Array.isArray(node.material) ? node.material : [node.material]) if (m instanceof MeshStandardMaterial) { m.color.lerp(new Color(finish), .6); m.metalness = .5; } });
         const box = new Box3().setFromObject(root), size = box.getSize(new Vector3()), centre = box.getCenter(new Vector3());
         root.position.sub(centre); group.add(root); group.scale.setScalar(2.2 / Math.max(size.x, size.y, size.z));
-        if (model !== 'operative') group.rotation.set(.05, 1.15, -.12);
+        if (!character) group.rotation.set(.05, 1.15, -.12);
         scene.add(group);
-        camera.position.set(model === 'operative' ? .4 : .15, .2, 4.9);
+        camera.position.set(character ? .4 : .15, .2, 4.9);
         controls = new OrbitControls(camera, renderer.domElement); controls.enablePan = false; controls.enableDamping = false;
         controls.minDistance = 3; controls.maxDistance = 7; controls.minPolarAngle = .4; controls.maxPolarAngle = Math.PI - .4;
         controls.rotateSpeed = reduced ? .5 : .8; controls.update();
@@ -59,6 +61,6 @@ export default function ModelPreview({ model, finish, reduced = false }: { model
       } catch { if (!disposed) setStatus('error'); }
     })();
     return () => { disposed = true; resize?.disconnect(); controls?.dispose(); if (scene) release(scene); environment?.dispose(); renderer?.dispose(); renderer?.forceContextLoss(); renderer?.domElement.remove(); };
-  }, [model, finish, reduced]);
-  return <div className="rs-model" ref={host}>{status !== 'ready' && <p role="status">{status === 'error' ? '3D preview unavailable. Product details are still available.' : 'LOADING REFERENCE MODEL…'}</p>}<small>DRAG TO ROTATE · PINCH TO ZOOM · REFERENCE ASSET</small></div>;
+  }, [model, finish, reduced, character, retry]);
+  return <div className="rs-model" ref={host} data-model={model}>{status !== 'ready' && <div className="rs-model-status"><img src={modelArt(model)} alt="" aria-hidden="true"/><p role="status">{status === 'error' ? 'MODEL COULD NOT LOAD' : 'OPENING THE STUDIO'}</p>{status === 'error' && <button onClick={()=>setRetry(n=>n+1)}>RETRY MODEL</button>}</div>}<small>DRAG TO ROTATE · PINCH TO ZOOM</small></div>;
 }

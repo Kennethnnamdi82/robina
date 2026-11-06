@@ -50,8 +50,13 @@ export class WeaponRig {
       const temporary = this.metadata.id === 'knife' || Boolean(frame.action && frame.action !== 'idle') || ['dodge', 'hit', 'death'].includes(this.avatar.motion) || frame.reload > 0;
       if (!temporary) {
         this.actor.root.updateMatrixWorld(true);
-        this.anchor.set(.10, 1.31, .18); this.actor.root.localToWorld(this.anchor);
-        this.desired.copy(target); if (this.desired.distanceToSquared(this.anchor) < .09) this.desired.copy(this.anchor).add(new Vector3(Math.cos(frame.angle), 0, Math.sin(frame.angle)));
+        this.anchor.set(.16, 1.29, .29); this.actor.root.localToWorld(this.anchor);
+        // Looking around an idle operative must not fold their rifle backwards
+        // through their chest. Orbit is observation, not a weapon command.
+        if (!frame.aiming && this.kick < .0005) {
+          this.desired.set(-7, .8, 10); this.actor.root.localToWorld(this.desired);
+        } else this.desired.copy(target);
+        if (this.desired.distanceToSquared(this.anchor) < .09) this.desired.copy(this.anchor).add(new Vector3(Math.cos(frame.angle), 0, Math.sin(frame.angle)));
         this.look.lookAt(this.anchor, this.desired, up); this.rotation.setFromRotationMatrix(this.look);
         this.handRotation.copy(this.rotation).multiply(this.rightOffset);
         this.rightPalm!.parent!.getWorldScale(this.scale);

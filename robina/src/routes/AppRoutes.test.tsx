@@ -1,5 +1,5 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Outlet, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => ({ isLoggedIn: false, isAdmin: false, isAuthLoading: false }));
@@ -8,8 +8,6 @@ vi.mock("@/pages/LoginPage", () => ({ default: () => <h1>Sign in to RIVALS</h1> 
 vi.mock("@/pages/GamingRoute", () => ({ default: () => <h1>RIVALS game menu</h1>,gameEngine:(search:string)=>new URLSearchParams(search).get('engine')==='2d'?'2d':'3d' }));
 vi.mock("@/features/rivals/hub/GameHub", () => ({ default: () => <h1>RIVALS game menu</h1> }));
 vi.mock("@/pages/AdminLoginPage", () => ({ default: () => <h1>Owner sign in</h1> }));
-vi.mock("@/pages/admin/AdminLayout", () => ({ default: () => <main>Owner tools<Outlet /></main> }));
-vi.mock("@/pages/admin/AdminUsersPage", () => ({ default: () => <h1>Manage users</h1> }));
 import AppRoutes from "./AppRoutes";
 
 function Location() {
@@ -67,16 +65,25 @@ describe("game-only public entry", () => {
     render(<AppAt path="/ref/player123" />);
     expect(await screen.findByRole("heading", { name: "Sign in to RIVALS" })).toBeTruthy();
   });
-  it("keeps owner tools inaccessible without admin authentication", async () => {
+  it.each(["/admin/users", "/admin/tasks", "/admin/seasons", "/admin/payments", "/admin/ranking", "/admin/analytics", "/admin/activity"])("retires %s without exposing an old dashboard", async path => {
     auth.isLoggedIn = true;
-    render(<AppAt path="/admin/users" />);
-    expect(await screen.findByRole("heading", { name: "Owner sign in" })).toBeTruthy();
-    expect(screen.queryByText("Manage users")).toBeNull();
-    expect(screen.getByTestId("location").textContent).toBe("/admin/login");
+    render(<AppAt path={path} />);
+    expect(await screen.findByRole("heading", { name: "RIVALS game menu" })).toBeTruthy();
+    expect(screen.getByTestId("location").textContent).toBe("/");
   });
-  it("preserves authenticated owner access without adding player navigation", async () => {
+  it("keeps retired dashboard links behind normal game login", async () => {
+    render(<AppAt path="/admin/users" />);
+    expect(await screen.findByRole("heading", { name: "Sign in to RIVALS" })).toBeTruthy();
+    expect(screen.getByTestId("location").textContent).toBe("/");
+  });
+  it("preserves the owner login screen", async () => {
+    render(<AppAt path="/admin/login" />);
+    expect(await screen.findByRole("heading", { name: "Owner sign in" })).toBeTruthy();
+  });
+  it("routes authenticated owners back to RIVALS instead of the retired dashboard", async () => {
     auth.isLoggedIn = auth.isAdmin = true;
     render(<AppAt path="/admin/users" />);
-    expect(await screen.findByRole("heading", { name: "Manage users" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "RIVALS game menu" })).toBeTruthy();
+    expect(screen.getByTestId("location").textContent).toBe("/");
   });
 });

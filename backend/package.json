@@ -1,7 +1,7 @@
 {
   "name": "basedrop-backend",
   "version": "1.0.0",
-  "description": "BaseDrop Web3 mining backend (Express + MongoDB + viem) for Base Mainnet (8453)",
+  "description": "RIVALS authentication backend (Express + MongoDB)",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
@@ -9,9 +9,6 @@
     "dev": "node --watch src/server.js",
     "test": "node --test",
     "smoke": "node scripts/smoke-check.mjs",
-    "migrate:task-expiry": "node scripts/migrate-task-expiry.mjs",
-    "migrate:task-expiry:apply": "node scripts/migrate-task-expiry.mjs --apply",
-    "verify:wallet": "node scripts/real-wallet-signoff.mjs",
     "preflight:production": "node scripts/production-preflight.mjs",
     "migrate:legacy-wallet-index": "node scripts/migrate-legacy-wallet-index.mjs",
     "readiness:production": "node scripts/production-readiness.mjs"

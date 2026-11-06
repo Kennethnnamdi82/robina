@@ -1,0 +1,138 @@
+{
+  "version": 2,
+  "source": "Locally supplied source packs — originals unchanged",
+  "files": [
+    {
+      "id": "urban",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1444888,
+      "sha256": "0077ca2330a77a52cf255f29aed8f2c687daf9ef72d974cc7e9ea8c078fd208a"
+    },
+    {
+      "id": "neon",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1525316,
+      "sha256": "072ba61ac26d36f935fb26371e9a39c1d7a1f4a064658363f33d5b8ad755332d"
+    },
+    {
+      "id": "shadow",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1623688,
+      "sha256": "e2491b4a17005979aa084f0be5e57f2a4fde1df38ad33c0a8df6af638a2475fa"
+    },
+    {
+      "id": "cyber",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1621800,
+      "sha256": "282136f2fe4d8ea67400c73a37e7c4377d53b3b9be36f341bddcfee187f363bc"
+    },
+    {
+      "id": "crimson",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1506656,
+      "sha256": "6ba1ebf35ad9121f2431febf0ef2fb245db351b3afc4e573657f7ab94e44c83d"
+    },
+    {
+      "id": "golden",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1504420,
+      "sha256": "918107cf4f02eb8fab4bb104a81b0d66bec78b77bc58ace60e5c8fd2804750d7"
+    },
+    {
+      "id": "midnight",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1523104,
+      "sha256": "064bfb405cbfd3b406bfc143de34d3c22282336e7cd0261e85ff8b73987a85d6"
+    },
+    {
+      "id": "commander",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1680692,
+      "sha256": "35dd4730ecf379b467b07c473a651c9826f85c3c74ddedab227803e2ef6ea1a3"
+    },
+    {
+      "id": "founder",
+      "source": "/src/features/Military_Male_03.glb",
+      "bytes": 1504444,
+      "sha256": "2c41ed719519b49a94697abcd166a2b2644a9bd7a8a1d7ce157bf0bb56a573ae"
+    },
+    {
+      "id": "mp5",
+      "source": "/src/features/WeaponsPack/MP5/SKM_MP5.fbx",
+      "bytes": 4395496,
+      "sha256": "0e46cf9cc128e14d96dcf741d3250556552f7b04a6e100b16eefe8f384265c76"
+    },
+    {
+      "id": "m4a1",
+      "source": "/src/features/Guns&Explosives/M4A1/M4A1.fbx",
+      "bytes": 1394764,
+      "sha256": "e0f9ae13ccd89f56b7c500248ebf7c28549ec82a9f3e90e0b2415c682506d8a8"
+    },
+    {
+      "id": "scar",
+      "source": "/src/features/OBJ/AssaultRifle2_2.obj",
+      "bytes": 173804,
+      "sha256": "914fa588dac755057895df3eacf81fda7bb9df28fd826c2c12bcb16c0c059281"
+    },
+    {
+      "id": "m249",
+      "source": "/src/features/OBJ/AssaultRifle2_4.obj",
+      "bytes": 133084,
+      "sha256": "eec9c6df97f3301d4a37d97cfdbb1fbbdeefb80a0467c97df6f05ec3efebe10a"
+    },
+    {
+      "id": "elite",
+      "source": "/src/features/OBJ/AssaultRifle_5.obj",
+      "bytes": 95240,
+      "sha256": "609c146deee174e785ae08e2f761bec03538dcbc363145859df6102c7a4c3e5e"
+    },
+    {
+      "id": "grenade",
+      "source": "/src/features/Guns&Explosives/FragGrenade/FragGrenadeModel.fbx",
+      "bytes": 1685324,
+      "sha256": "b2b53e520d6fe2f9086b5ea463fc1d9b38cfc271aa3090d2660db8b18ecec547"
+    },
+    {
+      "id": "desert",
+      "source": "/public/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189848,
+      "sha256": "03b39a3e3c9e3535d23bc59d63ea7003240e3a7722d502cda1d29142987ba592"
+    },
+    {
+      "id": "pulse",
+      "source": "/public/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189848,
+      "sha256": "fd4e27ec51502daccd83a7960990c465ff194d9adc4a10212fbf374cd56e9fa4"
+    },
+    {
+      "id": "steel",
+      "source": "/public/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189848,
+      "sha256": "632dd0985807cbc5a8ce20f60bb7adf56657b535211bc2d28caea7ac581bd2c7"
+    },
+    {
+      "id": "fire",
+      "source": "/public/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189848,
+      "sha256": "0035da9e198f3c827b6432f04227e3f5a4ceec5c4381262620eb6dcf450c2ada"
+    },
+    {
+      "id": "frost",
+      "source": "/public/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189844,
+      "sha256": "1b240c76107e84e8eb7926190e7ce6bd9ff4173041ab761d9939250203a97611"
+    },
+    {
+      "id": "protocol",
+      "source": "/public/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189848,
+      "sha256": "af5f2b45aad63759deaf219f0aebb2050e2173a9fddbfca08d4ffb53d47034c4"
+    },
+    {
+      "id": "diamond",
+      "source": "/public/assets/rivals/combat3d/weapons/rifle.glb",
+      "bytes": 189848,
+      "sha256": "9c75a0968788be86fde7c63061f387ff98e06955c0ff9b7571012c73fe1e5a47"
+    }
+  ]
+}

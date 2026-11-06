@@ -21,8 +21,11 @@ test('visible map, single-tap view cycle, zoom, direct silhouettes, automatic au
   await writeFile(info.outputPath('desktop-controls.json'),JSON.stringify(await combat(page),null,2)); expect(errors).toEqual([]);
 });
 
-test('fire stick aims the gun without moving the player or camera; sprint works with simultaneous fingers; HUD fits phones',async ({ browser },info) => {
-  test.setTimeout(240000);const context = await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true}),page = await context.newPage();
+test('fire stick aims the gun without moving the player or camera; sprint works with simultaneous fingers and camera look stays independent',async ({ browser },info) => {
+  test.setTimeout(420000);const context = await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true}),page = await context.newPage();
+  // Functional input coverage on software WebGL, not a phone FPS benchmark.
+  // Use the same lightweight render budget as the production browser suite.
+  await context.addInitScript(()=>{Object.defineProperty(window,'devicePixelRatio',{value:.5});localStorage.setItem('rivals_3d_graphics_v1','low');});
   try {await page.goto(String(info.project.use.baseURL));await page.getByRole('button',{name:'ENTER 3D RAID'}).tap();await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing',{timeout:90000});await selectPOV(page,'THIRD-PERSON / TPS');
     const cdp = await context.newCDPSession(page),a = (await page.getByTestId('aim-stick').boundingBox())!,m = (await page.getByTestId('movement-stick').boundingBox())!,s = (await page.getByRole('button',{name:'Toggle sprint'}).boundingBox())!;
     const aim = {id:2,x:a.x+a.width/2+25,y:a.y+a.height/2},move = {id:1,x:m.x+m.width/2+5,y:m.y+m.height/2},sprint = {id:3,x:s.x+s.width/2,y:s.y+s.height/2};
@@ -41,9 +44,8 @@ test('fire stick aims the gun without moving the player or camera; sprint works 
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect.poll(async () => Number(await position(page).getAttribute('data-speed'))).toBe(0);
     // A separate playfield swipe provides full camera look without reusing either stick.
     const look={id:4,x:195,y:320},lookYaw=(await combat(page)).view.yaw;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[look]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...look,x:240,y:330}]});await expect.poll(async()=>(await combat(page)).view.yaw).not.toBe(lookYaw);await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-    for (const [width,height] of [[390,844],[320,568],[844,390],[568,320]] as const) {await page.setViewportSize({width,height});
-      const overlap = await page.evaluate(() => {const nodes = [...document.querySelectorAll<HTMLElement>('.rv-action-buttons button,.rv-sprint-control,.r3-slots button,.r3-utility button,.rivals-minimap,.rv-vitals,.rv-objective,[data-testid=movement-stick],[data-testid=aim-stick]')].filter(n=>getComputedStyle(n).display!=='none'&&n.getClientRects().length),bad:string[]=[];for(let i=0;i<nodes.length;i++){const a=nodes[i].getBoundingClientRect();if(a.left<0||a.right>innerWidth+1||a.top<0||a.bottom>innerHeight+1)bad.push('bounds:'+nodes[i].getAttribute('aria-label'));for(let j=i+1;j<nodes.length;j++){const b=nodes[j].getBoundingClientRect();if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>2&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>2)bad.push('overlap:'+nodes[i].getAttribute('aria-label')+'/'+nodes[j].getAttribute('aria-label'));}}return bad;});expect(overlap).toEqual([]);await page.screenshot({path:info.outputPath('phone-'+width+'x'+height+'.png')});
-    }
+    // All four viewport/bounds/overlap assertions live in hud-layout.spec.ts,
+    // using these same components without the software-rendered city.
     await writeFile(info.outputPath('mobile-controls.json'),JSON.stringify(await combat(page),null,2));
   }finally{await context.close();}
 });

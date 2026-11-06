@@ -4,11 +4,12 @@ import type { CityCar } from './CitySimulation';
 import type { Solid3D } from './world3d';
 import type { EnemySpawn } from '../ai/definitions';
 import { STREET_CENTRES } from './LivingCityPlan';
-interface Unit { car:CityCar; deployed:boolean; path:Point[]; repath:number;stuck:number;reverse:number;detour:number;fireAt:number }
+interface Unit { car:CityCar; deployed:boolean; path:Point[]; repath:number;stuck:number;reverse:number;detour:number;fireAt:number;burst:number }
 export class PolicePursuit {
   active=false;lost=false;quiet=0;clock=0;private units:Unit[]=[];private nextDispatch=0;private contacted=false;
   private hunting=false;private previous?:Point;private velocity={x:0,y:0};
   shots=0;
+  get pursuingValuables(){return this.active&&this.hunting&&!this.lost;}
   constructor(private cars:CityCar[],private grid:NavigationGrid,private solids:Solid3D[],private response:number,private deploy:(spawn:EnemySpawn)=>void,private shoot?:(window:Point,car:CityCar)=>void,private impact?:(car:CityCar,solid:Solid3D,speed:number)=>void){}
   end(){this.active=false;for(const u of this.units)if(u.car.mode==='pursuit'){u.car.mode='parked';u.car.speed=0;}}
   alert(valuable=false){this.quiet=0;if(valuable){this.hunting=true;this.clock=0;this.contacted=false;for(const u of this.units)u.repath=0;}if(this.lost){this.lost=false;this.contacted=false;this.clock=0;for(const u of this.units)if(u.car.mode==='parked'&&(u.car.health??0)>0)u.car.mode='pursuit';}this.active=true;}
@@ -16,13 +17,14 @@ export class PolicePursuit {
     if(!Number.isFinite(dt)||dt<=0||!this.active||this.lost)return;this.clock+=dt;
     if(this.previous){this.velocity.x=Math.max(-400,Math.min(400,(player.x-this.previous.x)/dt));this.velocity.y=Math.max(-400,Math.min(400,(player.y-this.previous.y)/dt));}this.previous={...player};
     this.units=this.units.filter(u=>(u.car.health??200)>0&&u.car.mode!=='player');
-    if(this.units.length<this.response&&this.clock>=this.nextDispatch){const car=this.cars.filter(c=>c.kind==='police'&&(c.health??200)>0&&!this.units.some(u=>u.car===c)&&c.mode!=='player').sort((a,b)=>Math.hypot(a.x-player.x*.025,a.z-player.y*.025)-Math.hypot(b.x-player.x*.025,b.z-player.y*.025))[0];if(car){car.mode='pursuit';car.driver=true;this.units.push({car,deployed:false,path:[],repath:0,stuck:0,reverse:0,detour:0,fireAt:this.clock+.65});this.nextDispatch=this.clock+2;}}
+    const response=this.hunting?Math.min(4,Math.max(2,this.response+1)):this.response;
+    if(this.units.length<response&&this.clock>=this.nextDispatch){const car=this.cars.filter(c=>c.kind==='police'&&(c.health??200)>0&&!this.units.some(u=>u.car===c)&&c.mode!=='player').sort((a,b)=>Math.hypot(a.x-player.x*.025,a.z-player.y*.025)-Math.hypot(b.x-player.x*.025,b.z-player.y*.025))[0];if(car){car.mode='pursuit';car.driver=true;this.units.push({car,deployed:false,path:[],repath:0,stuck:0,reverse:0,detour:0,fireAt:this.clock+.45,burst:0});this.nextDispatch=this.clock+(this.hunting?1.25:2);}}
     for(const unit of this.units){const car=unit.car;if(car.mode==='parked'&&this.hunting)car.mode='pursuit';if(car.mode!=='pursuit'||(car.health??200)<=0)continue;
       const distance=Math.hypot(car.x-player.x*.025,car.z-player.y*.025);
-      if(this.shoot&&distance>3&&distance<38&&this.clock>=unit.fireAt){
+      if(this.shoot&&distance>3&&distance<44&&this.clock>=unit.fireAt){
         const side=((player.x*.025-car.x)*car.dz-(player.y*.025-car.z)*car.dx)>=0?1:-1;
         const window={x:(car.x+car.dz*side*1.05+car.dx*.35)*40,y:(car.z-car.dx*side*1.05+car.dz*.35)*40};
-        if(clearSight(window,player,this.grid.blockers)){this.shoot(window,car);this.shots++;unit.fireAt=this.clock+.52;}else unit.fireAt=this.clock+.15;
+        if(clearSight(window,player,this.grid.blockers)){this.shoot(window,car);this.shots++;unit.burst++;unit.fireAt=this.clock+(unit.burst<3?.14:1.3);if(unit.burst===3)unit.burst=0;}else{unit.fireAt=this.clock+.12;unit.burst=0;}
       }
       if(distance<18)this.contacted=true;
       if(!unit.deployed&&distance<15){car.speed=0;car.door=1;unit.deployed=true;for(let side=0;side<2;side++){let safe:Point|undefined;for(const offset of [2.1,2.8,-2.8]){const p={x:(car.x+car.dz*(side?1:-1)*2.1+car.dx*(offset===2.1?0:offset))*40,y:(car.z-car.dx*(side?1:-1)*2.1+car.dz*(offset===2.1?0:offset))*40};if(clearSight(p,p,this.grid.blockers,14)){safe=p;break;}}if(safe)this.deploy({id:'police-'+car.id+'-'+side,type:this.response>2?'enforcer':'guard',x:safe.x,y:safe.y,angle:Math.atan2(player.y-safe.y,player.x-safe.x),patrol:[safe,{...player}]});}}

@@ -2,12 +2,9 @@ import mongoose from 'mongoose';
 import { env } from './config/env.js';
 import { connectMongo } from './db/mongo.js';
 import { createApp } from './app.js';
-import { startAutoClaimWorker } from './services/autoClaimWorker.js';
-import { startSeasonScheduler } from './services/seasonScheduler.js';
 
 let server;
 let stopping = false;
-let stopWorkers = [];
 const app = createApp(() => !stopping && mongoose.connection.readyState === 1);
 
 async function shutdown(signal, exitCode = 0) {
@@ -18,7 +15,6 @@ async function shutdown(signal, exitCode = 0) {
   deadline.unref();
   try {
     await Promise.all([
-      ...stopWorkers.map(stop => stop()),
       server ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve())) : Promise.resolve(),
     ]);
     await mongoose.disconnect();
@@ -40,7 +36,6 @@ async function start() {
   server.headersTimeout = 10000;
   server.keepAliveTimeout = 5000;
   server.on('error', error => { console.error('[listen]', error); void shutdown('listen error', 1); });
-  stopWorkers = [startAutoClaimWorker(), startSeasonScheduler()];
 }
 start().catch(error => {
   console.error('[startup]', error.message);

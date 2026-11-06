@@ -5,17 +5,8 @@ import GamingRoute, { gameEngine } from "@/pages/GamingRoute";
 import LoginPage from "@/pages/LoginPage";
 const GameHub = lazy(() => import("@/features/rivals/hub/GameHub"));
 
-// Owner-only tools stay protected and load only when explicitly requested.
-// None of the old BaseDrop player pages are mounted or imported here.
+// Keep owner authentication, but retire the old BaseDrop management screens.
 const AdminLoginPage = lazy(() => import("@/pages/AdminLoginPage"));
-const AdminLayout = lazy(() => import("@/pages/admin/AdminLayout"));
-const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
-const AdminSeasonsPage = lazy(() => import("@/pages/admin/AdminSeasonsPage"));
-const AdminTasksPage = lazy(() => import("@/pages/admin/AdminTasksPage"));
-const AdminPaymentsPage = lazy(() => import("@/pages/admin/AdminPaymentsPage"));
-const AdminAnalyticsPage = lazy(() => import("@/pages/admin/AdminAnalyticsPage"));
-const AdminRankingPage = lazy(() => import("@/pages/admin/AdminRankingPage"));
-const AdminActivityPage = lazy(() => import("@/pages/admin/AdminActivity"));
 
 function SessionRestoreScreen() {
   return <main className="grid min-h-screen place-content-center gap-3 bg-background p-5 text-center text-foreground">
@@ -42,7 +33,7 @@ function GameRedirect() {
 }
 
 export default function AppRoutes() {
-  const { isLoggedIn, isAdmin, isAuthLoading } = useAuth();
+  const { isLoggedIn, isAuthLoading } = useAuth();
   const { search } = useLocation();
   useEffect(() => {
     const params = new URLSearchParams(search);
@@ -55,17 +46,7 @@ export default function AppRoutes() {
       <Route path="/ref/:code" element={<ReferralCapture />} />
       <Route path="/r/:code" element={<ReferralCapture />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
-      <Route path="/admin/*" element={isAdmin ? <AdminLayout /> : <Navigate to="/admin/login" replace />}>
-        <Route index element={<Navigate to="users" replace />} />
-        <Route path="users" element={<AdminUsersPage />} />
-        <Route path="seasons" element={<AdminSeasonsPage />} />
-        <Route path="tasks" element={<AdminTasksPage />} />
-        <Route path="payments" element={<AdminPaymentsPage />} />
-        <Route path="ranking" element={<AdminRankingPage />} />
-        <Route path="analytics" element={<AdminAnalyticsPage />} />
-        <Route path="activity" element={<AdminActivityPage />} />
-        <Route path="*" element={<Navigate to="users" replace />} />
-      </Route>
+      <Route path="/admin/*" element={<GameRedirect />} />
       {["/gaming", "/tasks", "/auto-claim", "/marketplace", "/login"].map(path => <Route key={path} path={path} element={<GameRedirect />} />)}
       <Route path="/*" element={isLoggedIn ? gameEngine(search) === '2d' ? <GamingRoute /> : <GameHub /> : <LoginPage />} />
     </Routes>

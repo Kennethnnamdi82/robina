@@ -19,6 +19,12 @@ function fixture() {
 const frame = (patch: Partial<HumanoidFrame> = {}): HumanoidFrame => ({ vx: 0, vz: 0, vertical: 0, grounded: true, sprinting: false, aiming: false, angle: 0, pov: 'tactical', dodgeRemaining: 0, dodgeSerial: 0, health: 100, hitSerial: 0, shots: 0, reload: 0, ...patch });
 
 describe('humanoid animation lifecycle', () => {
+  it('restores the authored wrist pose before an unchanged clamped animation sample',()=>{
+    const a=fixture(),f=frame({aiming:true});for(let i=0;i<80;i++)a.update(.02,f);
+    const hand=a.actor.body!.getObjectByName('hand_r')!,source=hand.quaternion.clone();
+    for(let i=0;i<100;i++){hand.quaternion.setFromAxisAngle(new Vector3(0,1,0),i*.1);a.update(.02,f);expect(hand.quaternion.angleTo(source)).toBeLessThan(.0001);}
+    a.dispose();
+  });
   it('keeps feet, root position and facing still when only the fire stick aims',()=>{
     const a=fixture();a.update(.1,frame({pov:'third',independentAim:true}));const yaw=a.yaw,position=a.actor.root.position.clone();
     for(let i=0;i<30;i++)a.update(1/60,frame({pov:(['third','side','first','tactical'] as const)[i%4],independentAim:true,aiming:true,angle:i*.1,shots:i}));

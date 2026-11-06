@@ -31,6 +31,7 @@ export class HumanoidAnimator {
   private specialRemaining = 0; private shotRemaining = 0; private changeRemaining = 0; private wasMoving = false; private initialized = false; private disposed = false;
   private pelvis: Object3D; private chest: Object3D;
   private pelvisSample = new Quaternion(); private chestSample = new Quaternion(); private corrected = false;
+  private weaponPose: { bone: Object3D; source: Quaternion }[] = [];
   get clipName() { return this.base?.getClip().name.split(':')[1] ?? ''; }
   /** The layered pose that keeps the equipped item readable during locomotion. */
   get upperClipName() { return this.upper?.getClip().name.replace(/^upper-/, '').split(':').pop() ?? ''; }
@@ -41,6 +42,9 @@ export class HumanoidAnimator {
     }
     const bone = (name: string) => { const node = body.getObjectByName(name); if (!node) throw new Error('Incompatible humanoid rig: missing ' + name); return node; };
     this.pelvis = bone('pelvis'); this.chest = bone('spine_01');
+    for (const name of ['upperarm_r','lowerarm_r','hand_r','upperarm_l','lowerarm_l','hand_l']) {
+      const arm = body.getObjectByName(name); if (arm) this.weaponPose.push({ bone: arm, source: arm.quaternion.clone() });
+    }
     const rightHand = new Group(), leftHand = new Group(); rightHand.name = 'rivals-right-hand-socket'; leftHand.name = 'rivals-left-hand-socket';
     bone('hand_r').add(rightHand); bone('hand_l').add(leftHand);
     // Hand +Y runs along the fingers. Equipment forward is -Z; convert locally,
@@ -86,6 +90,9 @@ export class HumanoidAnimator {
   }
   update(dt: number, frame: HumanoidFrame) {
     if (this.disposed || !Number.isFinite(dt) || dt < 0) return;
+    // A clamped aiming clip may not rewrite unchanged channels. Restore its
+    // source arms before evaluation so last frame's IK cannot accumulate.
+    for (const { bone, source } of this.weaponPose) bone.quaternion.copy(source);
     this.speed = Math.hypot(frame.vx, frame.vz);
     this.specialRemaining = Math.max(0, this.specialRemaining - dt); this.shotRemaining = Math.max(0, this.shotRemaining - dt);
     const dodge = frame.dodgeSerial !== this.lastDodge, hit = frame.hitSerial !== this.lastHit, fired = frame.shots !== this.lastShot;
@@ -184,6 +191,7 @@ export class HumanoidAnimator {
       const offset=Math.atan2(Math.sin(Math.PI/2-frame.angle-this.yaw),Math.cos(Math.PI/2-frame.angle-this.yaw));
       this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction,MathUtils.clamp(offset,-.9,.9)));
     }
+    for (const { bone, source } of this.weaponPose) source.copy(bone.quaternion);
     this.actor.recoil = Math.max(0, this.actor.recoil - dt * 9); this.actor.muzzle.visible = this.actor.recoil > .6;
     this.actionTime = this.base.time; this.activeActions = 0;
     for (const action of this.actions.values()) if (action.enabled && (action.isRunning() || action.paused)) this.activeActions++;

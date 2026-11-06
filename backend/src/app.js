@@ -3,19 +3,12 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
 import mongoose from 'mongoose';
 
 import { env } from "./config/env.js";
 
 import authRoutes from "./routes/auth.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
-import miningRoutes from "./routes/mining.js";
-import paymentRoutes from "./routes/payments.js";
-import taskRoutes from "./routes/tasks.js";
-import adminRoutes from "./routes/admin.js";
-import leaderboardRoutes from "./routes/leaderboard.js";
-import gameRoutes from "./routes/game.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 
 
@@ -102,12 +95,6 @@ app.use('/api', (_req, res, next) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminAuthRoutes);
-app.use("/api/mining", miningRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/tasks", taskRoutes);
-app.use("/api/leaderboard", leaderboardRoutes);
-app.use("/api/game", gameRoutes);
-app.use("/api/admin", adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

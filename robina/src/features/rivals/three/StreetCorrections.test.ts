@@ -9,8 +9,24 @@ import { VehicleController } from './VehicleController';
 import { PolicePursuit } from './PolicePursuit';
 import { Projectile3D } from './Projectile3D';
 import { RaidRuntime } from './RaidRuntime';
+import { TacticalEnemy } from './TacticalEnemy';
 
 describe('street guidance, collision and rolling pursuit corrections',()=>{
+  it('responding officers advance while shooting instead of standing at maximum range',()=>{
+    const grid=new NavigationGrid(80,80,64,[]),officer=new TacticalEnemy({id:'police-response-0',type:'guard',x:500,y:500,angle:0,patrol:[{x:500,y:500}]},grid),shoot=vi.fn();
+    const player={x:1200,y:500};for(let i=0;i<150;i++)officer.step(.02,{player,alive:true,permitted:true,wanted:true},shoot);
+    expect(shoot).toHaveBeenCalled();expect(officer.x).toBeGreaterThan(650);expect(officer.lastKnown).toEqual(player);
+  });
+  it('reinforcement cars fire controlled bursts, keep physical cover and do not teleport',()=>{
+    const cars=new CitySimulation(8,3).cars;cars.forEach((c,i)=>Object.assign(c,{kind:'police',x:20+i*5,z:30,dx:1,dz:0,health:200}));
+    const shoot=vi.fn(),police=new PolicePursuit(cars,new NavigationGrid(80,80,64,[],46),[],1,()=>{},shoot);police.alert(true);
+    for(let i=0;i<90;i++)police.step(.02,{x:40*40,y:30*40},[]);
+    expect(police.snapshot.units).toBe(2);expect(shoot.mock.calls.length).toBeGreaterThanOrEqual(3);
+    for(const car of cars)expect(car.x).toBeLessThan(65);
+    const wall=[{id:'street-wall',enabled:true,x:30*40,y:30*40,width:4*40,height:50*40}],blocked=vi.fn(),car=cars[0];Object.assign(car,{x:20,z:30,dx:0,dz:1,mode:'parked',speed:0});
+    const cover=new PolicePursuit([car],new NavigationGrid(80,80,64,wall,46),[],1,()=>{},blocked);cover.alert(true);
+    for(let i=0;i<70;i++)cover.step(.02,{x:40*40,y:30*40},[]);expect(blocked).not.toHaveBeenCalled();
+  });
   it('keeps a stable forward corridor while moving and never points back to a passed grid cell',()=>{
     const grid=new NavigationGrid(80,80,32,[]),gps=new MissionNavigation(grid,grid),goal={x:2000,y:1200};
     for(let i=0;i<100;i++){const player={x:200+i*12,y:200+i*5};gps.update(.03,player,goal,false);expect(gps.route).toHaveLength(1);expect(gps.next).toEqual(goal);expect(gps.distance).toBeGreaterThan(0);}

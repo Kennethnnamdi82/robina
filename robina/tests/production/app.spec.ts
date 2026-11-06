@@ -77,8 +77,9 @@ test('premium Exchange integrates with the built game hub without transactions',
   await page.screenshot({path:info.outputPath('exchange-built-phone.png'),fullPage:true});
   await page.getByRole('link',{name:'Guns & weapons',exact:true}).click();
   await page.getByRole('button',{name:'Details for AK-47',exact:true}).click();
+  await page.getByRole('dialog').locator('summary').filter({hasText:'CURRENT FIELD CONFIGURATION'}).click();
   await expect(page.getByRole('dialog').getByText('12',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'PREVIEW PURCHASE',exact:true}).click();
+  await page.getByRole('button',{name:'REVIEW SELECTION',exact:true}).click();
   await expect(page.getByText('PAYMENT PREVIEW / NO CHARGES')).toBeVisible();
   await expect(page.getByRole('button',{name:'PURCHASES OPEN SOON'})).toBeDisabled();
   await expect(page.getByLabel('PREVIEW A PURCHASE STATE')).toHaveCount(0);
@@ -160,7 +161,8 @@ test('built production 3D game draws, pauses and exits without changing accounts
 test('production deep admin link remains gated without a session', async ({ page }) => {
   const errors = await prepare(page, 'unauthorized');
   await page.goto('/admin/users');
-  await expect(page).toHaveURL(/\/admin\/login$/);
+  await expect(page).toHaveURL(new URL('/', test.info().project.use.baseURL!).href);
+  await expect(page.getByRole('heading', { name: 'Sign in to RIVALS' })).toBeVisible();
   await expect(page.getByText('Restoring your secure session...')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -236,15 +238,22 @@ test('frontend hub has complete mobile pages, saved settings and no new backend 
 
 
 
-test('admin pages contain service failures without crashing', async ({ page }) => {
+test('retired admin pages lead to RIVALS without old management API calls', async ({ page }) => {
   const errors = await prepare(page, 'admin');
+  const legacyRequests: string[] = [];
+  page.on('request', request => {
+    if (/\/api\/admin\/(users|tasks|seasons|payments|ranking|analytics|activity|leaderboard)(\/|$)/.test(new URL(request.url()).pathname)) legacyRequests.push(request.url());
+  });
   for (const path of ['/admin/users', '/admin/seasons', '/admin/tasks', '/admin/payments', '/admin/ranking', '/admin/analytics', '/admin/activity']) {
     await page.goto(path);
-    await expect(page.getByRole('button', { name: 'Admin Logout' })).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveURL(new URL('/', test.info().project.use.baseURL!).href);
+    await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('link', { name: 'PLAY', exact: true })).toBeVisible();
     await expect(page.getByText('Restoring your secure session...')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Robina could not start' })).toHaveCount(0);
     expect(errors).toEqual([]);
   }
+  expect(legacyRequests).toEqual([]);
 });
 
 test('campaign GPS, real driving and landscape action groups remain usable',async({browser},info)=>{

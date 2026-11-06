@@ -1,100 +1,65 @@
-# BaseDrop Backend
+# RIVALS authentication backend
 
-Express + MongoDB backend for Robina. Cookie-based wallet sessions and USDC checkout support Robinhood Chain (`4663`), Base (`8453`), and Solana mainnet (Phantom/SPL USDC), with independent on-chain verification.
+Express and MongoDB provide the existing Google, EVM wallet, Solana wallet and owner sign-in flows
+
+The retired BaseDrop mining, BD tasks, payment checkout, treasure-card game, seasonal rewards and management APIs have been removed
+RIVALS gameplay, missions, profile, rankings and store remain frontend features and are unchanged by this cleanup
 
 ## Setup
+
 ```bash
 cd backend
-# Configure environment variables (at minimum:
-# MONGODB_URI, JWT_SECRET, TREASURY_WALLET, SOLANA_TREASURY_WALLET,
-# ROBINHOOD_RPC_URL, ROBINHOOD_USDC_CONTRACT, BASE_RPC_URL,
-# BASE_USDC_CONTRACT, SOLANA_RPC_URL, SIWE_DOMAIN, SIWE_URI,
-# CORS_ORIGIN, and CHAIN_ID=4663).
-npm install
+npm ci
 npm run dev
 ```
 
-Health check:
-- `GET /health` -> `{ ok: true, chainId: 4663 }`
+Keep the existing database and cookie configuration to preserve accounts and sessions
+No database records or collections are deleted by this source-code cleanup
+Legacy fields in the User schema and public account response remain for compatibility
 
-## Environment Variables
-- `TREASURY_WALLET`: wallet that receives user USDC payments.
-- `ADMIN_LOGIN_WALLET`: optional wallet allowed for wallet-based admin access.
-- `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`: credentials for `/api/admin/login`.
-- `JWT_SECRET`: session signing secret (must be strong).
-- `PRIVY_APP_ID` and `PRIVY_APP_SECRET`: matching Privy app credentials. Find them in Privy Dashboard app settings. The backend verifies access tokens against Privy's published app JWKS, so a manually copied JWT verification key is not required.
-- `SIWE_DOMAIN` + `SIWE_URI`: expected SIWE origin values. Set these to the production frontend host/origin (for example, `your-app.vercel.app` and `https://your-app.vercel.app`).
-- `CORS_ORIGIN`: comma-separated exact frontend origins, including the production `SIWE_URI`.
-- `ROBINHOOD_RPC_URL`: Robinhood Chain mainnet RPC endpoint. Robinhood's public RPC is rate-limited; use a dedicated provider in production.
-- `BASE_RPC_URL`: Base mainnet RPC endpoint; use a dedicated provider for production traffic.
-- `BASE_USDC_CONTRACT`: USDC contract address on Base. The current template uses the canonical Base USDC address; verify it against official Base/Circle documentation before production.
-- `SOLANA_RPC_URL`: Solana mainnet RPC endpoint. Obtain a dedicated endpoint from a Solana RPC provider (for example, Helius or QuickNode); the public endpoint is rate-limited and is not recommended for production payments.
-- `SOLANA_TREASURY_WALLET`: Solana public key receiving SPL USDC payments. This must be a treasury-controlled wallet and is required in production.
-- `SOLANA_USDC_MINT`: Solana mainnet USDC mint. The template defaults to the canonical Circle mint; verify it with Circle/Solana documentation before deployment.
-- `COOKIE_SECURE=true`: required in production. Use HTTPS for the frontend and API. For genuinely cross-site deployment, configure `COOKIE_SAMESITE=none`; otherwise prefer `lax`.
-- `EVM_RPC_URLS`: optional comma-separated overrides in `chainId=https://rpc-url` form for additional configured EVM RPCs. A chain must also be explicitly configured in backend code before it can be accepted for payments.
-- `CHAIN_ID`: must be `4663` (Robinhood Chain mainnet).
-- `ROBINHOOD_USDC_CONTRACT`: USDC contract address on Robinhood Chain (defaults to `0x80e0e24718dbfcad49ecaa6f1e6c89a190586ca8`). The frontend's `VITE_ROBINHOOD_USDC_ADDRESS` should match it.
+## Configuration
 
-Frontend-only Solana RPC setting:
-- `VITE_SOLANA_RPC_URL`: Solana mainnet endpoint used by the wallet to submit and confirm SPL USDC transfers. Configure a provider endpoint as well as `SOLANA_RPC_URL`; the frontend value is public and must not contain a private credential.
+- `MONGODB_URI` — existing account database
+- `JWT_SECRET` — at least 32 characters in production, no placeholder secret
+- `SIWE_DOMAIN` and `SIWE_URI` — matching frontend host and origin
+- `CORS_ORIGIN` — exact allowed frontend origins, comma separated, including `SIWE_URI`
+- `PRIVY_APP_ID` and `PRIVY_APP_SECRET` — existing Google authentication credentials
+- `COOKIE_SECURE=true` — required in production
+- `COOKIE_SAMESITE=none` — needed for a genuinely cross-site frontend/API, otherwise prefer `lax`
+- `COOKIE_DOMAIN` — optional, preserve the existing deployment value
+- `CHAIN_ID` — default wallet challenge chain, still 4663 unless configured
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` — existing optional owner credentials
+- `PORT` — defaults to 4000
 
-Legacy aliases still supported:
-- `ADMIN_WALLET` (alias of `TREASURY_WALLET`)
-- `ADMIN_AUTH_WALLET` (alias of `ADMIN_LOGIN_WALLET`)
+Treasury wallets, token addresses and payment RPC settings are no longer required
+Do not rename the database, session cookie or JWT issuer as part of this cleanup
 
-## API Surface
+## Retained endpoints
 
-### Auth
-- `GET /api/auth/nonce?wallet=0x...`
+- `GET /ping`
+- `GET /health` — MongoDB readiness, returns 503 while unavailable
+- `GET /api/auth/nonce`
 - `POST /api/auth/verify`
-- `POST /api/auth/logout`
+- `POST /api/auth/wallet`
+- `POST /api/auth/google`
 - `GET /api/auth/me`
-
-### Mining
-- `GET /api/mining/status`
-- `POST /api/mining/claim`
-
-### Payments
-- `GET /api/payments/quote?action=upgrade|instant_claim|auto_claim`
-- `POST /api/payments/verify`
-- `POST /api/payments/upgrade-bd`
-
-### Tasks
-- `GET /api/tasks/catalogue`
-- `GET /api/tasks/mine`
-- `POST /api/tasks/submit`
-- `POST /api/tasks/daily`
-
-### Game
-- `POST /api/game/start`
-- `GET /api/game/state`
-- `POST /api/game/reveal`
-- `POST /api/game/reset`
-
-### Leaderboard
-- `GET /api/leaderboard`
-
-### Admin
+- `POST /api/auth/logout`
 - `POST /api/admin/login`
-- `POST /api/admin/logout`
 - `GET /api/admin/me`
-- `GET /api/admin/users`
-- `GET /api/admin/payments`
-- `GET /api/admin/tasks`
-- `POST /api/admin/tasks/review`
-- `GET /api/admin/seasons`
-- `POST /api/admin/seasons/start`
-- `POST /api/admin/seasons/end-current`
-- `GET /api/admin/leaderboard`
-- `GET /api/admin/analytics`
+- `POST /api/admin/logout`
 
-## Security Notes
-- Helmet enabled.
-- CORS allow-list + credentials.
-- Global + endpoint-specific rate limits.
-- Signed HttpOnly, Secure-in-production cookies for user/admin sessions; unsafe API requests are restricted to configured origins.
-- SIWE nonce, chain, domain, URI, and staleness validation.
-- Server-authoritative economy and payment verification.
-- Shared chain/transaction claims and unique transaction indexes prevent replay across checkout, legacy payment, and game payment paths. Existing MongoDB deployments must inspect and migrate old payment indexes before deploying the new compound intent index. In particular, remove the old global `transactionHash_1` unique index only after confirming no conflicting data and scheduling the migration.
-- Never use real mainnet wallets or funds in automated tests; use mocked RPC/verification or a dedicated test environment.
+All retired API routes now return JSON 404 responses
+Both middleware files, rate limits, origin checks, input scrubbing, token revocation, account status checks, login auditing and graceful shutdown are preserved
+No mining or season background workers start with this service
+
+## Verification
+
+```bash
+npm test
+npm run smoke
+npm run preflight:production
+```
+
+The smoke check validates syntax and imports without connecting to the database
+Production preflight checks local deployment configuration without printing secrets or writing data
+Database readiness and the reviewed legacy wallet-index migration remain available for authentication maintenance

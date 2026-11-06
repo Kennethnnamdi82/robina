@@ -21,10 +21,20 @@ describe('frontend-only premium Exchange', () => {
     for (const p of CATALOG) for (const id of p.includes ?? []) expect(findProduct(id)).toBeDefined();
     expect(findProduct('grenades-100')).toMatchObject({ quantity: 100, price: 10 });
   });
+  it('uses eight distinct uniform assets, matching bundle outfits and no missing armory models', () => {
+    const characters=CATALOG.filter(p=>p.category==='characters');
+    expect(new Set(characters.map(p=>p.model)).size).toBe(8);
+    expect(characters.every(p=>p.model!=='operative')).toBe(true);
+    expect(CATALOG.filter(p=>p.category==='weapons').every(p=>p.model&&p.reference)).toBe(true);
+    expect(['starter','raider','warrior','legend'].map(id=>findProduct(id)?.model)).toEqual(['urban','shadow','cyber','commander']);
+    at('/store/characters');
+    expect(new Set(Array.from(document.querySelectorAll('.rs-card img'),n=>n.getAttribute('src'))).size).toBe(8);
+    expect(screen.queryByText(/MODEL NOT AVAILABLE|BASE OPERATIVE|Outfit concept/i)).toBeNull();
+  });
   it('opens all twelve dedicated category pages without fetching or changing gameplay', () => {
     const network = vi.spyOn(globalThis, 'fetch'), storage = vi.spyOn(Storage.prototype, 'setItem'); at();
     const nav = screen.getByRole('navigation', { name: 'Store categories' });
-    for (const [, label] of CATEGORIES) fireEvent.click(within(nav).getByRole('link', { name: label }));
+    for (const [id] of CATEGORIES) { const link=nav.querySelector<HTMLAnchorElement>(`a[href="${id==='inventory'?'/inventory':id==='history'?'/purchase-history':'/store/'+id}"]`)!;expect(link).toBeTruthy();fireEvent.click(link); }
     expect(screen.getByText('NO PURCHASES YET')).toBeTruthy();
     expect(network).not.toHaveBeenCalled(); expect(storage).not.toHaveBeenCalled();
   }, 30000);
@@ -42,22 +52,22 @@ describe('frontend-only premium Exchange', () => {
     fireEvent.click(toggles[0]); fireEvent.click(toggles[1]);
     fireEvent.click(screen.getByRole('button', { name: 'VIEW COMPARISON (2/2)' }));
     const compare = screen.getByRole('region', { name: 'Weapon comparison' });
-    expect(within(compare).getByText('Catalog concept: 30 rounds · 7.62mm')).toBeTruthy();
+    expect(within(compare).getByText('Collection platform: 30 rounds · 7.62mm')).toBeTruthy();
     expect(within(compare).getByText('12')).toBeTruthy();
     expect(referenceStats('rifle')).toContainEqual(['Magazine', String(EQUIPMENT.rifle.magazine)]);
   });
-  it('opens missing-model details as unavailable and offers only purchase previews', () => {
+  it('shows the supplied M4A1 model and inspection without enabling payments', () => {
     at('/store/weapons'); fireEvent.click(screen.getByRole('button', { name: 'Details for M4A1' }));
-    const dialog = screen.getByRole('dialog'); expect(within(dialog).getByText(/Combat statistics unavailable/)).toBeTruthy();
-    expect(within(dialog).queryByRole('button', { name: 'INSPECT IN 3D' })).toBeNull();
-    expect(within(dialog).getByText('COMING SOON')).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'PREVIEW PURCHASE' }));
+    const dialog = screen.getByRole('dialog'); expect(within(dialog).queryByText(/unavailable|NOT AVAILABLE/i)).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'INSPECT IN 3D' })).toBeTruthy();
+    expect(within(dialog).getByText('COLLECTION SHOWROOM')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'REVIEW SELECTION' }));
     expect(screen.getByText('PAYMENT PREVIEW / NO CHARGES')).toBeTruthy();
   });
-  it('shows grenade exhaustion and proposed free allocation without creating grenades', () => {
+  it('shows grenade exhaustion without inventing a free allocation', () => {
     const storage = vi.spyOn(Storage.prototype, 'setItem'); at('/store/grenades', empty);
     expect(screen.getByText('OUT OF GRENADES')).toBeTruthy(); expect(screen.getByRole('link', { name: 'REFILL GRENADES' })).toBeTruthy();
-    expect(screen.getByText(/Planned starter allocation: 5/)).toBeTruthy(); expect(storage).not.toHaveBeenCalled();
+    expect(screen.getByText(/collection browsing does not allocate supplies/)).toBeTruthy(); expect(storage).not.toHaveBeenCalled();
   });
   it('keeps the inventory honest and distinguishes issued mission equipment from paid ownership', () => {
     at('/inventory'); expect(screen.getByText('YOUR COLLECTION IS EMPTY')).toBeTruthy();
@@ -68,11 +78,11 @@ describe('frontend-only premium Exchange', () => {
   it('can display supplied ownership, equipment and receipts without inventing equipment mutations', () => {
     const account = { ...empty, ownedIds: ['cyber'], equippedIds: ['cyber'], equipment: [{ id: 'pistol' as const, ammo: 4, reserve: 22 }], purchases: [{ id: 'receipt-from-service', product: 'CYBER PHANTOM', price: 5.99, date: '2026-11-05', status: 'verified' as const }] };
     const view = at('/inventory', account); fireEvent.click(screen.getByRole('button', { name: 'Details for CYBER PHANTOM' }));
-    expect(screen.getByRole('button', { name: 'UNEQUIP · COMING SOON' }).hasAttribute('disabled')).toBe(true); view.unmount();
+    expect(screen.getByRole('button', { name: 'UNEQUIP · COLLECTION-MANAGED' }).hasAttribute('disabled')).toBe(true); view.unmount();
     at('/purchase-history', account); expect(screen.getByText('VERIFIED')).toBeTruthy(); expect(screen.getByText(/receipt-from-service/)).toBeTruthy();
   });
-  it('keeps seasonal rewards as locked templates and invents no active season', () => {
-    at('/store/season'); expect(screen.getByText('SEASON ANNOUNCEMENT SOON')).toBeTruthy(); expect(screen.getAllByText('COMING SOON').filter(n=>n.closest('.rs-reward-tracks'))).toHaveLength(10);
+  it('shows inspectable seasonal collection rewards without inventing claims or an active season', () => {
+    at('/store/season'); expect(screen.getByText('THE REWARD SHOWCASE')).toBeTruthy(); expect(document.querySelectorAll('.rs-reward-tracks button')).toHaveLength(10); expect(screen.queryByText('COMING SOON')).toBeNull();
     expect(screen.queryByRole('button', { name: /CLAIM/ })).toBeNull();
   });
   it('supports every purchase state manually without payment calls, receipts or entitlement persistence', () => {

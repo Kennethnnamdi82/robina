@@ -10,6 +10,7 @@ export class TacticalEnemy extends EnemyController {
   private clock=0; private evadeUntil=0; private nextEvade=0; private coverUntil=0; private reconsider=0;
   private strafe:Point={x:0,y:0}; private coverGoal:Point|null=null; private pending:Point|null=null; private reactAt=Infinity;
   private coverPath:Point[]=[];
+  private dispatchAt=0;private dispatchSerial=100000;
   constructor(spawn:EnemySpawn,private grid:NavigationGrid,stagger=0){super(spawn,grid,stagger,spawn.id.startsWith('police-')?{vision:1200,cone:Math.PI,detectionSeconds:.08,attackDistance:1000,minimumDistance:95,interval:.48,windup:.1,damage:5,pursuit:6000,speed:170,searchSeconds:15,alertRange:4000,hearing:1600,accuracy:.035}:spawn.id.startsWith('site-guard-')?{vision:1000,cone:Math.PI*.8,detectionSeconds:.18,attackDistance:800,minimumDistance:100,interval:.85,windup:.18,damage:6,pursuit:5000,speed:155,searchSeconds:18,hearing:1600,accuracy:.055}:undefined);}
   threat(origin:Point,direction:Point) {
     if(!this.alive||this.clock<this.nextEvade||!clearSight(this,origin,this.grid.blockers))return;
@@ -37,9 +38,12 @@ export class TacticalEnemy extends EnemyController {
       }
     }return best;
   }
-  override step(dt:number,context:Perception,shoot:(enemy:EnemyController,angle:number)=>void){
+  override step(dt:number,context:Perception&{wanted?:boolean},shoot:(enemy:EnemyController,angle:number)=>void){
     this.clock+=dt;const start={x:this.x,y:this.y};this.sprinting=false;
     if(!this.alive){super.step(dt,context,shoot);return;}
+    if(context.wanted&&this.spawn.id.startsWith('police-')&&this.clock>=this.dispatchAt){
+      this.dispatchAt=this.clock+.65;this.lastKnown={...context.player};this.alarm(++this.dispatchSerial,context.player);
+    }
     if(this.pending&&this.clock>=this.reactAt&&this.clock>=this.nextEvade){this.evade(this.pending);this.pending=null;}
     const evading=this.clock<this.evadeUntil,covering=!!this.coverGoal||this.clock<this.coverUntil;
     super.step(dt,{...context,permitted:context.permitted&&!evading&&!covering},shoot);
@@ -53,7 +57,12 @@ export class TacticalEnemy extends EnemyController {
       else if(this.spawn.id.startsWith('police-')&&this.state==='ATTACK'&&context.permitted&&clearSight(this,context.player,this.grid.blockers)){
         // Short lateral relocations while firing, alternating by squad member.
         const angle=Math.atan2(context.player.y-this.y,context.player.x-this.x),side=this.spawn.id.endsWith('-0')?1:-1;
-        if(Math.sin(this.clock*1.7)>0)this.grid.move(this,-Math.sin(angle)*side*85*dt,Math.cos(angle)*side*85*dt);
+        const distance=Math.hypot(context.player.x-this.x,context.player.y-this.y);
+        // Close the gap while firing instead of standing at maximum range.
+        // Collision-tested lateral pressure prevents a stationary firing line.
+        const advance=distance>240?this.config.speed*.8:0,lateral=Math.sin(this.clock*1.7)>0?65:0;
+        this.grid.move(this,(Math.cos(angle)*advance-Math.sin(angle)*side*lateral)*dt,(Math.sin(angle)*advance+Math.cos(angle)*side*lateral)*dt);
+        this.sprinting=advance>0;
         this.tactic='pursuit';
       }else this.tactic='patrol';
     }

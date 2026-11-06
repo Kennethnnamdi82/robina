@@ -21,8 +21,8 @@ test('premium store is responsive, navigable and does not run WebGL behind produ
   }
   await nav.getByRole('link', { name: 'Guns & weapons', exact: true }).click();
   await page.getByRole('button', { name: 'Details for M4A1', exact: true }).click();
-  const dialog = page.getByRole('dialog'); await expect(dialog.getByText(/COMING SOON/)).toBeVisible();
-  await page.getByRole('button', { name: 'PREVIEW PURCHASE', exact: true }).click();
+  const dialog = page.getByRole('dialog'); await expect(dialog.getByText('COLLECTION SHOWROOM')).toBeVisible();
+  await page.getByRole('button', { name: 'REVIEW SELECTION', exact: true }).click();
   await expect(page.getByText('PAYMENT PREVIEW / NO CHARGES')).toBeVisible();
   await page.getByRole('button', { name: /Base USDC/ }).click();
   await page.getByRole('button', { name: 'PREVIEW CONFIRMATION' }).click();
@@ -42,8 +42,8 @@ test('one real 3D reference preview loads on demand and is released on dismissal
   await expect(page.locator('canvas')).toHaveCount(0);
   await page.getByRole('button', { name: 'INSPECT IN 3D' }).click();
   await expect(page.locator('canvas')).toHaveCount(1);
-  await expect(page.getByText('LOADING REFERENCE MODEL…')).toHaveCount(0);
-  await expect(page.getByRole('img', { name: 'Interactive reference model' })).toBeVisible();
+  await expect(page.getByText('OPENING THE STUDIO')).toHaveCount(0);
+  await expect(page.getByRole('img', { name: 'Interactive ak47 collection model' })).toBeVisible();
   await page.screenshot({ path: info.outputPath('weapon-studio.png') });
   await page.getByRole('button', { name: 'Close product details' }).click();
   await expect(page.locator('canvas')).toHaveCount(0); expect(errors).toEqual([]);

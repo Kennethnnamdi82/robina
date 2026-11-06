@@ -290,11 +290,13 @@ export class RaidRuntime {
   };
   private spatial(point: T.Vector3) { const dx = point.x - this.body.position.x,dz = point.z - this.body.position.z,distance = Math.hypot(dx,dz); return { distance,pan: (dx * Math.cos(this.rig.yaw) - dz * Math.sin(this.rig.yaw)) / Math.max(2,distance) }; }
   private shootFromVehicle=(window:{x:number;y:number},car:import('./CitySimulation').CityCar)=>{
-    if(this.controller.health<=0)return;const origin=point3(window.x,window.y,1.22),direction=new T.Vector3(this.body.position.x+this.controller.vx*METRES*.1-origin.x,this.body.position.y+1-origin.y,this.body.position.z+this.controller.vy*METRES*.1-origin.z).normalize();
+    if(this.controller.health<=0)return;const origin=point3(window.x,window.y,1.22),driving=this.vehicles?.current;
+    const lead=Math.min(.5,origin.distanceTo(this.body.position)/90),vx=driving?driving.dx*driving.speed:this.controller.vx*METRES,vz=driving?driving.dz*driving.speed:this.controller.vy*METRES;
+    const direction=new T.Vector3(this.body.position.x+vx*lead-origin.x,this.body.position.y+1-origin.y,this.body.position.z+vz*lead-origin.z).normalize();
     // A passenger shoots from the facing window. The owning car is excluded
     // from this shot only; all walls, traffic and other cars still block it.
     direction.applyAxisAngle(new T.Vector3(0,1,0),Math.sin(this.elapsed*13+car.id)*.018);
-    if(this.pool.fire(origin,direction,90,1,40,6,'police-car-'+car.id,'security')){const s=this.spatial(origin);this.effects?.muzzle(origin,true);this.combatAudio.shot('smg',s.distance,s.pan);}
+    if(this.pool.fire(origin,direction,90,1,46,4,'police-car-'+car.id,'security')){const s=this.spatial(origin);this.effects?.muzzle(origin,true);this.combatAudio.shot('smg',s.distance,s.pan);}
   };
   private vehicleFeedback(dt:number){
     const vehicles=this.vehicles;if(!vehicles)return;
@@ -441,7 +443,7 @@ export class RaidRuntime {
     const nearest = this.npcs.filter(n => n.model.alive).sort((a,b) => Math.hypot(a.model.x - this.legacy.x,a.model.y - this.legacy.y) - Math.hypot(b.model.x - this.legacy.x,b.model.y - this.legacy.y)).slice(0,2);
     for (const n of this.npcs) {
       if (this.security.alarmRemaining > 0) n.model.alarm(this.security.alarmSerial,this.security.alarmPosition);
-      n.model.step(dt,{ player: this.legacy,alive: this.controller.health > 0,permitted: nearest.includes(n)||n.model.spawn.id.startsWith('police-'),near:Math.hypot(n.model.x-this.legacy.x,n.model.y-this.legacy.y)<1200 },(enemy,angle) => this.shootSecurity(enemy.spawn.id,enemy.x,enemy.y,angle,enemy.config.damage));
+      n.model.step(dt,{ player: this.legacy,alive: this.controller.health > 0,permitted: nearest.includes(n)||n.model.spawn.id.startsWith('police-'),near:Math.hypot(n.model.x-this.legacy.x,n.model.y-this.legacy.y)<1600,wanted:this.pursuit?.pursuingValuables },(enemy,angle) => this.shootSecurity(enemy.spawn.id,enemy.x,enemy.y,angle,enemy.config.damage));
       for(const solid of this.art.city?.traffic.colliders??[]){if(!solid.enabled)continue;const hit=horizontalContact(n.model.x*METRES,n.model.y*METRES,.36,solid);if(hit){n.model.x+=hit.x*hit.depth/METRES;n.model.y+=hit.z*hit.depth/METRES;}}
       this.setBox(n.target.box,point3(n.model.x,n.model.y),.36,1.8); n.collider.enabled = n.model.alive;
     }

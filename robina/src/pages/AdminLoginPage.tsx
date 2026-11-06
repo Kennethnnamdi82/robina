@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
       return;
     }
     toast.success('Welcome, Admin');
-    navigate('/admin/users', { replace: true });
+    navigate('/', { replace: true });
   }
 
   return (
