@@ -62,7 +62,7 @@ export class RoadGuide {
         const key=Math.floor(goal.x/32)+':'+Math.floor(goal.y/32),dt=Math.max(0,Math.min(.1,time-this.lastTime)),fresh=!this.count||key!==this.goalKey;
         const turn=Math.atan2(Math.sin(p.yaw-this.yaw),Math.cos(p.yaw-this.yaw));
         this.yaw=fresh||reduced?p.yaw:this.yaw+turn*(1-Math.exp(-dt*12));this.goalKey=key;
-        this.dummy.position.set(p.x, .12, p.z); this.dummy.rotation.set(0, this.yaw, 0);this.dummy.scale.setScalar(1.3); this.dummy.updateMatrix();
+        this.dummy.position.set(p.x, .12, p.z); this.dummy.rotation.set(0, this.yaw, 0);this.dummy.scale.setScalar(.55); this.dummy.updateMatrix();
         this.arrows.setMatrixAt(i, this.dummy.matrix);
       }
       this.count = this.arrows.count = points.length; this.arrows.instanceMatrix.needsUpdate = true;

@@ -106,7 +106,7 @@ test('leaderboard ranks stay legible on small phones with clean production copy'
   await expect(page.getByText(/backend is not connected|FRONTEND BUILD/)).toHaveCount(0);expect(errors).toEqual([]);
 });
 
-test('built production 3D game draws, pauses and exits without changing accounts' + (process.env.PRODUCTION_TEST_WARM_ASSETS === '1' ? ' (warm-cache)' : ''), async ({ page }) => {
+test('built production 3D game draws, pauses and exits without changing accounts' + (process.env.PRODUCTION_TEST_WARM_ASSETS === '1' ? ' (warm-cache)' : ''), async ({ page },info) => {
   const warmAssets = process.env.PRODUCTION_TEST_WARM_ASSETS === '1';
   const remote = Boolean(process.env.PRODUCTION_TEST_URL);
   // Keep the remote suite's network budget; don't overwrite it with the local
@@ -146,6 +146,13 @@ test('built production 3D game draws, pauses and exits without changing accounts
   await expect(page.locator('.r3-game')).toHaveAttribute('data-status', 'playing', { timeout: 120000 });
   await expect(page.locator('[data-testid="three-host"] canvas')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Graphics settings' })).toHaveCount(0);
+  await expect(page.locator('.r3-dispatch')).toHaveCount(0);
+  await expect(page.getByText('FOLLOW THE OBJECTIVE MARKER',{exact:true})).toHaveCount(0);
+  const compass=page.locator('.r3-direction-guide');await expect(compass).toBeVisible();
+  const cueBounds=await compass.boundingBox();expect(cueBounds!.height).toBeLessThanOrEqual(18);expect(cueBounds!.width).toBeLessThanOrEqual(76);
+  expect(await compass.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+  const announcement=await page.locator('.r3-announcement').boundingBox();expect(announcement!.width).toBeLessThanOrEqual(1);expect(announcement!.height).toBeLessThanOrEqual(1);
+  await page.screenshot({path:info.outputPath('unobstructed-live-game.png')});
   await page.getByRole('button', { name: 'Pause game' }).dispatchEvent('click');
   await expect(page.getByRole('button', { name: 'RESUME RAID' })).toBeVisible();
   await page.getByRole('button',{name:'SETTINGS',exact:true}).click();

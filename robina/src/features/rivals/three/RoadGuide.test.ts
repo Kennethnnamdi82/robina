@@ -17,6 +17,9 @@ describe('visible road guidance and analog controls',()=>{
     const guide=new RoadGuide();guide.update(new T.Vector3(),[{x:0,y:100000}],{x:0,y:100000},0,true);
     expect(guide.count).toBe(1);expect(guide.root.children).toHaveLength(1);expect(guide.root.visible).toBe(true);
     expect((guide.root.children[0] as T.InstancedMesh).material).toMatchObject({depthTest:true,depthWrite:false,transparent:true});
+    const matrix=new T.Matrix4();(guide.root.children[0] as T.InstancedMesh).getMatrixAt(0,matrix);
+    const bounds=new T.Box3().setFromBufferAttribute((guide.root.children[0] as T.InstancedMesh).geometry.getAttribute('position') as T.BufferAttribute).applyMatrix4(matrix).getSize(new T.Vector3());
+    expect(bounds.x).toBeLessThan(.4);expect(bounds.z).toBeLessThan(.55);
     guide.update(new T.Vector3(),[],undefined,0);expect(guide.root.visible).toBe(false);expect(guide.count).toBe(0);guide.dispose();
   });
   it('gives correct relative bearings as the camera turns',()=>{
