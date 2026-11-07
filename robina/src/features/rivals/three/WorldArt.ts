@@ -93,7 +93,7 @@ export class WorldArt {
     this.staticCubes = [];
   }
   setQuality(quality: QualityId) { this.city?.setQuality(quality); }
-  updateEnvironment(time: number,pov: POV,reduced: boolean,player:T.Vector3,shots:number,actors:readonly {x:number;z:number}[],camera?:T.Camera) { this.city?.update(time,pov,reduced,player,shots,actors,camera); }
+  updateEnvironment(time: number,pov: POV,reduced: boolean,player:T.Vector3,shots:number,actors:readonly {x:number;z:number}[],camera?:T.Camera,alpha=1) { this.city?.update(time,pov,reduced,player,shots,actors,camera,alpha); }
   private cube(x: number,y: number,z: number,w: number,h: number,d: number,material: T.Material) {
     const mesh = new T.Mesh(this.box,material); mesh.position.set(x,y,z); mesh.scale.set(w,h,d); this.root.add(mesh); this.staticCubes.push(mesh); return mesh;
   }

@@ -5,15 +5,18 @@ import { User } from "../models/User.js";
 import { RevokedToken } from "../models/RevokedToken.js";
 import { isSessionVersionCurrent } from "../services/sessionVersion.js";
 
-export function signSession(wallet, sv = 0) {
+export function signSession(wallet, sv = 0, previous) {
   const subject = String(wallet).startsWith("solana:")
     ? String(wallet)
     : String(wallet).toLowerCase();
-  return jwt.sign({ sub: subject, sv }, env.jwtSecret, {
-    expiresIn: "7d",
+  const now=Math.floor(Date.now()/1000),started=previous?.started??previous?.iat??now;
+  const remaining=Math.min(env.sessionIdleMs/1000,started+env.sessionMaximumMs/1000-now);
+  if(remaining<=0)throw new Error('session_expired');
+  return jwt.sign({ sub: subject, sv,started }, env.jwtSecret, {
+    expiresIn: remaining,
     issuer: "basedrop",
     audience: "basedrop-users",
-    jwtid: crypto.randomBytes(16).toString("hex"),
+    jwtid: previous?.jti??crypto.randomBytes(16).toString("hex"),
   });
 }
 
@@ -22,7 +25,7 @@ export function setSessionCookie(res, token) {
     httpOnly: true,
     sameSite: env.cookieSameSite,
     secure: env.cookieSecure,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: Math.max(0,Math.min(env.sessionIdleMs,((jwt.decode(token)?.exp??0)*1000)-Date.now())),
     path: "/",
     ...(env.cookieDomain ? { domain: env.cookieDomain } : {}),
   });
@@ -57,6 +60,7 @@ export async function web3Middleware(req, res, next) {
     if (!user || !isSessionVersionCurrent(decoded.sv, user.sessionVersion)) {
       return res.status(401).json({ error: "invalid_token" });
     }
+    if(Date.now()>=((decoded.started??decoded.iat)*1000)+env.sessionMaximumMs)return res.status(401).json({error:'session_expired'});
     if (user?.accountStatus === "suspended") {
       const until =
         user.suspendedUntil && new Date(user.suspendedUntil).getTime() > Date.now()
@@ -70,6 +74,7 @@ export async function web3Middleware(req, res, next) {
         { $set: { accountStatus: "active", suspendedUntil: null } },
       );
     }
+    if(req.method==='GET'&&req.path==='/me'&&Date.now()-(decoded.iat??0)*1000>=24*60*60*1000)setSessionCookie(res,signSession(req.wallet,decoded.sv,decoded));
     next();
   } catch {
     res.status(401).json({ error: "invalid_token" });

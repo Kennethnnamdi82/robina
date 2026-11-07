@@ -15,6 +15,12 @@ export function directionalDriving(input:DrivingInput):DrivingInput {
   return{...input,throttle:Math.max(.55,magnitude),steer:0,heading:Math.atan2(worldX,worldZ)};
 }
 const width=(car:CityCar)=>['lorry','tanker','bus'].includes(car.kind)?2.35:1.85;
+const previousDrive=new WeakMap<CityCar,{yaw:number;travelled:number}>();
+/** Position, steering and wheel travel share the fixed simulation interpolation. */
+export function drivenVehiclePose(car:CityCar,alpha=1){
+  const yaw=Math.atan2(car.dx,car.dz),previous=previousDrive.get(car),a=Math.max(0,Math.min(1,alpha));
+  return previous?{yaw:previous.yaw+Math.atan2(Math.sin(yaw-previous.yaw),Math.cos(yaw-previous.yaw))*a,travelled:previous.travelled+(car.travelled-previous.travelled)*a}:{yaw,travelled:car.travelled};
+}
 /** Exact horizontal SAT, not a point-sized car collision check. */
 export function vehicleOverlap(car:CityCar,x:number,z:number,yaw:number,s:Solid3D){
   if(!s.enabled||s.box.max.y<.12||s.box.min.y>2.8)return false;
@@ -28,6 +34,7 @@ export function vehicleOverlap(car:CityCar,x:number,z:number,yaw:number,s:Solid3
 export function driveVehicle(car:CityCar,input:DrivingInput,dt:number,solids:readonly Solid3D[],impact?:(car:CityCar,solid:Solid3D,speed:number)=>void){
   if(!Number.isFinite(dt)||dt<=0||dt>.2)return;
   if((car.health??200)<=0){car.speed=0;car.mode='disabled';return;}
+  let previous=previousDrive.get(car);if(!previous){previous={yaw:0,travelled:0};previousDrive.set(car,previous);}previous.yaw=Math.atan2(car.dx,car.dz);previous.travelled=car.travelled;
   const heavy=['lorry','tanker','bus'].includes(car.kind),maximum=heavy?13:car.kind==='police'&&car.mode==='pursuit'?23:20;
   const throttle=Math.max(-1,Math.min(1,input.throttle||0));
   car.speed=Math.max(-5,Math.min(maximum,car.speed+throttle*(heavy?5:8)*dt));

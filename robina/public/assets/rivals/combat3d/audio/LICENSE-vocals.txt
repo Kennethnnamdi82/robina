@@ -1,0 +1,17 @@
+RIVALS human combat vocals
+
+Original recordings: HaelDB, Male Grunt/Yelling sounds
+https://opengameart.org/content/male-gruntyelling-sounds
+Source archive: https://opengameart.org/sites/default/files/yelling%20sounds.zip
+
+The creator offers CC0 and OGA-BY 3.0; these derivatives use the CC0 option
+CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+Source and licensing checked 7 November 2026
+
+vocal-hurt.wav: 3grunt1.wav
+vocal-death-0.wav: 3yell9.wav
+vocal-death-1.wav: 3yell8.wav
+
+Prepared as short mono 22050 Hz PCM clips with silence trimming,
+peak normalization and fades using scripts/prepare-rivals-vocals.mjs
+These are licensed human recordings, not Call of Duty audio

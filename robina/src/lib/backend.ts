@@ -11,4 +11,6 @@ function isLocalDevHost() {
 export const HAS_BACKEND = Boolean(configuredApiUrl) || !isLocalDevHost();
 
 // Keep empty string fallback for relative /api routes when hosted on same domain.
-export const API_BASE_URL = configuredApiUrl || "";
+// Vercel's /api transport keeps HttpOnly auth cookies first-party on phones
+// Local development retains the configured backend and its existing CORS flow
+export const API_BASE_URL = import.meta.env.PROD ? "" : configuredApiUrl || "";

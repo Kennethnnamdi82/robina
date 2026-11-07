@@ -19,6 +19,11 @@ function fixture() {
 const frame = (patch: Partial<HumanoidFrame> = {}): HumanoidFrame => ({ vx: 0, vz: 0, vertical: 0, grounded: true, sprinting: false, aiming: false, angle: 0, pov: 'tactical', dodgeRemaining: 0, dodgeSerial: 0, health: 100, hitSerial: 0, shots: 0, reload: 0, ...patch });
 
 describe('humanoid animation lifecycle', () => {
+  it('preserves stride phase when accelerating from walk to jog and sprint',()=>{
+    const a=fixture();a.update(.4,frame({vx:2}));const phase=a.actionTime;
+    a.update(0,frame({vx:4}));expect(a.actionTime).toBeCloseTo(phase);
+    a.update(0,frame({vx:7,sprinting:true}));expect(a.actionTime).toBeCloseTo(phase);a.dispose();
+  });
   it('restores the authored wrist pose before an unchanged clamped animation sample',()=>{
     const a=fixture(),f=frame({aiming:true});for(let i=0;i<80;i++)a.update(.02,f);
     const hand=a.actor.body!.getObjectByName('hand_r')!,source=hand.quaternion.clone();

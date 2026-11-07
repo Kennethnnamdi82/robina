@@ -11,7 +11,7 @@ test('hand sockets, real muzzle shots, audio and reload survive all four POVs', 
   test.setTimeout(420000); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await enter(page);
   await expect(page.getByRole('button', { name: 'Mute ambient audio' })).toBeVisible();
-  await expect.poll(async () => (await combat(page)).audio.buffers, { timeout: 30000 }).toBe(15);
+  await expect.poll(async () => (await combat(page)).audio.buffers, { timeout: 30000 }).toBe(18);
   await expect.poll(async () => (await combat(page)).audio.state).toBe('running');
   const run = await state(page).getAttribute('data-run');
   for (const [id, label] of [['tactical','TACTICAL / TOP-DOWN'], ['side','ACTION / SIDE-VIEW'], ['third','THIRD-PERSON / TPS'], ['first','FIRST-PERSON / FPS']] as const) {

@@ -321,7 +321,7 @@ export class RaidRuntime {
       const s = this.spatial(n.actor.root.position); this.combatAudio.death(s.distance,s.pan);
       this.field.add(id + ':weapon',point3(n.model.x,n.model.y),{ kind: 'weapon',weapon: ENEMY_DROPS[n.model.spawn.type] });
       this.field.add(id + ':health',point3(n.model.x + 22,n.model.y + 14),{ kind: 'health',amount: HEALTH_BOXES.small });
-    } return amount;
+    } else {const s=this.spatial(n.actor.root.position);this.combatAudio.hurt(s.distance,s.pan);} return amount;
   }
   private damageBoss = (event: DamageEvent) => {
     const amount = this.boss.damage(event); if (!amount) return 0;
@@ -414,7 +414,9 @@ export class RaidRuntime {
     // adopts the travel vector and the character turns into the move.
     if (command.aiming) { command.aimX = aimDirection.x; command.aimY = aimDirection.z; }
     command.dodge = command.dodge && this.body.grounded && !this.loadout.busy;
-    const interaction = this.controller.step(command,dt);
+    const mounted=Boolean(this.vehicles?.current);
+    if(mounted)this.controller.stop();
+    const interaction = mounted?false:this.controller.step(command,dt);
     if (this.touchWasMoving && !this.session.input.touchMoving && !this.session.input.keyboardMoving) this.controller.stop(); this.touchWasMoving = this.session.input.touchMoving;
     if (interaction) this.interact(); if (this.session.getSnapshot().hack || this.session.blocked) return;
     if (mission.state !== 'ACTIVE') { this.pool.clear(); this.publish(); return; }
@@ -481,6 +483,7 @@ export class RaidRuntime {
   }
   private animatePlayer(dt: number,position=this.body.position) {
     this.player.root.position.copy(position);
+    if(this.vehicles?.current){this.humanoidFrame.vx=this.humanoidFrame.vz=0;return;}
     Object.assign(this.humanoidFrame,{ vertical: this.body.vertical,grounded: this.body.grounded,sprinting: this.controller.sprinting,aiming: this.controller.aiming,angle: this.controller.aimAngle,pov: this.rig.pov,dodgeRemaining: this.controller.dodgeRemaining,dodgeSerial: this.controller.dodgeSerial,health: this.controller.health,hitSerial: this.session.getSnapshot().damage.serial,shots: this.loadout.shots,reload: this.weapon.reloadRemaining,reloadDuration: this.loadout.definition.reloadSeconds,equipment: this.loadout.current.id,action: this.loadout.action,actionRemaining: this.loadout.remaining });
     this.humanoidFrame.independentAim=this.independentAim;
     this.humanoid?.update(dt,this.humanoidFrame); this.gun?.decay(dt); this.gun?.pose(this.aim,this.humanoidFrame);
@@ -521,7 +524,7 @@ export class RaidRuntime {
     // first rendered frame even on a slow device. Pause freezes these clocks.
     if (active) this.effects?.age(dt);
     let simulationDelta = 0;
-    if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator+1e-9 >= physicsStep && steps++ < 6) { this.step(physicsStep); simulationDelta += physicsStep; this.accumulator = Math.max(0,this.accumulator-physicsStep); if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
+    if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator+1e-9 >= physicsStep && steps++ < 12) { this.step(physicsStep); simulationDelta += physicsStep; this.accumulator = Math.max(0,this.accumulator-physicsStep); if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
     const finished = this.session.getSnapshot().status === 'finished',settling = finished && (this.npcs.some(n => n.presentation?.dead && n.presentation.deathAge < 10) || (this.bossPresentation?.dead && this.bossPresentation.deathAge < 10) || this.campaign?.carrying&&this.recoveryAge<15);
     if(finished&&this.session.mission.state==='FAILED')this.recoverEvidence(dt);
     if (!active && !settling && !this.needsDraw) return;
@@ -569,7 +572,7 @@ export class RaidRuntime {
     }
     this.roadGuide.update(this.renderPosition,this.gps?.route??[],this.gps?.goal,this.elapsed,this.session.getSnapshot().reducedMotion,this.vehicles?.current?this.vehicles.current.length/2+1.5:1.4);
     this.fires?.draw(this.rig.camera,this.elapsed,this.body.position);if(this.carriedCase)this.carriedCase.visible=Boolean(this.campaign?.carrying)&&!this.vehicles?.current;
-    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
+    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera,active?T.MathUtils.clamp(this.accumulator/physicsStep,0,1):1);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
     if(this.witnessArt&&this.witnessPose&&this.campaign){const w=this.witnessPose,p=this.campaign.witness;w.yaw=Math.atan2(p.x*.025-w.x,p.y*.025-w.z);w.x=p.x*.025;w.z=p.y*.025;w.moving=this.campaign.witnessMoving;w.motion=w.moving?1.5:0;this.witnessArt.draw([w],this.campaign.witnessBoarded?0:1,this.elapsed,this.rig.camera);}
     if(active){this.burnClock+=dt;if(this.burnClock>.18){this.burnClock=0;for(const [id,time]of this.burning){const npc=this.npcs.find(n=>n.model.spawn.id===id);if(npc)this.effects?.burn(point3(npc.model.x,npc.model.y,.75));if(time<=0)this.burning.delete(id);else this.burning.set(id,time-.18);}}}
     // Small render-only recoil cannot change the ray used for authoritative

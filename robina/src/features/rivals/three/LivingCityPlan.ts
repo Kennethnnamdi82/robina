@@ -1,12 +1,26 @@
 /** World coordinates, in metres. Rendering, navigation and collision use this
  * same immutable plan. No camera information ever enters city generation. */
 export const CITY_SIZE = 96;
+export const CITY_WIDTH = 144;
 export const STREET_CENTRES = [8, 32, 56, 80] as const;
 export const ROAD_HALF = 4.6;
 export const WALK_EDGE = 6.4;
 export type CityDistrict = 'downtown' | 'industrial' | 'residential';
 export type CityWeather = 'golden' | 'daylight' | 'night';
-export interface CityBuilding { id: string; model: 'residence' | 'commerce' | 'headquarters'; x: number; z: number; width: number; depth: number; height: number; yaw: number }
+export interface CityBuilding { id: string; model: 'residence' | 'commerce' | 'headquarters'; x: number; z: number; width: number; depth: number; height: number; yaw: number; name?:string }
+export const WATERFRONT_BUILDINGS:readonly CityBuilding[]=[
+  {id:'waterfront-hotel',name:'HOTEL MERIDIAN',model:'headquarters',x:126,z:20,width:11.2,depth:11.2,height:25,yaw:-Math.PI/2},
+  {id:'waterfront-bar',name:'THE AMBER ROOM / BAR',model:'commerce',x:126,z:44,width:11.2,depth:11.2,height:8,yaw:-Math.PI/2},
+];
+export const BRIDGE_SPAN={from:98,to:114,halfWidth:5.8} as const;
+/** Quay rails run along the water, never across one of the four avenues. */
+export function waterfrontRails(){
+  const rails:{x:number;z:number;width:number;depth:number}[]=[];let start=1.6;
+  for(const end of [...STREET_CENTRES.map(z=>z-BRIDGE_SPAN.halfWidth),94.4]){
+    if(end>start)for(const x of [99,113])rails.push({x,z:(start+end)/2,width:.14,depth:end-start});
+    start=end===94.4?end:end+BRIDGE_SPAN.halfWidth*2;
+  }return rails;
+}
 export interface CityBlock { x: number; z: number; park: boolean; building?: CityBuilding }
 export interface CityPlan { seed: number; district: CityDistrict; label: string; weather: CityWeather; blocks: CityBlock[]; buildings: CityBuilding[]; signature: string }
 export interface CityPoint { x: number; z: number }
@@ -33,6 +47,7 @@ export function cityPlan(venue: number, seed: number): CityPlan {
     blocks.push({ x, z, park, building }); if (building) buildings.push(building);
   }
   // Entry always offers the requested sunset; later missions vary lighting.
+  buildings.push(...WATERFRONT_BUILDINGS.map(b=>({...b})));
   const weather = (['golden', 'golden', 'daylight', 'night'] as const)[(seed >>> 3) % 4];
   return { seed, district, weather, label: district === 'downtown' ? 'HELIX / DOWNTOWN' : district === 'industrial' ? 'EMBER / FREIGHT DISTRICT' : 'OBSIDIAN / GARDEN QUARTER', blocks, buildings,
     signature: 'district-layout-'+variant+'|'+buildings.map(b => `${b.id}:${b.model}:${b.height.toFixed(2)}`).join('|') };

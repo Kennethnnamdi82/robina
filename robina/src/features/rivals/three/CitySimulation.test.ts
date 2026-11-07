@@ -12,7 +12,7 @@ describe('playable outdoor city',()=>{
     for(let seed=0;seed<9;seed++) {
       const plan=cityPlan(seed%3,seed),op=createOperation(seed),world=new WorldState(op.level),solids=convertSolids(world);
       expect(solids.some(s=>s.id.startsWith('dev-step')||s.id==='dev-platform')).toBe(false);
-      expect(plan).toEqual(cityPlan(seed%3,seed));expect(op.level.width*1.6).toBe(96);
+      expect(plan).toEqual(cityPlan(seed%3,seed));expect(op.level.width*1.6).toBe(144);expect(op.level.height*1.6).toBe(96);
       expect(buildingAt(plan,7.2,7.2)).toBeUndefined();
       for(const b of plan.buildings.filter(b=>b.x>2&&b.z>2&&b.x<90&&b.z<90)) {
         const collision=solids.find(s=>s.box.containsPoint(new Vector3(b.x,.5,b.z)));expect(collision?.box.max.y).toBeCloseTo(b.height);
@@ -26,7 +26,7 @@ describe('playable outdoor city',()=>{
   });
   it('keeps old utility props and the east relay out of the live traffic lanes',()=>{
     const level=createOperation(0).level;
-    for(const p of level.props.filter(p=>p.solid&&!p.id.includes('console')&&p.id!=='vault'))for(const centre of STREET_CENTRES){expect(Math.abs(p.x*.025-centre)).toBeGreaterThanOrEqual(6.39);expect(Math.abs(p.y*.025-centre)).toBeGreaterThanOrEqual(6.39);}
+    for(const p of level.props.filter(p=>p.solid&&!p.id.includes('console')&&p.id!=='vault'&&!p.id.startsWith('waterfront-rail-')))for(const centre of STREET_CENTRES){expect(Math.abs(p.x*.025-centre)).toBeGreaterThanOrEqual(6.39);expect(Math.abs(p.y*.025-centre)).toBeGreaterThanOrEqual(6.39);}
     const relay=level.objects.find(o=>o.id==='relay-b')!;expect(Math.abs(relay.y*.025-8)).toBeGreaterThan(6);
   });
   it('moves a mixed fleet on asphalt and keeps its route outside every building',()=>{

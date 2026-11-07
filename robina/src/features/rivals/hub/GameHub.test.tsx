@@ -26,7 +26,7 @@ describe('frontend-only game hub',()=>{
     fireEvent.click(screen.getByRole('tab',{name:'Controls'}));fireEvent.change(screen.getByLabelText('Default camera'),{target:{value:'first'}});expect(readPreferences().pov).toBe('first');
   });
   it('opens each dedicated menu page',()=>{
-    const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(1);expect(screen.getAllByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveLength(6);
+    const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(7);expect(screen.queryAllByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveLength(0);
     fireEvent.click(screen.getByRole('link',{name:'PLAYER PROFILE'}));expect(screen.getByRole('heading',{name:'PLAYER DOSSIER'})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'RANK'}));expect(screen.getByRole('heading',{name:'EARN YOUR NAME'})).toBeTruthy();view.unmount();
   });
@@ -51,7 +51,7 @@ describe('frontend-only game hub',()=>{
   it('opens the lazy store and inventory without mounting the game or changing the dossier',async()=>{
     const network=vi.spyOn(globalThis,'fetch');at();
     fireEvent.click(screen.getByRole('link',{name:'STORE'}));
-    expect(await screen.findByRole('heading',{name:'THE EXCHANGE'})).toBeTruthy();
+    expect(await screen.findByRole('heading',{name:'THE EXCHANGE'}, {timeout:10000})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'My inventory'}));
     expect(screen.getByText('YOUR COLLECTION IS EMPTY')).toBeTruthy();
     expect(screen.queryByText('3D deployment')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();

@@ -433,9 +433,7 @@ export async function logout(req, res) {
         audience: "basedrop-users",
       });
       if (decoded?.jti) {
-        const expiresAt = decoded.exp
-          ? new Date(decoded.exp * 1000)
-          : new Date(Date.now() + 7 * 24 * 3600000);
+        const expiresAt = new Date(((decoded.started??decoded.iat??Math.floor(Date.now()/1000))*1000)+env.sessionMaximumMs);
         await RevokedToken.updateOne(
           { jti: decoded.jti },
           { $setOnInsert: { kind: "user", expiresAt } },

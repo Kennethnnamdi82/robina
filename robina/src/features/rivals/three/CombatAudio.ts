@@ -1,9 +1,9 @@
 import type { GameSettings } from '../core/settings';
 import type { GunClass } from './WeaponRig';
 
-type Cue = `${GunClass}-${0 | 1}` | 'shotgun-0' | `step-${0 | 1 | 2}` | `metal-${0 | 1}` | 'clack' | 'body-hit' | 'collapse';
+type Cue = `${GunClass}-${0 | 1}` | 'shotgun-0' | `step-${0 | 1 | 2}` | `metal-${0 | 1}` | 'clack' | 'body-hit' | 'collapse' | 'vocal-hurt' | `vocal-death-${0|1}`;
 interface Voice { source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode; filter?: BiquadFilterNode; priority: number }
-const cues: Cue[] = ['rifle-0','rifle-1','smg-0','smg-1','pistol-0','pistol-1','shotgun-0','step-0','step-1','step-2','metal-0','metal-1','clack','body-hit','collapse'];
+const cues: Cue[] = ['rifle-0','rifle-1','smg-0','smg-1','pistol-0','pistol-1','shotgun-0','step-0','step-1','step-2','metal-0','metal-1','clack','body-hit','collapse','vocal-hurt','vocal-death-0','vocal-death-1'];
 
 /** Combat-only Web Audio bus. No queued shots after loading/unmute, no audio
  * downloads while muted, bounded voices, and explicit user-gesture unlock. */
@@ -13,6 +13,7 @@ export class CombatAudio {
   private buffers = new Map<Cue, AudioBuffer>(); private voices = new Set<Voice>();
   private abort = new AbortController(); private loading = false; private disposed = false; private paused = false;
   private sequence = 0; private samples = new Float32Array(128);
+  private lastHurt=-Infinity;private deathSequence=0;
   played = 0; dropped = 0; errors = 0; peak = 0; footfallDistance = 0;footfalls=0;
   constructor(private settings: GameSettings) {
     document.addEventListener('pointerdown', this.unlock); document.addEventListener('keydown', this.unlock);
@@ -35,7 +36,7 @@ export class CombatAudio {
   private async load() {
     await Promise.all(cues.map(async cue => {
       try {
-        const response = await fetch(`/assets/rivals/combat3d/audio/${cue}.${cue.includes('rifle') || cue.includes('pistol') || cue.includes('smg') || cue.includes('shotgun') ? 'wav' : 'ogg'}`, { signal: this.abort.signal });
+        const response = await fetch(`/assets/rivals/combat3d/audio/${cue}.${cue.startsWith('vocal-') || cue.includes('rifle') || cue.includes('pistol') || cue.includes('smg') || cue.includes('shotgun') ? 'wav' : 'ogg'}`, { signal: this.abort.signal });
         if (!response.ok) throw new Error('Combat sound unavailable');
         const buffer = await this.context!.decodeAudioData(await response.arrayBuffer());
         if (!this.disposed) this.buffers.set(cue, buffer);
@@ -62,7 +63,8 @@ export class CombatAudio {
   reload(done = false) { this.play(done ? 'metal-1' : 'clack', done ? .38 : .45, 0, .15, 2, done ? 1.1 : .8); }
   empty() { this.play('clack', .22, 0, 0, 1, 1.65); }
   hit(body: boolean, distance = 0, pan = 0) { this.play(body ? 'body-hit' : `metal-${this.sequence++ % 2 as 0 | 1}`, body ? .6 : .3, distance, pan, body ? 2 : 1); }
-  death(distance = 0, pan = 0) { this.play('collapse', .8, distance, pan, 2, .85); }
+  hurt(distance=0,pan=0){const now=this.context?.currentTime??0;if(now-this.lastHurt<.28)return;this.lastHurt=now;this.play('vocal-hurt',.48,distance,pan,2,1+(this.sequence++%3-1)*.025);}
+  death(distance = 0, pan = 0) { this.play(`vocal-death-${this.deathSequence++%2 as 0|1}`, .78, distance, pan, 4, .97+(this.deathSequence%3)*.025);this.play('collapse', .5, distance, pan, 2, .9); }
   blast(distance = 0, pan = 0) { this.play('shotgun-0', .7, distance, pan, 3, .65, 950); this.play('metal-0', .65, distance, pan, 2, .6); }
   walk(travel: number, grounded: boolean, sprinting: boolean) {
     if (!grounded) { this.footfallDistance = 0; return; } this.footfallDistance += travel;

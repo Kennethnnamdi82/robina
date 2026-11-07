@@ -81,10 +81,12 @@ export class HumanoidAnimator {
   }
   private switchAction(previous: AnimationAction | undefined, next: AnimationAction, timeScale: number) {
     if (previous === next) { next.setEffectiveTimeScale(timeScale); return next; }
+    const gait=/:(Walk_Loop|Jog_Fwd_Loop|Sprint_Loop)$/,phase=previous&&gait.test(previous.getClip().name)&&gait.test(next.getClip().name)?MathUtils.euclideanModulo(previous.time,previous.getClip().duration)/previous.getClip().duration:undefined;
     if (previous) { previous.fadeOut(.12); this.fading.push({ action: previous, remaining: .13 }); }
     this.fading = this.fading.filter(item => item.action !== next);
     next.stopFading().reset().setEffectiveWeight(1).setEffectiveTimeScale(timeScale);
     if (timeScale < 0) next.time = next.getClip().duration;
+    if(phase!==undefined)next.time=phase*next.getClip().duration;
     next.fadeIn(previous ? .12 : 0).play();
     return next;
   }

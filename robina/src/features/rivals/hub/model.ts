@@ -68,7 +68,7 @@ export function addRecord(dossier: Dossier, mission: MissionSnapshot, venue: num
   if (!validRecord(record) || dossier.records.some(r => r.runId === record.runId)) return dossier;
   return { ...dossier, unlocked:[...new Set([...(dossier.unlocked??[]),...(record.state==='SUCCESS'&&OPERATIONS[venue+1]?[OPERATIONS[venue+1].id]:[])])],records: [record, ...dossier.records].slice(0, 200) };
 }
-export const isAssignmentUnlocked=(dossier:Dossier,index:number)=>index===0||Boolean(dossier.unlocked?.includes(OPERATIONS[index]?.id))||dossier.records.some(r=>r.venue===index-1&&r.state==='SUCCESS');
+export const isAssignmentUnlocked=(_dossier:Dossier,index:number)=>Number.isInteger(index)&&index>=0&&index<OPERATIONS.length;
 // The existing engine's hit count includes melee. Never present that count as
 // firearm accuracy or discard valid knife-only runs for having hits > shots.
 export const runScore = (r: HeistRecord) => r.state === 'SUCCESS' ? 1000 + Math.max(0, 600 - Math.floor(r.seconds)) + Math.min(500, r.kills * 25) : 0;

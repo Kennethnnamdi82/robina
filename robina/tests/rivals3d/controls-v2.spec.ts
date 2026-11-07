@@ -8,7 +8,7 @@ async function enter(page: Page) { await page.goto('/'); await page.getByRole('b
 test('visible map, single-tap view cycle, zoom, direct silhouettes, automatic audio and released-trigger reload',async ({ page },info) => {
   test.setTimeout(240000); const errors: string[] = []; page.on('pageerror',e => errors.push(e.message)); await enter(page);
   await expect(page.getByLabel('Arena minimap')).toBeVisible(); await expect(page.getByLabel('Security timing')).toBeVisible(); await expect(page.getByRole('button',{ name: 'Mute ambient audio' })).toBeVisible();
-  await expect.poll(async () => (await combat(page)).audio.state).toBe('running'); await expect.poll(async () => (await combat(page)).audio.buffers).toBe(15);
+  await expect.poll(async () => (await combat(page)).audio.state).toBe('running'); await expect.poll(async () => (await combat(page)).audio.buffers).toBe(18);
   await expect(page.getByRole('button',{ name: 'Switch weapon',exact: true })).toHaveCount(0); await expect(page.getByRole('button',{ name: 'Reload weapon',exact: true })).toHaveCount(0);
   const run = await state(page).getAttribute('data-run');
   for (const pov of ['side','third','first','tactical']) { await page.getByRole('button',{ name: 'Cycle camera view' }).click(); await expect(state(page)).toHaveAttribute('data-pov',pov); await expect(page.getByRole('dialog')).toHaveCount(0); await expect(state(page)).toHaveAttribute('data-run',run!); }

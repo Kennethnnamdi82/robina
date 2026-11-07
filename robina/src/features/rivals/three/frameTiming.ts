@@ -1,7 +1,7 @@
-/** Preserve real movement speed down to 5 FPS without an unbounded catch-up
- * loop. Below 12 FPS the same swept physics uses 30 Hz rather than 60 Hz.
- * Long background/debugger stalls remain bounded, never a teleport on resume. */
+/** One fixed interpolation interval: changing it with frame rate made the
+ * presentation jump backwards when frames crossed the old 12 FPS threshold.
+ * At most twelve swept ticks catch up a 200ms frame; resume stalls are bounded. */
 export function frameTiming(seconds:number){
   const delta=Number.isFinite(seconds)?Math.max(0,Math.min(.2,seconds)):0;
-  return{delta,step:delta>1/12?1/30:1/60};
+  return{delta,step:1/60};
 }

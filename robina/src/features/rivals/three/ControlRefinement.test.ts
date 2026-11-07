@@ -12,8 +12,8 @@ import {NavigationGrid} from '../ai/navigation';
 import {frameTiming} from './frameTiming';
 
 describe('second-pass control and pursuit regressions',()=>{
-  it.each([5,8,10,15,30,60,120])('keeps a second of game movement at %s FPS with at most six bounded physics steps',fps=>{
-    let accumulator=0,elapsed=0;for(let i=0;i<fps;i++){const {delta,step}=frameTiming(1/fps);accumulator+=delta;let count=0;while(accumulator+1e-9>=step&&count<6){elapsed+=step;accumulator=Math.max(0,accumulator-step);count++;}expect(count).toBeLessThanOrEqual(6);}expect(elapsed+accumulator).toBeCloseTo(1,5);expect(frameTiming(60).delta).toBe(.2);
+  it.each([5,8,10,15,30,60,120])('keeps a second of game movement at %s FPS with at most twelve bounded physics steps',fps=>{
+    let accumulator=0,elapsed=0;for(let i=0;i<fps;i++){const {delta,step}=frameTiming(1/fps);accumulator+=delta;let count=0;while(accumulator+1e-9>=step&&count<12){elapsed+=step;accumulator=Math.max(0,accumulator-step);count++;}expect(count).toBeLessThanOrEqual(12);}expect(elapsed+accumulator).toBeCloseTo(1,5);expect(frameTiming(60).delta).toBe(.2);
   });
   it('never moves a perspective camera under the road at extreme drag, zoom or wall recovery',()=>{
     const rig=new CameraRig(),player=new Vector3(12,0,12),wall={id:'wall',enabled:true,kind:'wall' as const,box:new Box3(new Vector3(8,0,13),new Vector3(16,8,15))};rig.resize(320,568);

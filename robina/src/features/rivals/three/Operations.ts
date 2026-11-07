@@ -2,7 +2,7 @@ import { THE_LAUNCH,type LevelDefinition } from '../world/level';
 import { launchMission } from '../missions/definitions';
 import { WorldState } from '../world/WorldState';
 import { NavigationGrid } from '../ai/navigation';
-import { buildingAt, cityPlan, CITY_SIZE, STREET_CENTRES } from './LivingCityPlan';
+import { buildingAt, cityPlan, CITY_SIZE,CITY_WIDTH, STREET_CENTRES,waterfrontRails } from './LivingCityPlan';
 import { ASSIGNMENTS, assignmentAt, assignmentMission } from '../missions/assignments';
 
 export const VENUES = [
@@ -30,9 +30,10 @@ export function createOperation(seed=(salt+sequence++)>>>0,ordinal=1):Operation3
     for(const centre of STREET_CENTRES){if(Math.abs(x-centre)<6.4)x=centre+(x<centre?-6.4:6.4);if(Math.abs(z-centre)<6.4)z=centre+(z<centre?-6.4:6.4);}
     return{...p,x:x/.025,y:z/.025};
   });
+  level.props.push(...waterfrontRails().map((r,i)=>({id:'waterfront-rail-'+i,frame:'crate',x:r.x*40,y:r.z*40,size:40,solid:{width:r.width*40,height:r.depth*40}})));
   level.id=`operation-${seed}`;level.title=profile.name;
   const city=cityPlan(venue,seed);
-  level.width=level.height=CITY_SIZE/1.6;
+  level.width=CITY_WIDTH/1.6;level.height=CITY_SIZE/1.6;
   const walls=Array.from({length:level.height},(_,y)=>Array.from({length:level.width},(_,x)=>Number(
     x===0||y===0||x===level.width-1||y===level.height-1||Boolean(buildingAt(city,(x+.5)*1.6,(y+.5)*1.6))
   )));level.walls=walls;
@@ -56,18 +57,18 @@ export function createOperation(seed=(salt+sequence++)>>>0,ordinal=1):Operation3
   const fingerprint=walls.map(r=>r.join('')).join('/')+`:${vault.x},${vault.y}:${extract.x}:${city.signature}`;
   return{seed,ordinal,venue,level,mission,fingerprint};
 }
-export function createAssignmentOperation(index=0,seed=crypto.getRandomValues(new Uint32Array(1))[0]):Operation3D {
+export function createAssignmentOperation(index=0,seed=crypto.getRandomValues(new Uint32Array(1))[0],ordinal=1):Operation3D {
   index=Math.max(0,Math.min(ASSIGNMENTS.length-1,Math.floor(index)));
   const a=assignmentAt(index),base=seed%4294967200,normalized=base-base%21+index*3+a.district,operation=createOperation(normalized,index+1);
   const level=operation.level,mission=assignmentMission(a),s=a.site;
-  level.title=a.name;level.props=[];level.targets=[];level.markers=[];level.signs=[];level.zones=[];
+  level.title=a.name;level.props=level.props.filter(p=>p.id.startsWith('waterfront-rail-'));level.targets=[];level.markers=[];level.signs=[];level.zones=[];
   level.objects=mission.objectives.filter(o=>o.id.startsWith('task-')||o.id==='recover'||o.id==='extract').map(o=>({id:o.event,kind:o.id==='extract'?'extraction':o.id==='recover'?'collectible':'terminal',name:o.title,x:o.marker.x,y:o.marker.y,range:85,solid:o.id.startsWith('task-')&&!a.convoy?{width:26,height:18}:undefined}));
   level.enemies=Array.from({length:a.security},(_,i)=>{const x=(s.x-3+(i%3)*3)*40,y=(s.z+1+Math.floor(i/3)*2)*40;return{id:'site-guard-'+i,type:index>3&&i%3===0?'heavy' as const:i%2?'enforcer' as const:'guard' as const,x,y,angle:Math.PI/2,patrol:[{x,y},{x,y:y+55},{x:x+25,y:y+55},{x:x+25,y}]};});
   level.security={...level.security,cameras:[],lasers:[],hacks:[]};
-  return {...operation,mission,assignment:index,fingerprint:operation.fingerprint+':assignment:'+a.id};
+  return {...operation,ordinal,mission,assignment:index,fingerprint:operation.fingerprint+':assignment:'+a.id};
 }
 export function nextOperation(previous:Operation3D,completed=false) {
-  if(previous.assignment!==undefined)return createAssignmentOperation(completed?(previous.assignment+1)%ASSIGNMENTS.length:previous.assignment,completed?(previous.seed+31)>>>0:previous.seed);
+  if(previous.assignment!==undefined)return createAssignmentOperation(completed?(previous.assignment+1)%ASSIGNMENTS.length:previous.assignment,completed?(previous.seed+31)>>>0:previous.seed,previous.ordinal+(completed?1:0));
   if(!completed)return createOperation(previous.seed,previous.ordinal);
   let seed=(previous.seed+1)>>>0;if(seed%3===previous.venue)seed=(seed+1)>>>0;return createOperation(seed,previous.ordinal+1);
 }
