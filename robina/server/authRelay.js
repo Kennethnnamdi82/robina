@@ -1,4 +1,4 @@
-// First-party authentication transport to the existing Render backend
+// Shared first-party authentication transport to the existing Render backend
 // No token storage in JavaScript and no account/payment/game backend here
 const routes=new Map([
   ['/api/auth/me','GET'],['/api/auth/nonce','GET'],['/api/auth/google','POST'],

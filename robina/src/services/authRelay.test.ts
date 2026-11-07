@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {relay,firstPartyCookie} from '../../api/[...path].js';
+import {relay,firstPartyCookie} from '../../server/authRelay.js';
 const response=()=>({code:0,headers:{} as Record<string,unknown>,data:null as unknown,setHeader(name:string,value:unknown){this.headers[name]=value;},status(code:number){this.code=code;return this;},json(data:unknown){this.data=data;return this;}});
 const request=(patch={})=>({url:'/api/auth/me',method:'GET',headers:{host:'rivals-heist.vercel.app',cookie:'bd_session=signed; unrelated=secret'},...patch});
 describe('first-party cookie transport',()=>{
