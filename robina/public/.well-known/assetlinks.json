@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.venomee.rivalsheist",
+      "sha256_cert_fingerprints": ["F8:63:21:2A:5C:C6:B9:1B:7A:3A:92:B2:98:F0:87:49:19:43:E1:E0:8A:DD:0C:C3:3B:94:25:99:4D:C0:AB:54"]
+    }
+  }
+]

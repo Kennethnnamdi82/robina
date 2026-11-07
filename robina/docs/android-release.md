@@ -24,7 +24,7 @@ compiling Android; all Gradle compilation runs on GitHub-hosted runners
 `.github/workflows/android.yml` runs frontend type checking and unit tests,
 backend authentication tests, the production web build, Capacitor sync, packaged
 asset verification, Gradle compilation, Android lint and available JVM tests
-The feature branch produces a **private DEBUG testing artifact only**
+The feature branch produces a **DEBUG testing artifact only**, never a public release
 Main requires persistent release signing and produces a verified, non-debug APK
 A failed build/signature check prevents publication
 
@@ -34,7 +34,9 @@ The one-time `scripts/android/setup-github.mjs` operation creates a **public,
 binary-only** `Kennethnnamdi82/rivals-heist-android` repository, a persistent app
 signing identity and an SSH deploy key restricted to that distribution repository
 It must only be run with explicit approval for those external/security changes
-It never changes the visibility of the private `robina` source repository
+It never changes the existing visibility of the `robina` source repository
+GitHub currently reports that source repository as public; making it private is
+a separate owner decision and is not performed by this setup
 
 The recovery file is created under the ignored, owner-only
 `../.android-tools/signing/recovery.json` directory
