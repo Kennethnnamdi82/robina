@@ -6,12 +6,14 @@
 - Catch-up is bounded to 12 swept ticks / 200 ms; long background stalls do not teleport the player
 - Walk/jog/sprint transitions preserve stride phase
 - Mounted drivers do not step the on-foot controller or walking/shooting animation
+- Mounted ticks still age health, damage-immunity and recovery timers; occupants are not made invulnerable
 - The player car's steering and wheel travel use the same interpolation phase as its position
 - Vehicle collision, fire, damage, braking and reverse behavior remain active
 
 ## Connected waterfront
 
 - Removed the concrete avenue closures at the old district edge
+- Removed the separate per-contract roadblock from mission collision and rendering
 - Expanded playable width from 96 to 144 metres while retaining the original 96-metre depth
 - Added four open canal bridges with asphalt lanes, pedestrian edges and parallel safety rails
 - Added Hotel Meridian and Amber Room bar facades and a waterfront promenade
@@ -33,6 +35,8 @@ It only accepts the existing allowlisted auth/owner-auth routes and forwards onl
 It validates browser write origins, refuses upstream redirects, bounds requests and prevents session caching
 Cookies are host-only, HttpOnly, Secure and SameSite=Lax at the public game origin
 No session token is added to localStorage
+Known returning sessions retry temporary connection/readiness failures before showing sign-in;
+definitive 401/403 responses are never treated as an authenticated session
 
 User sessions have a 14-day inactivity lifetime, with daily verified renewal and a 30-day absolute cap
 Renewal retains the same revocation identifier; logout revokes the complete session family

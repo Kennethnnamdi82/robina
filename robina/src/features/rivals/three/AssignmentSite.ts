@@ -1,13 +1,11 @@
 import * as T from 'three';
 import type { WorldState } from '../world/WorldState';
-import {ASSIGNMENTS,type Assignment} from '../missions/assignments';
+import type {Assignment} from '../missions/assignments';
 
 export function addAssignmentWalls(world:WorldState,a:Assignment){
   const {x,z}=a.site;
   const walls=[[-5,0,.3,8],[5,0,.3,8],[0,-4,10,.3],[-3.3,4,3.4,.3],[3.3,4,3.4,.3]];
   walls.forEach(([dx,dz,w,d],i)=>world.blockers.push({id:'mission-wall-'+i,x:(x+dx)*40,y:(z+dz)*40,width:w*40,height:d*40,enabled:true}));
-  const closures=[[56,44,8.8,.8],[68,32,.8,8.8],[32,68,8.8,.8],[44,56,.8,8.8],[80,44,8.8,.8],[68,8,.8,8.8],[56,68,8.8,.8]],index=ASSIGNMENTS.indexOf(a),road=closures[Math.max(0,index)];
-  world.blockers.push({id:'mission-roadblock',x:road[0]*40,y:road[1]*40,width:road[2]*40,height:road[3]*40,enabled:true});
   for(const [i,f]of [[x-3.8,z-1.8,1.1,2.6],[x+3.8,z-1.8,1.1,2.6],[x,z-3.35,5.5,.55]].entries())world.blockers.push({id:'mission-furniture-'+i,x:f[0]*40,y:f[1]*40,width:f[2]*40,height:f[3]*40,enabled:true});
 }
 /** Permanent open clerestory geometry: no roofs/walls are hidden by POV. */
@@ -20,7 +18,6 @@ export class AssignmentSite {
     const floor=new T.MeshStandardMaterial({color:a.district===0?0x9c9d97:0x626965,roughness:.82});this.materials.push(concrete,trim,floor);
     const box=(x:number,y:number,z:number,w:number,h:number,d:number,m:T.Material)=>{const mesh=new T.Mesh(this.geometry,m);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.castShadow=mesh.receiveShadow=true;this.root.add(mesh);};
     for(const b of world.blockers.filter(b=>b.id.startsWith('mission-wall-')))box(b.x*.025,1.7,b.y*.025,b.width*.025,3.4,b.height*.025,concrete);
-    for(const b of world.blockers.filter(b=>b.id==='mission-roadblock'))box(b.x*.025,.525,b.y*.025,b.width*.025,1.05,b.height*.025,concrete);
     for(const b of world.blockers.filter(b=>b.id.startsWith('mission-furniture-'))){box(b.x*.025,.525,b.y*.025,b.width*.025,1.05,b.height*.025,trim);box(b.x*.025,1.08,b.y*.025,b.width*.025+.06,.06,b.height*.025+.06,floor);}
     box(a.site.x,.015,a.site.z,10,.03,8,floor);
     box(a.site.x,3.5,a.site.z+4,10,.35,.65,trim);

@@ -415,7 +415,7 @@ export class RaidRuntime {
     if (command.aiming) { command.aimX = aimDirection.x; command.aimY = aimDirection.z; }
     command.dodge = command.dodge && this.body.grounded && !this.loadout.busy;
     const mounted=Boolean(this.vehicles?.current);
-    if(mounted)this.controller.stop();
+    if(mounted)this.controller.stepMounted(dt);
     const interaction = mounted?false:this.controller.step(command,dt);
     if (this.touchWasMoving && !this.session.input.touchMoving && !this.session.input.keyboardMoving) this.controller.stop(); this.touchWasMoving = this.session.input.touchMoving;
     if (interaction) this.interact(); if (this.session.getSnapshot().hack || this.session.blocked) return;

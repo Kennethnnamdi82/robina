@@ -76,6 +76,14 @@ export class CharacterController {
     return interact;
   }
   interacted() { if (this.health > 0) { this.interactionRemaining = MOVEMENT.interactDuration; this.vx = 0; this.vy = 0; } }
+  /** Driver state ages damage/cooldowns without consuming walking controls. */
+  stepMounted(dt:number){
+    if(!Number.isFinite(dt)||dt<=0)return;
+    this.vitality.step(dt);this.dodgeCooldown=Math.max(0,this.dodgeCooldown-dt);
+    this.hurtRemaining=Math.max(0,this.hurtRemaining-dt);this.interactionRemaining=Math.max(0,this.interactionRemaining-dt);
+    this.attackRemaining=Math.max(0,this.attackRemaining-dt);this.recoveryRemaining=Math.max(0,this.recoveryRemaining-dt);this.stop();
+    Object.assign(this.intent,{alive:this.health>0,hurt:this.hurtRemaining>0,dashing:false,interacting:this.interactionRemaining>0,moving:false,running:false,aiming:false,attacking:false});this.animations.resolve(this.intent);
+  }
   attacked() { if (this.canAttack) { this.attackRemaining = .09; this.intent.attacking = true; this.animations.resolve(this.intent); } }
   damage(amount: number): number {
     return this.receiveDamage({ id: 'local:' + ++this.damageSerial, sourceId: 'local-training', team: 'security', amount, angle: 0 });

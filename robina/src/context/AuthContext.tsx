@@ -115,8 +115,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController();
     const hydrationEpoch=epoch.current;
     let knownSession=false;try{knownSession=localStorage.getItem('rivals_session_seen')==='1';}catch{/* Storage optional. */}
-    const sessionDeadline = Date.now() + (knownSession?30000:4000);
+    const sessionDeadline = Date.now() + (knownSession?65000:4000);
     const sessionOptions = () => ({ signal: controller.signal, timeoutMs: Math.max(1, sessionDeadline - Date.now()), retries: 0 });
+    const restoreUserSession=async()=>{
+      for(let attempt=0;;attempt++){
+        try{return await authApi.me(sessionOptions());}catch(error){
+          const status=(error as ApiError).status;
+          if(!knownSession||attempt>=2||controller.signal.aborted||Date.now()+1500>=sessionDeadline||![undefined,502,503,504].includes(status))throw error;
+          await new Promise<void>((resolve,reject)=>{
+            const abort=()=>{clearTimeout(timer);controller.signal.removeEventListener('abort',abort);reject(new DOMException('Request cancelled','AbortError'));};
+            const timer=window.setTimeout(()=>{controller.signal.removeEventListener('abort',abort);resolve();},750*(attempt+1));
+            controller.signal.addEventListener('abort',abort,{once:true});if(controller.signal.aborted)abort();
+          });
+        }
+      }
+    };
 
     const hydrateSession = async () => {
       const onAdminRoute = window.location.pathname
@@ -137,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           } catch (error) {
             if ((error as ApiError).status !== 401) throw error;
-            const { user } = await authApi.me(sessionOptions());
+            const { user } = await restoreUserSession();
             if (!cancelled&&hydrationEpoch===epoch.current) {
               setSignedWallet(user.wallet);
               setAuthChainType(user.chainType || "none");
@@ -149,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { user } = await authApi.me(sessionOptions());
+        const { user } = await restoreUserSession();
         if (!cancelled&&hydrationEpoch===epoch.current) {
           setSignedWallet(user.wallet);
           setAuthChainType(user.chainType || "none");
