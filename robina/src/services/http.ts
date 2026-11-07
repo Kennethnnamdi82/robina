@@ -1,3 +1,4 @@
+import {isNativeAndroid,NativeSession} from '@/native/platform';
 export type ApiError = Error & { status?: number; details?: unknown };
 export type RequestOptions = { signal?: AbortSignal; timeoutMs?: number; retries?: number };
 function apiError(message: string, status?: number, details?: unknown): ApiError {
@@ -22,6 +23,18 @@ export async function httpRequest<T>(url: string, init: RequestInit = {}, option
       const headers = new Headers(init.headers);
       if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
       headers.set('Accept', 'application/json');
+      if(isNativeAndroid()){
+        const parsed=new URL(url,'https://localhost');
+        if(parsed.origin!=='https://localhost'||!['/api/auth/me','/api/auth/logout'].includes(parsed.pathname))throw apiError('This operation is available through secure browser sign-in',403);
+        const response=await new Promise<{status:number;data:unknown}>((resolve,reject)=>{
+          const cancelled=()=>reject(new DOMException('Request cancelled','AbortError'));
+          controller.signal.addEventListener('abort',cancelled,{once:true});
+          if(controller.signal.aborted){cancelled();return;}
+          void NativeSession.request({path:parsed.pathname,method,body:typeof init.body==='string'?init.body:undefined}).then(value=>{controller.signal.removeEventListener('abort',cancelled);resolve(value);},error=>{controller.signal.removeEventListener('abort',cancelled);reject(error);});
+        });
+        if(response.status<200||response.status>=300)throw apiError(String((response.data as {error?:string})?.error||'native_request_failed'),response.status,response.data);
+        return response.data as T;
+      }
       const response = await fetch(url, { ...init, headers, credentials: 'include', signal: controller.signal });
       const text = await response.text();
       let data: unknown = {};

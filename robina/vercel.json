@@ -221,7 +221,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|api/).*)",
+      "source": "/((?!assets/|api/|\\.well-known/).*)",
       "destination": "/index.html"
     }
   ],

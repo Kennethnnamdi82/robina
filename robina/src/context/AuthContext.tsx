@@ -24,6 +24,8 @@ import { getAccessTokenAfterLogin } from "@/lib/privyAuth";
 import { HAS_BACKEND } from "@/lib/backend";
 import { getPhantomWallet, type PhantomWallet } from "@/lib/phantomWallet";
 import { googleAttemptPending,beginGoogleAttempt,clearGoogleAttempt,verifyGoogleSession } from '@/lib/googleAttempt';
+import {isNativeAndroid} from '@/native/platform';
+import NativeAuthProvider from '@/native/NativeAuthProvider';
 
 interface BaseUser {
   name: string;
@@ -59,7 +61,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | null>(null);
 function avatarFor(wallet: string) {
   return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${wallet}`;
 }
@@ -69,6 +71,9 @@ function shortName(wallet: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  return isNativeAndroid()?<NativeAuthProvider>{children}</NativeAuthProvider>:<WebAuthProvider>{children}</WebAuthProvider>;
+}
+function WebAuthProvider({ children }: { children: ReactNode }) {
   const { getAccessToken, logout: privyLogout,ready:privyReady,authenticated:privyAuthenticated } = usePrivy();
   const epoch=useRef(0),googleFlight=useRef<Promise<void>|null>(null),googleIntent=useRef(googleAttemptPending()),signedInRef=useRef(false);
   const { address, chainId, isConnected } = useAccount();

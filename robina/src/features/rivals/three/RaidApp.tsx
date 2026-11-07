@@ -49,6 +49,7 @@ export default function RaidApp({ development = false, operation, preferences, o
     const ticket = ++lifetime.current;
     return () => { queueMicrotask(() => { if (lifetime.current === ticket) { launch.current++; session.dispose(); capture(); } }); };
   }, [session,capture]);
+  useEffect(()=>{const pause=()=>session.pause();window.addEventListener('rivals:native-pause',pause);return()=>window.removeEventListener('rivals:native-pause',pause);},[session]);
   const enter = async () => {
     session.startAudio();
     if (development) { setEntered(true); return; }

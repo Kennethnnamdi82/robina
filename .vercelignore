@@ -42,3 +42,7 @@ robina/src/features/PNG
 robina/src/features/Prepared SFX Library
 robina/src/features/rugfire/RIVALS
 robina/public/assets/rivals/city/premium/*-source.glb
+robina/android/
+robina/assets/
+robina/release/
+.android-tools/

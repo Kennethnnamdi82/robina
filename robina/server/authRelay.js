@@ -4,6 +4,7 @@ const routes=new Map([
   ['/api/auth/me','GET'],['/api/auth/nonce','GET'],['/api/auth/google','POST'],
   ['/api/auth/verify','POST'],['/api/auth/wallet','POST'],['/api/auth/logout','POST'],
   ['/api/admin/me','GET'],['/api/admin/login','POST'],['/api/admin/logout','POST'],
+  ['/api/auth/native/authorize','POST'],['/api/auth/native/exchange','POST'],
 ]);
 export function firstPartyCookie(value){
   if(!/^bd_(session|admin)=/.test(value))return null;

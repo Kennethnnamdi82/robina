@@ -1,0 +1,61 @@
+name: Publish verified Android APK
+on:
+  push:
+    branches: ['delivery/**']
+permissions:
+  contents: write
+concurrency:
+  group: android-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_CERT: '__CERT_SHA256__'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify and publish signed binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^delivery/android-[0-9]+-[a-f0-9]{12}$ ]]
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;36.0.0' >/dev/null
+          cat payload/*.part > RIVALS-RIVAL-HEIST.apk
+          cp payload/android-release.json android-release.json
+          test "$(jq -r .applicationId android-release.json)" = 'com.venomee.rivalsheist'
+          test "$(jq -r .certificateSha256 android-release.json)" = "$EXPECTED_CERT"
+          printf '%s  RIVALS-RIVAL-HEIST.apk\n' "$(jq -r .sha256 android-release.json)" > SHA256SUMS
+          sha256sum --check SHA256SUMS
+          actual_cert=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs RIVALS-RIVAL-HEIST.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          test "$actual_cert" = "$EXPECTED_CERT"
+          badging=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging RIVALS-RIVAL-HEIST.apk)
+          grep -q "package: name='com.venomee.rivalsheist'" <<< "$badging"
+          ! grep -q 'application-debuggable' <<< "$badging"
+          code=$(jq -r .versionCode android-release.json)
+          [[ "$code" =~ ^[0-9]+$ ]] && (( code > 0 && code <= 2100000000 ))
+          grep -q "versionCode='$code'" <<< "$badging"
+          latest_status=$(curl --silent --location --output "$RUNNER_TEMP/latest.json" --write-out '%{http_code}' --max-time 30 'https://github.com/Kennethnnamdi82/rivals-heist-android/releases/latest/download/android-release.json')
+          if [[ "$latest_status" = 200 ]]; then latest=$(jq -r .versionCode "$RUNNER_TEMP/latest.json"); elif [[ "$latest_status" = 404 ]]; then latest=0; else echo 'Cannot safely verify the current release'; exit 1; fi
+          [[ "$latest" =~ ^[0-9]+$ ]]
+          if (( code < latest )); then echo 'A newer signed release already exists'; exit 0; fi
+          version=$(jq -r .versionName android-release.json)
+          if (( code == latest )); then
+            test "$(jq -r .sha256 "$RUNNER_TEMP/latest.json")" = "$(jq -r .sha256 android-release.json)"
+          else
+            gh release create "android-$code" RIVALS-RIVAL-HEIST.apk android-release.json SHA256SUMS --repo "$GITHUB_REPOSITORY" --target main --latest --title "RIVALS $version" --notes 'Official signed RIVALS: RIVAL HEIST Android game — packaged assets, secure browser sign-in and fullscreen gameplay. Android 7.0 or later. Install over the previous official release to keep local data.'
+          fi
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/contents/android-release.json?ref=main" --jq .sha 2>/dev/null || true)
+          if [[ -n "$current_sha" ]]; then gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/android-release.json" -f message="Publish Android $code manifest" -f content="$(base64 -w0 android-release.json)" -f sha="$current_sha" -f branch=main >/dev/null; else gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/android-release.json" -f message="Publish Android $code manifest" -f content="$(base64 -w0 android-release.json)" -f branch=main >/dev/null; fi
+      - name: Remove completed binary delivery branch
+        if: success()
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^delivery/android-[0-9]+-[a-f0-9]{12}$ ]]
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$GITHUB_REF_NAME"

@@ -4,6 +4,9 @@ import { Check, ChevronRight, Loader2, ShieldCheck, Wallet } from "lucide-react"
 import { useAuth } from "@/context/AuthContext";
 import { closeWalletModal, openWalletModal } from "@/lib/wagmi";
 import './login-command.css';
+import {isNativeAndroid} from '@/native/platform';
+import NativeLoginPage from '@/native/NativeLoginPage';
+import AndroidDownload from '@/native/AndroidDownload';
 
 function GoogleIcon() {
   return (
@@ -48,6 +51,9 @@ function friendlyAuthError(cause: unknown) {
 }
 
 export default function LoginPage() {
+  return isNativeAndroid()?<NativeLoginPage/>:<WebLoginPage/>;
+}
+function WebLoginPage() {
   const {
     authError,
     isLoggedIn,
@@ -184,6 +190,7 @@ export default function LoginPage() {
           </p>
         </div>
 
+        <AndroidDownload/>
         <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-[11px] text-slate-500">
           <Check className="h-3.5 w-3.5 text-primary" /> Secure, non-custodial sign-in
         </p>

@@ -18,5 +18,5 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vite.rivals.config.ts", "vite.rivals3d.config.ts", "playwright.rivals.config.ts", "playwright.rivals3d.config.ts", "vitest.config.ts", "tailwind.config.ts"]
+  "include": ["capacitor.config.ts", "vite.config.ts", "vite.rivals.config.ts", "vite.rivals3d.config.ts", "playwright.rivals.config.ts", "playwright.rivals3d.config.ts", "vitest.config.ts", "tailwind.config.ts"]
 }

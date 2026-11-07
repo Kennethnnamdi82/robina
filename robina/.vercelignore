@@ -34,3 +34,6 @@ src/features/PNG
 src/features/Prepared SFX Library
 src/features/rugfire/RIVALS
 public/assets/rivals/city/premium/*-source.glb
+android/
+assets/
+release/
