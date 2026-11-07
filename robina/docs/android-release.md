@@ -5,6 +5,8 @@
 The app ID is `com.venomee.rivalsheist` and must not change after publication
 Capacitor packages the existing Vite `dist` directory, including the game models,
 audio and textures, into the APK — there is no remote `server.url`
+Android packaging excludes the web-only `.gz` siblings to avoid asset-merger
+duplicates; original models remain packaged and the web build stays unchanged
 Android 7.0/API 24 is the minimum; compilation/target API is 36 with Java 21
 
 The existing renderer, adaptive quality settings, missions, purchases, controls
