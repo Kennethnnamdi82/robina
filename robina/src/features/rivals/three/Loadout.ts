@@ -11,7 +11,25 @@ export const EQUIPMENT: Record<EquipmentId,EquipmentDefinition> = {
   pistol: firearm('pistol'),smg: firearm('smg'),
   knife: { id: 'field-knife',name: 'VEX / FIELD KNIFE',model: 'knife',kind: 'melee',damage: 45,interval: .55,automatic: true,magazine: 0,reloadSeconds: 0,range: 1.8 / .025,speed: 0,lifetime: 0,spread: 0,recoil: 0,impact: 'melee',reserve: 0,maxReserve: 0 },
 };
-export interface WeaponSlot { id: EquipmentId; controller: WeaponController }
+/** One source for collection inspection and runtime controllers. None of these
+ * definitions grants ownership; checkout is intentionally still disabled. */
+const collectionWeapon=(id:string,name:string,model:'rifle'|'smg',damage:number,interval:number,magazine:number,range:number,reloadSeconds:number):Readonly<EquipmentDefinition>=>Object.freeze({
+  ...EQUIPMENT[model],id:'collection-'+id,name,damage,interval,magazine,range:range/.025,reloadSeconds,
+  automatic:true,spread:0,lifetime:1,reserve:magazine*6,maxReserve:magazine*12,
+});
+export const COLLECTION_WEAPONS = Object.freeze({
+  mp5:collectionWeapon('mp5','MP5','smg',36,.075,30,80,1.05),
+  ak47:collectionWeapon('ak47','AK-47','rifle',44,.105,30,95,1.35),
+  m4a1:collectionWeapon('m4a1','M4A1','rifle',40,.08,30,100,1.1),
+  scar:collectionWeapon('scar','SCAR-H','rifle',58,.13,20,115,1.45),
+  m249:collectionWeapon('m249','M249','rifle',38,.07,100,105,2.6),
+  elite:collectionWeapon('elite','ELITE TACTICAL RIFLE','rifle',64,.095,40,120,.95),
+});
+export type CollectionWeaponId=keyof typeof COLLECTION_WEAPONS;
+export function collectionWeaponDefinition(id:string):Readonly<EquipmentDefinition>|undefined {
+  return Object.prototype.hasOwnProperty.call(COLLECTION_WEAPONS,id)?COLLECTION_WEAPONS[id as CollectionWeaponId]:undefined;
+}
+export interface WeaponSlot { id: EquipmentId; controller: WeaponController; collectionId?:CollectionWeaponId }
 export type SoldierAction = 'idle' | 'switch' | 'melee' | 'throw' | 'pickup';
 /** Three slots hold persistent controllers. No account entitlements or writes. */
 export class Loadout {
@@ -19,7 +37,7 @@ export class Loadout {
   constructor(ids: readonly EquipmentId[] = ['rifle','pistol','knife']) { this.slots = Array.from({ length: 3 },(_,i) => ids[i] ? this.create(ids[i]) : null); }
   private create(id: EquipmentId): WeaponSlot { const d = EQUIPMENT[id]; return { id,controller: new WeaponController(d,d.reserve,d.maxReserve) }; }
   get current() { return this.slots[this.active]!; }
-  get definition() { return EQUIPMENT[this.current.id]; }
+  get definition() { return this.current.controller.definition as EquipmentDefinition; }
   get busy() { return this.remaining > 0; }
   start(action: SoldierAction,seconds: number) { this.action = action; this.remaining = seconds; this.serial++; }
   switchTo(index: number,allowed: boolean) {
@@ -32,6 +50,16 @@ export class Loadout {
     if (!Number.isInteger(at) || at < 0 || at >= 3) return false;
     this.slots[at] = this.create(id); if (at === this.active) this.start('switch',.22); return true;
   }
+  /** Integration hook for an ownership provider, not a payment verifier. The
+   * caller must supply confirmed ownership; local storage is never consulted.
+   * Default gameplay and pickups always remain the free equipment definitions. */
+  equipCollection(id:string,ownedIds:readonly string[],index=0){
+    const d=collectionWeaponDefinition(id);
+    if(!d||!ownedIds.includes(id)||this.busy||!Number.isInteger(index)||index<0||index>=3)return false;
+    const old=this.slots[index]?.controller;old?.cancelTrigger();if(old)old.reloadRemaining=0;
+    this.slots[index]={id:d.model,collectionId:id as CollectionWeaponId,controller:new WeaponController(d,d.reserve,d.maxReserve)};
+    if(index===this.active)this.start('switch',.22);return true;
+  }
   step(dt: number,fire: boolean,reload: boolean,allowed: boolean,touchRepeat = false) {
     this.remaining = Math.max(0,this.remaining - dt); this.meleeCooldown = Math.max(0,this.meleeCooldown - dt); if (!this.remaining) this.action = 'idle';
     const usable = allowed && !this.busy;
@@ -42,5 +70,5 @@ export class Loadout {
     const controller = this.current.controller;
     const fired = controller.step(dt,fire,reload || controller.ammo === 0 && controller.reserve > 0,usable); if (fired) this.shots++; return fired;
   }
-  snapshot() { return { active: this.active,action: this.action,remaining: this.remaining,serial: this.serial,shots: this.shots,slots: this.slots.map(s => s ? { id: s.id,name: EQUIPMENT[s.id].name,kind: EQUIPMENT[s.id].kind,ammo: s.controller.ammo,reserve: s.controller.reserve,capacity: s.controller.definition.magazine,reload: s.controller.reloadRemaining } : null) }; }
+  snapshot() { return { active: this.active,action: this.action,remaining: this.remaining,serial: this.serial,shots: this.shots,slots: this.slots.map(s => s ? { id: s.id,collectionId:s.collectionId,name:s.controller.definition.name,kind:(s.controller.definition as EquipmentDefinition).kind,ammo: s.controller.ammo,reserve: s.controller.reserve,capacity: s.controller.definition.magazine,reload: s.controller.reloadRemaining } : null) }; }
 }

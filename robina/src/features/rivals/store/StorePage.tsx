@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Badge, Bomb, Box, Check, ChevronRight, CircleHelp, Clock3, Cross, Crown, Equal, History, Layers3, LockKeyhole, PackageOpen, Search, Shield, ShoppingBag, SlidersHorizontal, Sparkles, Target } from 'lucide-react';
 import { EQUIPMENT } from '../three/Loadout';
-import { CATALOG, CATEGORIES, findProduct, money, referenceStats, type Category, type Product, type StoreAccount } from './catalog';
+import { CATALOG, CATEGORIES, findProduct, money, referenceStats, collectionStats, type Category, type Product, type StoreAccount } from './catalog';
 import ProductArt from './ProductArt';
 import ProductDialog from './ProductDialog';
 import PurchaseDialog from './PurchaseDialog';
@@ -84,7 +84,15 @@ function Card({ product: p, onOpen, account, comparing, onCompare }: { product: 
     <div className="rs-card-body"><div className="rs-card-meta"><span>{p.category === 'weapons' ? p.subtitle : p.category.toUpperCase()}</span><span className="rs-badge">{equipped ? 'EQUIPPED' : owned ? 'OWNED' : 'SHOWROOM'}</span></div><h3>{p.name}</h3><p>{p.quantity ? p.quantity + ' grenades / supply package' : p.art === 'character' ? p.description.split(' — ')[0] : p.art === 'bundle' ? (p.includes?.length ?? 0) + '-piece signature collection' : p.model ? '360° studio inspection' : 'Signature presentation'}</p><div className="rs-card-bottom"><div><strong>{p.price ? money(p.price) : 'IN THE FIELD'}</strong><small>{p.price ? 'USD / COLLECTION' : 'NOT FOR SALE'}</small></div><button onClick={() => onOpen(p)} aria-label={'Details for ' + p.name}>DETAILS <ArrowRight size={14}/></button></div>{comparing !== undefined && <button className="rs-compare-toggle" aria-pressed={comparing} onClick={() => onCompare?.(p.id)}>{comparing ? <Check size={13}/> : <Equal size={13}/>} {comparing ? 'SELECTED FOR COMPARISON' : 'COMPARE PLATFORM'}</button>}</div>
   </article>;
 }
-function Comparison({ ids }: { ids: string[] }) { return <section className="rs-comparison" aria-label="Weapon comparison"><header><Equal size={18}/><h3>SIDE BY SIDE</h3><span>REFERENCE CONFIGURATIONS</span></header><div>{ids.map(id => { const p = findProduct(id)!; return <article key={id}><h3>{p.name}</h3><strong>{money(p.price)} <small>PROPOSED</small></strong><p>Collection platform: {p.proposed?.magazine} rounds · {p.proposed?.ammo}</p>{p.reference ? <><h4>EXISTING {p.reference.toUpperCase()} REFERENCE</h4><dl>{referenceStats(p.reference).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></> : <p className="rs-unavailable">Select a field platform to compare its configuration</p>}</article>; })}</div></section>; }
+function Comparison({ ids }: { ids: string[] }) {
+  return <section className="rs-comparison" aria-label="Weapon comparison"><header><Equal size={18}/><h3>SIDE BY SIDE</h3><span>COLLECTION CONFIGURATIONS</span></header><div>{ids.map(id => {
+    const p=findProduct(id)!;
+    return <article key={id}><h3>{p.name}</h3><strong>{money(p.price)} <small>SHOWROOM</small></strong><p>Collection platform: {p.proposed?.magazine} rounds · {p.proposed?.ammo}</p>
+      <h4>PREMIUM CONFIGURATION</h4><dl>{collectionStats(id).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+      {p.reference&&<details><summary>ISSUED {p.reference.toUpperCase()} REFERENCE</summary><dl>{referenceStats(p.reference).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>}
+    </article>;
+  })}</div></section>;
+}
 function Inventory({ account, onOpen }: { account?: StoreAccount; onOpen: (p: Product) => void }) {
   const [filter, setFilter] = useState('all'), [query, setQuery] = useState('');
   const owned = CATALOG.filter(p => account?.ownedIds.includes(p.id) && (filter === 'all' || p.category === filter) && p.name.toLowerCase().includes(query.toLowerCase()));

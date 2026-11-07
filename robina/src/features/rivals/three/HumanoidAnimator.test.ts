@@ -19,6 +19,23 @@ function fixture() {
 const frame = (patch: Partial<HumanoidFrame> = {}): HumanoidFrame => ({ vx: 0, vz: 0, vertical: 0, grounded: true, sprinting: false, aiming: false, angle: 0, pov: 'tactical', dodgeRemaining: 0, dodgeSerial: 0, health: 100, hitSerial: 0, shots: 0, reload: 0, ...patch });
 
 describe('humanoid animation lifecycle', () => {
+  it('does not lower an aimed weapon or interrupt a stride when taking damage',()=>{
+    const a=fixture();
+    for(let i=1;i<20;i++){
+      a.update(1/60,frame({aiming:true,hitSerial:i,shots:i}));expect(a.motion).toBe('idle');expect(a.upperClipName).toBe('Pistol_Shoot');
+    }
+    a.update(.01,frame({hitSerial:20}));expect(a.motion).not.toBe('hit');
+    a.update(.3,frame({hitSerial:20}));a.update(.01,frame({hitSerial:21}));expect(a.motion).toBe('hit');
+    a.update(.01,frame({vx:4,hitSerial:21}));expect(a.motion).toBe('jog');a.dispose();
+  });
+  it('keeps a stable gait around speed thresholds rather than repeatedly restarting crossfades',()=>{
+    const a=fixture();a.update(.1,frame({vx:3.2}));const initial=a.history.length;
+    for(let i=0;i<60;i++)a.update(1/60,frame({vx:i%2?2.7:2.9}));
+    expect(a.motion).toBe('jog');expect(a.history).toHaveLength(initial);
+    a.update(.1,frame({vx:5.1}));const running=a.history.length;
+    for(let i=0;i<60;i++)a.update(1/60,frame({vx:i%2?4.7:4.9}));
+    expect(a.motion).toBe('run');expect(a.history).toHaveLength(running);a.dispose();
+  });
   it('preserves stride phase when accelerating from walk to jog and sprint',()=>{
     const a=fixture();a.update(.4,frame({vx:2}));const phase=a.actionTime;
     a.update(0,frame({vx:4}));expect(a.actionTime).toBeCloseTo(phase);

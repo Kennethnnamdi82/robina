@@ -25,7 +25,7 @@ export function SettingsPanel({ settings, onChange, persisted }: { settings: Gam
       <label className="rv-option">Mobile controls<select aria-label="Mobile controls" value={settings.mobileControls} onChange={e => onChange({ mobileControls: e.target.value as GameSettings['mobileControls'] })}><option value="auto">Automatic</option><option value="show">Always show</option><option value="hide">Hide</option></select></label>
       <label className="rv-option">Motion preference<select aria-label="Motion preference" value={settings.motion} onChange={e => onChange({ motion: e.target.value as GameSettings['motion'] })}><option value="system">Respect device preference</option><option value="reduce">Reduce motion</option></select></label>
       <label className="rv-check"><input type="checkbox" checked={settings.highContrast} onChange={e => onChange({ highContrast: e.target.checked })} />High contrast HUD</label>
-      <label className="rv-check"><input type="checkbox" checked={settings.cameraShake} onChange={e => onChange({ cameraShake: e.target.checked })} />Subtle damage camera shake</label>
+      <label className="rv-check"><input type="checkbox" checked={settings.cameraShake} onChange={e => onChange({ cameraShake: e.target.checked })} />Subtle camera feedback</label>
     </fieldset>
     <fieldset><legend>Control help</legend><ControlHelp /></fieldset>
     <p className="rv-storage-note" role="status">{persisted ? 'Settings saved on this device.' : 'Settings apply for this session. Browser storage is unavailable.'}</p>

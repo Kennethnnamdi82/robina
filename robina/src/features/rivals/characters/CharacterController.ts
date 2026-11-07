@@ -18,7 +18,7 @@ export class CharacterController {
   private dashX = 0; private dashY = 1;
   private hurtRemaining = 0; private interactionRemaining = 0;
   private attackRemaining = 0; private recoveryRemaining = 0; private damageSerial = 0;
-  get canAttack() { return this.health > 0 && this.hurtRemaining <= 0 && this.interactionRemaining <= 0 && this.dodgeRemaining <= 0 && this.recoveryRemaining <= 0; }
+  get canAttack() { return this.health > 0 && (this.evasiveDodge || this.hurtRemaining <= 0) && this.interactionRemaining <= 0 && this.dodgeRemaining <= 0 && this.recoveryRemaining <= 0; }
   get dodgeImmune() { return this.dodgeRemaining > MOVEMENT.dodgeDuration - MOVEMENT.dodgeInvulnerability; }
   private intent: AnimationIntent = { alive: true, hurt: false, dashing: false, interacting: false, moving: false, running: false, aiming: false, attacking: false };
 
@@ -34,7 +34,9 @@ export class CharacterController {
     this.attackRemaining = Math.max(0, this.attackRemaining - dt);
     this.recoveryRemaining = Math.max(0, this.recoveryRemaining - dt);
     if (wasDashing && this.dodgeRemaining <= 0) this.recoveryRemaining = MOVEMENT.dodgeRecovery;
-    const alive = this.health > 0, canAct = alive && this.hurtRemaining <= 0 && this.interactionRemaining <= 0;
+    // In 3D, injury must not cancel the held aim/trigger or turn the gun back
+    // toward travel. Classic retains its original hit-stun rules.
+    const alive = this.health > 0, canAct = alive && (this.evasiveDodge || this.hurtRemaining <= 0) && this.interactionRemaining <= 0;
     const canMove=alive&&this.interactionRemaining<=0&&(this.evasiveDodge||this.hurtRemaining<=0);
     const length = Math.hypot(input.x, input.y), moving = length > .01;
     const x = input.x / Math.max(1, length), y = input.y / Math.max(1, length);

@@ -10,7 +10,10 @@ export interface HumanoidFrame {
   independentAim?: boolean;
 }
 export type HumanoidMotion = 'idle' | 'walk' | 'backward' | 'strafe-left' | 'strafe-right' | 'jog' | 'run' | 'sprint' | 'takeoff' | 'fall' | 'land' | 'dodge' | 'hit' | 'death';
-const lower = /^(root|pelvis|thigh_[lr]|calf_[lr]|foot_[lr]|ball_(?:leaf_)?[lr])\./;
+// Locomotion owns the torso/head as well as the legs. Freezing every spine
+// track in an aiming pose made a running operative look like a rigid mannequin.
+// Arms stay on the separate ready/reload layer and the gun still uses hand IK.
+const lower = /^(root|pelvis|spine_0[123]|neck_01|Head|thigh_[lr]|calf_[lr]|foot_[lr]|ball_(?:leaf_)?[lr])\./;
 const gaitClip: Partial<Record<HumanoidMotion, string>> = { idle: 'Idle_Loop', walk: 'Walk_Loop', backward: 'Walk_Loop', 'strafe-left': 'Walk_Loop', 'strafe-right': 'Walk_Loop', jog: 'Jog_Fwd_Loop', run: 'Jog_Fwd_Loop', sprint: 'Sprint_Loop' };
 const special: Partial<Record<HumanoidMotion, string>> = { takeoff: 'Jump_Start', fall: 'Jump_Loop', land: 'Jump_Land', dodge: 'Crouch_Fwd_Loop', hit: 'Hit_Chest', death: 'Death01' };
 const direction = new Vector3(), up = new Vector3(0, 1, 0), correction = new Quaternion(), inverse = new Quaternion();
@@ -102,8 +105,8 @@ export class HumanoidAnimator {
     if (fired) this.shotRemaining = .16;
     let motion: HumanoidMotion;
     if (frame.health <= 0) motion = 'death';
-    else if (hit && this.speed < .08) { motion = 'hit'; this.specialRemaining = .22; }
-    else if (this.motion === 'hit' && this.specialRemaining > 0) motion = 'hit';
+    else if (hit && this.speed < .08 && !frame.aiming && this.shotRemaining <= 0) { motion = 'hit'; this.specialRemaining = .22; }
+    else if (this.motion === 'hit' && this.specialRemaining > 0 && !frame.aiming && this.shotRemaining <= 0 && this.speed < .08) motion = 'hit';
     else if (dodge) { motion = 'dodge'; this.specialRemaining = .28; }
     else if (this.motion === 'dodge' && this.specialRemaining > 0) motion = 'dodge';
     else if (!frame.grounded && this.previousGrounded) { motion = 'takeoff'; this.specialRemaining = .14; }
@@ -112,8 +115,8 @@ export class HumanoidAnimator {
     else if (this.motion === 'land' && this.specialRemaining > 0) motion = 'land';
     else if (this.speed < .08) motion = 'idle';
     else if (frame.sprinting) motion = 'sprint';
-    else if (this.speed > 4.8) motion = 'run';
-    else if (this.speed > 2.8) motion = 'jog';
+    else if (this.speed > (this.motion === 'run' ? 4.55 : 4.95)) motion = 'run';
+    else if (this.speed > (this.motion === 'jog' || this.motion === 'run' ? 2.55 : 2.95)) motion = 'jog';
     else motion = 'walk';
     // +Z is the supplied model's verified forward direction.
     let desired = Math.PI / 2 - frame.angle;
@@ -146,7 +149,8 @@ export class HumanoidAnimator {
     this.motion = motion; this.previousGrounded = frame.grounded;
     const evade = motion === 'dodge' ? Math.sin(Math.PI * Math.min(1,this.specialRemaining / .28)) : 0;
     const lateral = frame.vx * Math.cos(frame.angle + Math.PI / 2) + frame.vz * Math.sin(frame.angle + Math.PI / 2);
-    this.actor.torso.rotation.z = Math.sign(lateral) * evade * -.22;
+    const bank = !full && frame.grounded && moving ? MathUtils.clamp(-turn * .065,-.055,.055) : 0;
+    this.actor.torso.rotation.z = MathUtils.damp(this.actor.torso.rotation.z,Math.sign(lateral) * evade * -.22 + bank,18,dt);
     const directional = motion === 'backward' || motion === 'strafe-left' || motion === 'strafe-right';
     const clipName = special[motion] || (directional ? frame.sprinting ? 'Sprint_Loop' : this.speed > 2.8 ? 'Jog_Fwd_Loop' : 'Walk_Loop' : gaitClip[motion]!);
     const once = full && motion !== 'fall';

@@ -3,6 +3,16 @@ import { CharacterController, MOVEMENT } from './CharacterController';
 import { emptyCommand } from '../input/InputBuffer';
 
 describe('fixed-step character controller', () => {
+  it('keeps 3D aim, held fire and sprint responsive under repeated police hits without making the player invulnerable',()=>{
+    const player=new CharacterController(true),input={...emptyCommand(),y:-1,sprint:true,aiming:true,aimX:1,aimY:0,fire:true};
+    for(let i=0;i<120;i++){
+      if(i%20===0)expect(player.receiveDamage({id:'police:'+i,sourceId:'officer',team:'security',amount:5,angle:Math.PI})).toBe(5);
+      player.step(input,1/60);expect(player.aiming).toBe(true);expect(player.aimAngle).toBe(0);expect(player.canAttack).toBe(true);expect(player.vy).toBeLessThan(0);expect(player.sprinting).toBe(true);
+    }
+    expect(player.health).toBe(70);
+    player.step({...input,dodge:true},1/60);expect(player.canAttack).toBe(false);
+    player.stop();player.vitality.current=0;player.step(input,1/60);expect(player.canAttack).toBe(false);expect(player.vy).toBe(0);
+  });
   it('normalizes diagonals, preserves analog magnitude, and accelerates to the configured speeds', () => {
     const axis = new CharacterController(), diagonal = new CharacterController(), analog = new CharacterController();
     for (let i = 0; i < 120; i++) {

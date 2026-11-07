@@ -1,4 +1,4 @@
-import { EQUIPMENT, type EquipmentId } from '../three/Loadout';
+import { EQUIPMENT, collectionWeaponDefinition, type EquipmentDefinition, type EquipmentId } from '../three/Loadout';
 import { OUTFITS, type OutfitId } from './outfits';
 
 export const CATEGORIES = [
@@ -52,7 +52,12 @@ export interface StoreAccount {
   purchases: readonly { id: string; product: string; price: number; date: string; status: 'pending' | 'verified' | 'failed' | 'cancelled' }[];
 }
 export function referenceStats(id: EquipmentId) {
-  const w = EQUIPMENT[id];
+  return equipmentStats(EQUIPMENT[id]);
+}
+export function collectionStats(id:string){
+  const definition=collectionWeaponDefinition(id);return definition?equipmentStats(definition):[];
+}
+function equipmentStats(w:Readonly<EquipmentDefinition>){
   return [ ['Damage', String(w.damage)], ['Fire rate', Math.round(60 / w.interval) + ' RPM'],
     ['Spread', (w.spread * 180 / Math.PI).toFixed(2) + '°'], ['Effective range', (w.range * .025).toFixed(1) + ' m'],
     ['Magazine', String(w.magazine)], ['Reload', w.reloadSeconds.toFixed(2) + ' s'] ];
