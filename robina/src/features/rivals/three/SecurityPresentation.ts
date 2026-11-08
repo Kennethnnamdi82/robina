@@ -14,6 +14,7 @@ export class SecurityPresentation {
   private push = new Vector3(); private rotation = new Quaternion(); private scale = new Vector3();
   private hitTint = new Color(0xffa369);
   private rest = new Quaternion(); private spine?: import('three').Object3D; private head?: import('three').Object3D;
+  private settleUntil=2;
   gait='idle';private gaits:AnimationAction[]=[];private gaitAction?:AnimationAction;
   get gaitTime(){return this.gaitAction?.time??0;}
   constructor(readonly actor: Actor, gun: import('three').Object3D,clips:readonly AnimationClip[]=[]) {
@@ -59,6 +60,7 @@ export class SecurityPresentation {
     this.dead = true; this.deathTransitions++; this.deathAge = 0; this.hitRemaining = 0;
     this.actor.mixer?.stopAllAction();
     const death = this.actor.actions.get('Death');
+    this.settleUntil=Math.max(2,death?.getClip().duration??0);
     if (death) { death.reset().setLoop(LoopOnce, 1); death.clampWhenFinished = true; death.setEffectiveWeight(1).setEffectiveTimeScale(1).play(); this.actor.current = 'Death'; }
     this.fall.attach(this.actor.weapon);
     this.push.set(MathUtils.clamp(this.push.x * .25, -.25, .25), 0, this.push.z < 0 ? -1 : 1).normalize();
@@ -66,7 +68,7 @@ export class SecurityPresentation {
     return true;
   }
   update(dt: number, speed: number, hurt: number, target: Vector3,tactic = 'patrol',sprinting = false) {
-    if (dt <= 0 || !Number.isFinite(dt)) return;
+    if (dt <= 0 || !Number.isFinite(dt) || this.dead&&this.deathAge>=10) return;
     this.hitRemaining = Math.max(0, this.hitRemaining - dt);
     this.materials.forEach((base, material) => material.emissive.copy(base).lerp(this.hitTint, this.dead ? 0 : Math.min(.65, this.hitRemaining * 3)));
     this.weapon.decay(dt);
@@ -77,7 +79,12 @@ export class SecurityPresentation {
       if(tactic === 'cover' || tactic === 'evade')this.actor.torso.rotation.x=-.38;
       this.weapon.pose(target); this.actor.root.updateMatrixWorld(true);
     } else {
-      this.deathAge += dt; this.actor.mixer?.update(dt);
+      const settling=this.deathAge<this.settleUntil;
+      this.deathAge += dt;
+      // Once grounded, keep the final pose instead of traversing every bone
+      // and mesh twice per frame for every casualty during the firefight.
+      if(settling){
+      this.actor.mixer?.update(dt);
       // The supplied fall ends with a 1.25-radian torso fold. Once the body
       // falls, relax that fold so it rests flat instead of leaving arms/head up.
       const settle = MathUtils.smoothstep(this.deathAge,.35,1.3);
@@ -89,6 +96,7 @@ export class SecurityPresentation {
       this.fall.position.y = (this.push.y - this.bounds.min.y + .015) / Math.max(.001, this.scale.y);
       this.actor.root.updateMatrixWorld(true); this.bounds.setFromObject(this.actor.body!);
       this.height = this.bounds.max.y - this.bounds.min.y; this.floorError = Math.abs(this.bounds.min.y - this.push.y - .015);
+      }
       this.actor.weapon.visible = this.deathAge < .7;
       const opacity = 1 - MathUtils.smoothstep(this.deathAge, 8, 10);
       this.owned.forEach(material => { if (opacity < 1) { material.transparent = true; material.opacity = opacity; material.depthWrite = false; } });

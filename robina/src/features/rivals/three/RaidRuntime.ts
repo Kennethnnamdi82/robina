@@ -478,7 +478,9 @@ export class RaidRuntime {
     this.pool.step(dt,this.solids,this.targets,(p,damage,owner) => { const s = this.spatial(p); this.effects?.impact(p,damage > 0); this.combatAudio.hit(damage > 0,s.distance,s.pan); if (damage > 0 && owner === 'operative') { this.hits++; this.hitSerial++; } },bullet => this.effects?.trace(bullet));
     this.vehicleFeedback(dt);
     this.elapsed += dt; mission.sample(this.loadout.shots,this.hits,this.npcs.filter(n => !n.model.alive).length); mission.step(dt);
-    if (fired || previousReload !== this.weapon.reloadRemaining && (!previousReload || !this.weapon.reloadRemaining)) this.publish();
+    // Shot presentation is immediate; the existing 10 Hz HUD clock coalesces
+    // ammo/diagnostics instead of rebuilding React state for every burst.
+    if (previousReload !== this.weapon.reloadRemaining && (!previousReload || !this.weapon.reloadRemaining)) this.publish();
     if (mission.state !== 'ACTIVE') { this.pool.clear(); this.session.clearInput(); this.publish(); }
   }
   private animatePlayer(dt: number,position=this.body.position) {

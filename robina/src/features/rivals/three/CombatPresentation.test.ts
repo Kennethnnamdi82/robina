@@ -73,7 +73,11 @@ describe('combat presentation with unchanged simulation rules', () => {
       actor.actions.set('Death',actor.mixer.clipAction(gltf.animations.find(c => c.name === 'Death_Fall')!));
       const standing = new Box3().setFromObject(actor.root).getSize(new Vector3()).y, view = new SecurityPresentation(actor,gun()); view.hit(0,false);
       for (let i = 0; i < 100; i++) view.update(1/60,0,0,new Vector3());
-      expect(view.height,role + ' corpse height').toBeLessThan(standing * .45); expect(view.floorError).toBeLessThan(.001); expect(view.deathTransitions).toBe(1); view.dispose(); actor.mixer.stopAllAction();
+      expect(view.height,role + ' corpse height').toBeLessThan(standing * .45); expect(view.floorError).toBeLessThan(.001); expect(view.deathTransitions).toBe(1);
+      for(let i=0;i<240;i++)view.update(1/60,0,0,new Vector3());
+      const bounds=vi.spyOn(Box3.prototype,'setFromObject'),mixer=vi.spyOn(actor.mixer,'update');
+      view.update(1/60,0,0,new Vector3());expect(bounds).not.toHaveBeenCalled();expect(mixer).not.toHaveBeenCalled();bounds.mockRestore();mixer.mockRestore();
+      view.update(10,0,0,new Vector3());expect(view.fall.visible).toBe(false);view.dispose(); actor.mixer.stopAllAction();
       gltf.scene.traverse(node => { if (node instanceof Mesh) { node.geometry.dispose(); for (const m of Array.isArray(node.material) ? node.material : [node.material]) m.dispose(); } });
       actor.muzzle.geometry.dispose(); (actor.muzzle.material as MeshStandardMaterial).dispose();
     }

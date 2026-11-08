@@ -3,6 +3,10 @@ import type { Solid3D } from './world3d';
 export const BODY = { radius: .34,height: 1.75,gravity: 18,jump: 6.2,holdSeconds: .32,holdGravity: .35 } as const;
 export interface Body3D { position: Vector3; vertical: number; grounded: boolean; jumpTime?: number }
 export function rayBox(origin: Vector3,direction: Vector3,solid: Solid3D,max: number,padding = 0) {
+  // Reject distant static street geometry before slab division.
+  // The swept segment AABB is conservative, including grazing impacts.
+  const ex=origin.x+direction.x*max,ey=origin.y+direction.y*max,ez=origin.z+direction.z*max;
+  if(!solid.oriented&&(Math.max(origin.x,ex)<solid.box.min.x-padding||Math.min(origin.x,ex)>solid.box.max.x+padding||Math.max(origin.y,ey)<solid.box.min.y-padding||Math.min(origin.y,ey)>solid.box.max.y+padding||Math.max(origin.z,ez)<solid.box.min.z-padding||Math.min(origin.z,ez)>solid.box.max.z+padding))return Infinity;
   let near = 0,far = max;
   const oriented=solid.oriented,c=oriented?Math.cos(oriented.yaw):1,s=oriented?Math.sin(oriented.yaw):0;
   const ox=oriented?origin.x-oriented.center.x:0,oz=oriented?origin.z-oriented.center.z:0;

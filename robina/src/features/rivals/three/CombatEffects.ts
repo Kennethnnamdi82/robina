@@ -17,7 +17,7 @@ export class CombatEffects {
   setQuality(quality: 'low' | 'balanced' | 'high') { this.budget = quality === 'low' ? 16 : quality === 'balanced' ? 28 : 40; this.trailBudget = quality === 'low' ? 24 : 48; }
   constructor(private textures: { flash: T.Texture; smoke: T.Texture; blast: T.Texture }) {
     for(let i=0;i<12;i++){const mesh=new T.Mesh(this.scorchGeometry,new T.MeshBasicMaterial({color:0x171310,transparent:true,opacity:.5,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}));mesh.rotation.x=-Math.PI/2;mesh.visible=false;this.root.add(mesh);this.scorches.push({mesh,life:0});}
-    for (let i = 0; i < this.capacity; i++) { const sprite = new T.Sprite(new T.SpriteMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false })); sprite.visible = false; this.root.add(sprite); this.particles.push({ sprite, age: 1, life: 0, size: 0, growth: 0, rise: 0 }); }
+    for (let i = 0; i < this.capacity; i++) { const sprite = new T.Sprite(new T.SpriteMaterial({ map:textures.smoke, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false })); sprite.visible = false; this.root.add(sprite); this.particles.push({ sprite, age: 1, life: 0, size: 0, growth: 0, rise: 0 }); }
     for (let i = 0; i < 48; i++) {
       const material = new T.ShaderMaterial({ uniforms: { tint: { value: new T.Color(0xffe3a0) },alpha: { value: 1 } },transparent: true,depthWrite: false,blending: T.AdditiveBlending,
         vertexShader: 'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -31,7 +31,8 @@ export class CombatEffects {
     for (const t of this.trails) { t.life = Math.max(0, t.life - dt); t.mesh.visible = t.life > 0; t.mesh.material.uniforms.alpha.value = Math.min(1,t.life / .03); }
   }
   private particle(point: T.Vector3, texture: T.Texture, size: number, life: number, color: number, growth = 0, rise = 0) {
-    const available = this.particles.slice(0, this.budget),p = available.find(p => p.age >= p.life) ?? available.reduce((a, b) => a.age / a.life > b.age / b.life ? a : b);
+    let p=this.particles[0];
+    for(let i=0;i<this.budget;i++){const candidate=this.particles[i];if(candidate.age>=candidate.life){p=candidate;break;}if(candidate.age/candidate.life>p.age/p.life)p=candidate;}
     Object.assign(p, { age: 0, life, size, growth, rise }); p.sprite.visible = true; p.sprite.position.copy(point); p.sprite.scale.setScalar(size); p.sprite.material.map = texture; p.sprite.material.blending = texture === this.textures.smoke ? T.NormalBlending : T.AdditiveBlending; p.sprite.material.color.setHex(color); p.sprite.material.opacity = 1; p.sprite.material.rotation = (this.flashes + this.impacts + this.blasts) * 2.4;
   }
   muzzle(point: T.Vector3, security = false) { this.flashes++; this.particle(point, this.textures.smoke, .08, .18, security ? 0x987455 : 0x73808a, .3, .35); }
