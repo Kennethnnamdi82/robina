@@ -1,24 +1,23 @@
-import { readFileSync } from 'node:fs';
-import { gunzipSync } from 'node:zlib';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const config = JSON.parse(readFileSync('vercel.json', 'utf8'));
-const modelRedirects = config.redirects.filter((route: { source: string }) => route.source.endsWith('.glb'));
-describe('lossless production model delivery', () => {
-  it('delivers all 14 prepared models compressed without changing their decoded bytes', () => {
-    expect(modelRedirects).toHaveLength(14);
-    let raw = 0, packed = 0;
-    for (const route of modelRedirects) {
-      const source = readFileSync('public' + route.source);
-      const compressed = readFileSync('public' + route.destination);
-      expect(gunzipSync(compressed).equals(source), route.source).toBe(true);
-      expect(route.permanent).toBe(false);
-      const headers = config.headers.find((entry: { source: string }) => entry.source === route.destination)?.headers;
-      expect(headers).toContainEqual({ key: 'Content-Encoding', value: 'gzip' });
-      expect(headers).toContainEqual({ key: 'Content-Type', value: 'model/gltf-binary' });
-      raw += source.length; packed += compressed.length;
-    }
-    expect(packed).toBeLessThan(raw * .4);
+const runtimeModels = [
+  '/assets/rivals/characters/universal-operative.glb',
+  '/assets/rivals/city/living-city.glb',
+  '/assets/rivals/city/optimized/city-blocks.glb',
+  '/assets/rivals/city/optimized/street-car.glb',
+  '/assets/rivals/city/premium/delivery-truck.glb',
+  '/assets/rivals/combat3d/weapons/pistol.glb',
+  '/assets/rivals/combat3d/weapons/rifle.glb',
+  '/assets/rivals/combat3d/weapons/smg.glb',
+];
+
+describe('production model delivery', () => {
+  it('serves prepared runtime models directly instead of redirecting to compressed copies', () => {
+    expect(config.redirects.some((route: { source: string }) => route.source.endsWith('.glb'))).toBe(false);
+    expect(config.headers.some((entry: { source: string }) => entry.source.endsWith('.glb.gz'))).toBe(false);
+    for (const model of runtimeModels) expect(existsSync('public' + model), model).toBe(true);
   });
   it('redirects retired public pages to the game before downloading the application', () => {
     for (const source of ['/gaming', '/tasks', '/auto-claim', '/marketplace', '/login']) {
