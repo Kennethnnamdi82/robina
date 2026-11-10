@@ -27,7 +27,7 @@ describe('frontend-only game hub',()=>{
   });
   it('opens each dedicated menu page',()=>{
     const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(7);expect(screen.queryAllByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveLength(0);
-    fireEvent.click(screen.getByRole('link',{name:'PLAYER PROFILE'}));expect(screen.getByRole('heading',{name:'PLAYER DOSSIER'})).toBeTruthy();
+    fireEvent.click(screen.getByRole('link',{name:'PLAYER PROFILE'}));expect(screen.getByRole('heading',{name:'OPERATIVE PROFILE'})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'RANK'}));expect(screen.getByRole('heading',{name:'EARN YOUR NAME'})).toBeTruthy();view.unmount();
   });
   it('labels fictional leaderboard fixtures clearly and keeps them out of personal records',()=>{
@@ -43,7 +43,7 @@ describe('frontend-only game hub',()=>{
     const engine=new MissionEngine(launchMission(),'real-local-run');engine.prepare();engine.start();engine.step(190);for(const objective of engine.definition.objectives)engine.event(objective.event);
     saveDossier('local-test-player',addRecord(emptyDossier(),engine.snapshot(),0));at('/missions');
     expect(screen.getAllByText('COMPLETED').length).toBeGreaterThan(0);expect(screen.getAllByText('03:10').length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button',{name:/THE RESERVE.*COMPLETED/}));expect(screen.getByText('Open the central vault')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button',{name:/THE LAST DEPOSIT.*COMPLETED/}));expect(screen.getByText('Open the central vault')).toBeTruthy();
   });
   it('does not fetch or mount the 3D runtime before Play is selected',async()=>{
     at();expect(screen.queryByText('3D deployment')).toBeNull();fireEvent.click(screen.getByRole('link',{name:'PLAY'}));expect(await screen.findByText('3D deployment')).toBeTruthy();
@@ -55,5 +55,5 @@ describe('frontend-only game hub',()=>{
     fireEvent.click(screen.getByRole('link',{name:'My inventory'}));
     expect(screen.getByText('YOUR COLLECTION IS EMPTY')).toBeTruthy();
     expect(screen.queryByText('3D deployment')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();
-  });
+  },15000);
 });

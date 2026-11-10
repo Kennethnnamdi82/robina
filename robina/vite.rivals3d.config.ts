@@ -39,7 +39,7 @@ export default defineConfig(({ command }) => {
       },
     }],
     define: { 'import.meta.env.VITE_RIVALS_3D_SANDBOX': JSON.stringify(enabled ? 'true' : 'false') },
-    cacheDir: 'node_modules/.vite-rivals3d',
+    cacheDir: process.env.RIVALS3D_CACHE_DIR || 'node_modules/.vite-rivals3d',
     resolve: { alias: { '@': path.resolve(__dirname,'./src') } },
     server: { host: '0.0.0.0',port: 8084,strictPort: true,watch:{ignored:['**/public/assets/rivals/city/premium/*-source.glb']} },
     optimizeDeps: { entries: ['tests/rivals3d/index.html','tests/rivals/index.html'],include: ['react','react-dom/client','react-router-dom','three','lucide-react','phaser'] },

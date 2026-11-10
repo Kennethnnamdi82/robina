@@ -2,7 +2,7 @@ import { Box3, Vector3 } from 'three';
 import type { DamageEvent, Team } from '../combat/Health';
 import type { Solid3D } from './world3d';
 import { rayBox, traceSolids } from './physics3d';
-export interface Target3D { id: string; team: Team; box: Box3; alive: () => boolean; damage: (event: DamageEvent) => number }
+export interface Target3D { id: string; team: Team; box: Box3; alive: () => boolean; damage: (event: DamageEvent) => number; headshotMultiplier?:number }
 export interface Bullet3D { active: boolean; position: Vector3; origin: Vector3; direction: Vector3; speed: number; life: number; range: number; damage: number; owner: string; team: Team; serial: number }
 export class Projectile3D {
   readonly entries: Bullet3D[] = Array.from({ length: 48 },() => ({ active: false,position: new Vector3(),origin: new Vector3(),direction: new Vector3(),speed: 0,life: 0,range: 0,damage: 0,owner: '',team: 'operative',serial: 0 }));
@@ -24,7 +24,8 @@ export class Projectile3D {
       b.position.addScaledVector(b.direction,distance); b.range -= distance; b.life -= dt;
       travelled?.(b);
       if (distance < travel - 1e-6 || target) {
-        b.active = false; const taken = target?.damage({ id: b.owner + ':' + b.serial,sourceId: b.owner,team: b.team,amount: b.damage,angle: Math.atan2(b.direction.z,b.direction.x) }) ?? 0;
+        const precision=target?.headshotMultiplier&&b.position.y>=target.box.min.y+(target.box.max.y-target.box.min.y)*.78;
+        b.active = false; const taken = target?.damage({ id: b.owner + ':' + b.serial+(precision?':precision':''),sourceId: b.owner,team: b.team,amount: b.damage*(precision?target.headshotMultiplier??1:1),angle: Math.atan2(b.direction.z,b.direction.x) }) ?? 0;
         impact(b.position,taken,b.owner);
       } else if (b.life <= 0 || b.range <= 0) b.active = false;
     }

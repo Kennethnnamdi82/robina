@@ -24,10 +24,12 @@ function bank(){
   const solids=convertSolids(world),foot=new NavigationGrid(world.level.width*2,world.level.height*2,32,world.blockers),road=new NavigationGrid(world.level.width,world.level.height,64,world.blockers,46),cars=new CitySimulation(44).cars,vehicles=new VehicleController(cars),deploy=vi.fn(),police=new PolicePursuit(cars,road,solids,2,deploy),mission=new MissionEngine(operation.mission,'repair');mission.prepare();mission.start();const game=new CampaignGameplay(0,mission,world,vehicles,police,foot);return{world,solids,foot,road,cars,vehicles,police,mission,game,deploy};
 }
 describe('requested playable heist repairs',()=>{
-  it('alerts police on bank entry and lets Collect take the actual case without killing every guard',()=>{
-    const s=bank();s.game.step(.1,new Vector3(44,0,25),3);expect(s.police.active).toBe(true);expect(s.mission.snapshot().activeId).toBe('recover');
-    expect(s.game.interact(new Vector3(44,0,18))).toBe(true);expect(s.game.carrying).toBe(true);expect(s.world.active.has('cargo-recovered')).toBe(true);
-    s.game.interact(new Vector3(8,0,80));expect(s.mission.state).toBe('ACTIVE');s.police.lost=true;s.game.step(.1,new Vector3(8,0,80),3);s.game.interact(new Vector3(8,0,80));expect(s.mission.state).toBe('SUCCESS');
+  it('keeps the bank open until the heist starts and requires a drilled vault without killing every guard',()=>{
+    const s=bank();s.game.step(.1,new Vector3(44,0,25),3);expect(s.police.active).toBe(false);expect(s.mission.snapshot().activeId).toBe('task-0');
+    expect(s.game.interact(new Vector3(41,0,21))).toBe(true);expect(s.police.active).toBe(true);
+    expect(s.game.interact(new Vector3(44,0,18))).toBe(true);for(let i=0;i<26;i++)s.game.step(.5,new Vector3(44,0,18),3);
+    expect(s.game.interact(new Vector3(44,0,15.7))).toBe(true);expect(s.game.carrying).toBe(true);expect(s.world.active.has('cargo-recovered')).toBe(true);
+    s.game.interact(new Vector3(136,0,32));expect(s.mission.state).toBe('ACTIVE');s.police.end();s.police.lost=true;s.game.step(.1,new Vector3(136,0,32),3);s.game.interact(new Vector3(136,0,32));expect(s.mission.state).toBe('SUCCESS');
   });
   it('does not award the case from outside its reachable pickup range',()=>{
     const s=bank();s.game.step(.1,new Vector3(44,0,25),3);expect(s.game.interact(new Vector3(8,0,8))).toBe(false);expect(s.game.carrying).toBe(false);

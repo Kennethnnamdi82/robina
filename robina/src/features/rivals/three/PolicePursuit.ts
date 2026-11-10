@@ -3,11 +3,12 @@ import { driveVehicle } from './VehicleController';
 import type { CityCar } from './CitySimulation';
 import type { Solid3D } from './world3d';
 import type { EnemySpawn } from '../ai/definitions';
-import { STREET_CENTRES } from './LivingCityPlan';
+import { STREET_CENTRES,CITY_WIDTH,CITY_SIZE } from './LivingCityPlan';
 interface Unit { car:CityCar; deployed:boolean; path:Point[]; repath:number;stuck:number;reverse:number;detour:number;fireAt:number;burst:number }
 export class PolicePursuit {
   active=false;lost=false;quiet=0;clock=0;private units:Unit[]=[];private nextDispatch=0;private contacted=false;
   private hunting=false;private previous?:Point;private velocity={x:0,y:0};
+  private lastKnown?:Point;
   shots=0;
   get pursuingValuables(){return this.active&&this.hunting&&!this.lost;}
   constructor(private cars:CityCar[],private grid:NavigationGrid,private solids:Solid3D[],private response:number,private deploy:(spawn:EnemySpawn)=>void,private shoot?:(window:Point,car:CityCar)=>void,private impact?:(car:CityCar,solid:Solid3D,speed:number)=>void){}
@@ -17,6 +18,9 @@ export class PolicePursuit {
     if(!Number.isFinite(dt)||dt<=0||!this.active||this.lost)return;this.clock+=dt;
     if(this.previous){this.velocity.x=Math.max(-400,Math.min(400,(player.x-this.previous.x)/dt));this.velocity.y=Math.max(-400,Math.min(400,(player.y-this.previous.y)/dt));}this.previous={...player};
     this.units=this.units.filter(u=>(u.car.health??200)>0&&u.car.mode!=='player');
+    const visible=officers.some(o=>o.alive&&Math.hypot(o.x-player.x,o.y-player.y)<1200&&clearSight(o,player,this.grid.blockers))||this.units.some(u=>Math.hypot(u.car.x-player.x*.025,u.car.z-player.y*.025)<28&&clearSight({x:u.car.x*40,y:u.car.z*40},player,this.grid.blockers));
+    if(visible||!this.lastKnown)this.lastKnown={...player};
+    const search=visible?player:this.lastKnown;
     const response=this.hunting?Math.min(4,Math.max(2,this.response+1)):this.response;
     if(this.units.length<response&&this.clock>=this.nextDispatch){const car=this.cars.filter(c=>c.kind==='police'&&(c.health??200)>0&&!this.units.some(u=>u.car===c)&&c.mode!=='player').sort((a,b)=>Math.hypot(a.x-player.x*.025,a.z-player.y*.025)-Math.hypot(b.x-player.x*.025,b.z-player.y*.025))[0];if(car){car.mode='pursuit';car.driver=true;this.units.push({car,deployed:false,path:[],repath:0,stuck:0,reverse:0,detour:0,fireAt:this.clock+.45,burst:0});this.nextDispatch=this.clock+(this.hunting?1.25:2);}}
     for(const unit of this.units){const car=unit.car;if(car.mode==='parked'&&this.hunting)car.mode='pursuit';if(car.mode!=='pursuit'||(car.health??200)<=0)continue;
@@ -33,8 +37,8 @@ export class PolicePursuit {
       if(unit.deployed&&distance<(this.hunting?5.5:18)){car.speed=0;continue;}
       unit.repath-=dt;unit.detour=Math.max(0,unit.detour-dt);if(unit.repath<=0){
         // Cars stop on the nearest street; officers handle the bank interior.
-        const lead=this.hunting?.55:0,px=Math.max(3,Math.min(93,(player.x+this.velocity.x*lead)*.025)),pz=Math.max(3,Math.min(93,(player.y+this.velocity.y*lead)*.025)),sx=STREET_CENTRES.reduce((a,b)=>Math.abs(b-px)<Math.abs(a-px)?b:a),sz=STREET_CENTRES.reduce((a,b)=>Math.abs(b-pz)<Math.abs(a-pz)?b:a);
-        const goal=Math.abs(sx-px)<Math.abs(sz-pz)?{x:sx*40,y:pz*40}:{x:px*40,y:sz*40};
+        const lead=this.hunting&&visible?.55:0,px=Math.max(3,Math.min(CITY_WIDTH-3,(search.x+this.velocity.x*lead)*.025)),pz=Math.max(3,Math.min(CITY_SIZE-3,(search.y+this.velocity.y*lead)*.025)),sx=STREET_CENTRES.reduce((a,b)=>Math.abs(b-px)<Math.abs(a-px)?b:a),sz=STREET_CENTRES.reduce((a,b)=>Math.abs(b-pz)<Math.abs(a-pz)?b:a);
+        const goal=px>96?{x:px*40,y:sz*40}:Math.abs(sx-px)<Math.abs(sz-pz)?{x:sx*40,y:pz*40}:{x:px*40,y:sz*40};
         // A blocked car must not repeatedly replan through the same traffic
         // queue. Rebuild a local vehicle-aware detour only after a real stall.
         const traffic=unit.detour>0?this.solids.filter(s=>s.enabled&&s.id.startsWith('city-traffic-')&&s.id!=='city-traffic-'+car.id&&Math.hypot((s.box.min.x+s.box.max.x)/2-car.x,(s.box.min.z+s.box.max.z)/2-car.z)<18).slice(0,12).map(s=>({id:s.id,enabled:true,x:(s.box.min.x+s.box.max.x)*20,y:(s.box.min.z+s.box.max.z)*20,width:(s.box.max.x-s.box.min.x)*40,height:(s.box.max.z-s.box.min.z)*40})):[];
@@ -50,10 +54,10 @@ export class PolicePursuit {
       if(unit.stuck>.8){unit.reverse=.7;unit.detour=8;unit.repath=0;unit.stuck=0;}
     }
     const seen=officers.some(o=>o.alive&&Math.hypot(o.x-player.x,o.y-player.y)<1200&&clearSight(o,player,this.grid.blockers));
-    const near=this.units.some(u=>u.car.mode!=='player'&&(u.car.health??0)>0&&Math.hypot(u.car.x-player.x*.025,u.car.z-player.y*.025)<18);
+    const near=this.units.some(u=>u.car.mode!=='player'&&(u.car.health??0)>0&&Math.hypot(u.car.x-player.x*.025,u.car.z-player.y*.025)<18&&clearSight({x:u.car.x*40,y:u.car.z*40},player,this.grid.blockers));
     if(seen||near)this.contacted=true;
     this.quiet=this.contacted&&!seen&&!near?this.quiet+dt:0;
-    if(!this.hunting&&(this.units.length||this.clock>15)&&(this.quiet>=7||!this.contacted&&this.clock>=45)){this.lost=true;this.active=false;for(const u of this.units)if(u.car.mode==='pursuit'){u.car.mode='parked';u.car.speed=0;u.car.door=0;}}
+    if((this.units.length||this.clock>15)&&(this.quiet>=(this.hunting?12:7)||!this.contacted&&this.clock>=50)){this.lost=true;this.active=false;for(const u of this.units)if(u.car.mode==='pursuit'){u.car.mode='parked';u.car.speed=0;u.car.door=0;}}
   }
-  get snapshot(){return{active:this.active,lost:this.lost,hunting:this.hunting,shots:this.shots,units:this.units.length,officers:this.units.filter(u=>u.deployed).length*2,evading:this.hunting?0:this.quiet,cars:this.units.map(u=>({id:u.car.id,x:u.car.x,z:u.car.z,speed:u.car.speed,deployed:u.deployed}))};}
+  get snapshot(){return{active:this.active,lost:this.lost,hunting:this.hunting,level:this.active?Math.min(5,this.response+(this.hunting?1:0)):0,escapeSeconds:this.hunting?12:7,shots:this.shots,units:this.units.length,officers:this.units.filter(u=>u.deployed).length*2,evading:this.quiet,cars:this.units.map(u=>({id:u.car.id,x:u.car.x,z:u.car.z,speed:u.car.speed,deployed:u.deployed}))};}
 }

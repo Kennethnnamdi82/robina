@@ -62,8 +62,10 @@ export function createAssignmentOperation(index=0,seed=crypto.getRandomValues(ne
   const a=assignmentAt(index),base=seed%4294967200,normalized=base-base%21+index*3+a.district,operation=createOperation(normalized,index+1);
   const level=operation.level,mission=assignmentMission(a),s=a.site;
   level.title=a.name;level.props=level.props.filter(p=>p.id.startsWith('waterfront-rail-'));level.targets=[];level.markers=[];level.signs=[];level.zones=[];
-  level.objects=mission.objectives.filter(o=>o.id.startsWith('task-')||o.id==='recover'||o.id==='extract').map(o=>({id:o.event,kind:o.id==='extract'?'extraction':o.id==='recover'?'collectible':'terminal',name:o.title,x:o.marker.x,y:o.marker.y,range:85,solid:o.id.startsWith('task-')&&!a.convoy?{width:26,height:18}:undefined}));
-  level.enemies=Array.from({length:a.security},(_,i)=>{const x=(s.x-3+(i%3)*3)*40,y=(s.z+1+Math.floor(i/3)*2)*40;return{id:'site-guard-'+i,type:index>3&&i%3===0?'heavy' as const:i%2?'enforcer' as const:'guard' as const,x,y,angle:Math.PI/2,patrol:[{x,y},{x,y:y+55},{x:x+25,y:y+55},{x:x+25,y}]};});
+  if(a.entry)level.spawn={x:a.entry.x*40,y:a.entry.z*40};mission.spawn={...level.spawn};
+  level.objects=mission.objectives.filter(o=>o.id.startsWith('task-')||o.id==='security'||o.id==='recover'||o.id==='extract').map(o=>({id:o.event,kind:o.id==='extract'?'extraction':o.id==='recover'?'collectible':'terminal',name:o.title,x:o.marker.x,y:o.marker.y,range:75}));
+  const patrols=[[-3,3],[3,3],[-8,0],[8,0],[-3,-7],[3,-7],[-8,5],[8,5],[0,7]];
+  level.enemies=Array.from({length:a.security},(_,i)=>{const [dx,dz]=patrols[i%patrols.length],x=(s.x+dx)*40,y=(s.z+dz)*40;return{id:'site-guard-'+i,type:index>=4&&i%3===0?'heavy' as const:i%2?'enforcer' as const:'guard' as const,x,y,angle:Math.PI/2,patrol:[{x,y},{x:x+20,y},{x:x+20,y:y+40},{x,y:y+40}]};});
   level.security={...level.security,cameras:[],lasers:[],hacks:[]};
   return {...operation,ordinal,mission,assignment:index,fingerprint:operation.fingerprint+':assignment:'+a.id};
 }

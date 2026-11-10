@@ -284,9 +284,11 @@ test('campaign GPS, real driving and landscape action groups remain usable',asyn
     const badgeInside=await page.locator('.r3-bomb').evaluate(button=>{const b=button.getBoundingClientRect(),count=button.querySelector('b')!.getBoundingClientRect();return count.left>=b.left&&count.right<=b.right&&count.top>=b.top&&count.bottom<=b.bottom;});expect(badgeInside,`${width}x${height} grenade count anchor`).toBe(true);
   }
   await page.setViewportSize({width:844,height:390});
-  await move(page,'x',720);await move(page,'y',200,8);
+  // Each contract now has its own insertion point. Follow the street centres
+  // to the parked sedan rather than crossing queued traffic from the old spawn.
+  await move(page,'x',320,8);await move(page,'y',320,8);await move(page,'x',720);await move(page,'y',200,8);
   await expect(page.getByRole('button',{name:/ENTER SEDAN/})).toBeVisible();
-  await expect.poll(async()=>{const arrow=await page.getByRole('img',{name:'Red direction arrow'}).boundingBox(),entry=await page.getByRole('button',{name:/ENTER SEDAN/}).boundingBox();return Boolean(arrow&&entry&&arrow.y>=entry.y+entry.height+2);}).toBe(true);
+  await expect.poll(async()=>{const arrow=await page.getByRole('img',{name:'Red direction arrow'}).boundingBox(),entry=await page.getByRole('button',{name:/ENTER SEDAN/}).boundingBox();return Boolean(arrow&&entry&&(arrow.y+arrow.height<=entry.y-2||arrow.y>=entry.y+entry.height+2||arrow.x+arrow.width<=entry.x-2||arrow.x>=entry.x+entry.width+2));}).toBe(true);
   await page.getByRole('button',{name:/ENTER SEDAN/}).click();
   await expect(page.getByRole('group',{name:'Driving joystick'})).toBeVisible();
   await expect(page.getByRole('button',{name:'Steer left'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Steer right'})).toHaveCount(0);

@@ -41,7 +41,7 @@ export class TacticalEnemy extends EnemyController {
   override step(dt:number,context:Perception&{wanted?:boolean},shoot:(enemy:EnemyController,angle:number)=>void){
     this.clock+=dt;const start={x:this.x,y:this.y};this.sprinting=false;
     if(!this.alive){super.step(dt,context,shoot);return;}
-    if(context.wanted&&this.spawn.id.startsWith('police-')&&this.clock>=this.dispatchAt){
+    if(context.wanted&&this.spawn.id.startsWith('police-')&&this.clock>=this.dispatchAt&&clearSight(this,context.player,this.grid.blockers)&&Math.hypot(this.x-context.player.x,this.y-context.player.y)<1400){
       this.dispatchAt=this.clock+.65;this.lastKnown={...context.player};this.alarm(++this.dispatchSerial,context.player);
     }
     if(this.pending&&this.clock>=this.reactAt&&this.clock>=this.nextEvade){this.evade(this.pending);this.pending=null;}

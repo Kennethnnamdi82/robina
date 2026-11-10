@@ -3,12 +3,13 @@ import type { CityAssets, CityModel, CityDetail } from './CityAssets';
 import type { Solid3D } from './world3d';
 import type { QualityId } from '../core/presentation';
 import type { POV } from './CameraRig';
-import { cityPlan, cityRandom, STREET_CENTRES, trafficPhase,waterfrontRails,BRIDGE_SPAN, type CityPoint, type CityWeather } from './LivingCityPlan';
+import { cityPlan, cityRandom, buildingPlacement, STREET_CENTRES, trafficPhase,waterfrontRails,BRIDGE_SPAN, type CityPoint, type CityWeather } from './LivingCityPlan';
 import { CityTrafficArt } from './CityTrafficArt';
 import { CityCrowd } from './CityCrowd';
 import { CityTrees } from './CityTrees';
 import { CityGrounding } from './CityGrounding';
 import {CityRoadDetail} from './CityRoadDetail';
+import {campaignDistrict,cityParkPatches} from './CampaignDistrict';
 
 type Placement={x:number;z:number;y?:number;yaw?:number;width?:number;height?:number;depth?:number;scale?:number};
 /** The outdoor district shares its building plan with operation navigation.
@@ -31,34 +32,37 @@ export class CityEnvironment {
   constructor(readonly assets:CityAssets,readonly solids:Solid3D[],grassAlpha:T.Texture,readonly venue=0,readonly seed=0) {
     this.plan=cityPlan(venue,seed);this.root.name=this.plan.label;this.root.add(this.detail);this.geometries.add(this.box);
     this.grounding=new CityGrounding(this.plan.buildings);this.root.add(this.grounding.root);
-    const concrete=this.material(0xa6a293),curb=this.material(0xb9b2a0),asphalt=this.material(0x55534f),paint=this.material(0xd5cfae),yellow=this.material(0xd2a454),soil=this.material(0x4c5b3a),metal=this.material(0x39474b,.55);
-    this.surface(asphalt,assets.texture('premium-asphalt'),62.5);asphalt.color.set(0xf0f0ed);asphalt.roughness=.94;asphalt.bumpMap=asphalt.map;asphalt.bumpScale=.009;
+    const profile=campaignDistrict(seed);
+    const concrete=this.material(profile.paving),curb=this.material(0xb9b2a0),asphalt=this.material(profile.road),paint=this.material(0xd5cfae),yellow=this.material(profile.accent),soil=this.material(0x4c5b3a),metal=this.material(0x39474b,.55);
+    this.surface(asphalt,assets.texture('premium-asphalt'),62.5);asphalt.roughness=.94;asphalt.bumpMap=asphalt.map;asphalt.bumpScale=.009;
     this.roadDetail=new CityRoadDetail(seed);this.root.add(this.roadDetail.root);
     // A continuous asphalt sheet prevents road seams and overlapping tile strips.
     this.cube({x:44,z:44,y:-.28,width:250,height:.26,depth:250},asphalt);
-    concrete.map=this.pavingTexture();concrete.color.set(0x918d83);concrete.bumpMap=concrete.map;concrete.bumpScale=.012;paint.color.set(0xbeb9aa);
+    concrete.map=this.pavingTexture();concrete.bumpMap=concrete.map;concrete.bumpScale=.012;paint.color.set(0xbeb9aa);
     for(let row=-2;row<6;row++)for(let col=-2;col<6;col++) {
       const x=20+col*24,z=20+row*24;
+      if(x===profile.site.x&&z===profile.site.z)continue;
       this.cube({x,z,y:-.015,width:14.8,height:.08,depth:14.8},curb);
       this.cube({x,z,y:.02,width:14.3,height:.03,depth:14.3},concrete);
     }
     this.roadPaint(paint,yellow);
     // One permanent mesh per building. Distance/POV never replaces a facade
     // with a different silhouette; curation keeps these models inexpensive.
-    for(const model of ['residence','commerce','headquarters'] as const)this.batch(model,this.plan.buildings.filter(b=>b.model===model).map(b=>({...b,y:.045})),this.root);
+    for(const model of ['residence','commerce','headquarters'] as const)this.batch(model,this.plan.buildings.filter(b=>b.model===model).map(b=>({...buildingPlacement(b),y:.045})),this.root);
     // Medium/Low shadows use inset building massing, not every window rim.
     // Colour/depth writes are off in the main pass; shadow depth still writes.
     const shadowMaterial=new T.MeshBasicMaterial({colorWrite:false,depthWrite:false});this.materials.add(shadowMaterial);
     this.architectureShadows=new T.InstancedMesh(this.box,shadowMaterial,this.plan.buildings.length);this.architectureShadows.name='Building shadow massing';
-    this.plan.buildings.forEach((b,i)=>{this.dummy.position.set(b.x,b.height/2-.08,b.z);this.dummy.rotation.set(0,b.yaw,0);this.dummy.scale.set(Math.max(1,b.width-.8),b.height-.25,Math.max(1,b.depth-.8));this.dummy.updateMatrix();this.architectureShadows.setMatrixAt(i,this.dummy.matrix);});
+    this.plan.buildings.forEach((b,i)=>{this.dummy.position.set(b.x,b.height/2-.08,b.z);this.dummy.rotation.set(0,0,0);this.dummy.scale.set(Math.max(1,b.width-.8),b.height-.25,Math.max(1,b.depth-.8));this.dummy.updateMatrix();this.architectureShadows.setMatrixAt(i,this.dummy.matrix);});
     this.architectureShadows.computeBoundingSphere();this.architectureShadows.castShadow=true;this.root.add(this.architectureShadows);
     const skyline:Placement[]=[];
-    for(let i=-2;i<=5;i++)for(const side of [0,1]){skyline.push({x:20+i*24,z:side?-52:140,width:15,depth:12,height:24+((i+2)%3)*3,yaw:Math.PI});skyline.push({x:side?-52:180,z:20+i*24,width:15,depth:12,height:24+((i+2)%3)*3});}
-    this.batch('headquarters',skyline,this.root,false,true);
+    for(let i=-2;i<=5;i++)for(const side of [0,1]){const height=profile.heights[0]+((i+2)%3)*(profile.heights[1]-profile.heights[0])*.45;skyline.push({x:20+i*24,z:side?140:-28,width:15,depth:12,height,yaw:Math.PI});skyline.push({x:side?180:-28,z:20+i*24,width:15,depth:12,height});}
+    this.batch(profile.style==='garden'?'residence':profile.style==='financial'||profile.style==='corporate'?'headquarters':'commerce',skyline,this.root,false,true);
     const random=cityRandom(seed),trees:Placement[]=[],tallTrees:Placement[]=[],planters:Placement[]=[],lamps:Placement[]=[],bins:Placement[]=[],hydrants:Placement[]=[];
     for(let row=-1;row<4;row++)for(let col=-1;col<4;col++) {
       const x=20+col*24,z=20+row*24;
       for(const dx of [-6.5,6.5])for(const dz of [-3.5,3.5]) {
+        if(random()>profile.foliage)continue;
         const p={x:x+dx,z:z+dz,height:5.3+random()*1.9,width:3.5,depth:3.5};if(this.solids.some(s=>s.kind==='cover'&&Math.hypot((s.box.min.x+s.box.max.x)/2-p.x,(s.box.min.z+s.box.max.z)/2-p.z)<1.6))continue;(random()>.55?tallTrees:trees).push(p);planters.push({x:p.x,z:p.z,width:1.3,depth:1.3,height:.24});
       }
       lamps.push({x:x-6.7,z:z-6.7,height:5.2,width:1.0,depth:1.0,yaw:Math.PI/2});bins.push({x:x+6.5,z:z+5.2,height:.8,width:.5,depth:.5});hydrants.push({x:x-5.8,z:z+6.6,height:.7,width:.35,depth:.35});
@@ -68,6 +72,7 @@ export class CityEnvironment {
     // The old exit barricades are gone: all four east avenues cross the canal
     // into a walkable/drivable waterfront with real hotel and bar facades
     this.waterfront(concrete,metal,asphalt,yellow);
+    this.districtLandmarks(metal,yellow);
     this.pedestrianObstacles=solids.filter(s=>!s.id.startsWith('city-traffic'));this.traffic=new CityTrafficArt(assets,seed);this.crowd=new CityCrowd(seed,assets.humanoid!);this.root.add(this.traffic.root,this.crowd.root);solids.push(...this.traffic.colliders);
     for(let i=0;i<3;i++){const light=new T.PointLight(0xffc184,180,22,2);this.nightLights.push(light);this.root.add(light);}
     this.flushBoxes();this.setLighting('golden');
@@ -95,6 +100,31 @@ export class CityEnvironment {
     this.sign('THE AMBER ROOM / BAR',120.35,2.3,44,-Math.PI/2,8,.7,'#312326','#ffd5a2');
     this.cube({x:119,z:20,y:3.2,width:3,height:.18,depth:9},metal);
     this.cube({x:118.8,z:44,y:.04,width:2.4,height:.04,depth:10},concrete);
+    // A visible suspension crossing is also the campaign's escape route.
+    for(const x of [100,112]){for(const side of [-1,1])this.cube({x,z:32+side*5.4,width:.5,height:8.2,depth:.5},metal);this.cube({x,z:32,y:7.6,width:.6,height:.45,depth:11.4},metal);}
+    const points:number[]=[];
+    for(const side of [-1,1])for(let x=98;x<114;x+=.5){const y=(at:number)=>1.3+6.5*(Math.cos((at-100)/12*Math.PI)**2);points.push(x,y(x),32+side*5.4,x+.5,y(x+.5),32+side*5.4);if(Number.isInteger(x))points.push(x,.9,32+side*5.4,x,y(x),32+side*5.4);}
+    const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(points,3));this.geometries.add(geometry);const cable=new T.LineBasicMaterial({color:0xe4d4b4});this.materials.add(cable);this.root.add(new T.LineSegments(geometry,cable));
+    this.sign('MERIDIAN CROSSING / QUAYSIDE',106,8.1,37.7,0,11,.55,'#233740','#ffe6b1');
+  }
+  private districtLandmarks(metal:T.Material,accent:T.Material){
+    const profile=campaignDistrict(this.seed),dark=this.material(0x24343b),warm=this.material(profile.accent);
+    if(profile.style==='port'||profile.style==='freight'){
+      for(const z of [20,68]){for(const x of [149,169])this.cube({x,z,width:.8,height:24,depth:.8},accent);this.cube({x:159,z,y:23,width:38,height:.8,depth:.9},accent);this.cube({x:151,z,y:17,width:.15,height:6,depth:.15},metal);for(let i=0;i<4;i++)this.cube({x:149+i*5,z:z+8,y:0,width:4.4,height:2.8+(i%2)*2.8,depth:10},i%2?dark:warm);}
+      this.sign('PORT AUTHORITY / DEEP WATER TERMINAL',142,8,44,-Math.PI/2,21,1.5,'#29383a','#f5d699');
+    }else if(profile.style==='research'){
+      for(const z of [20,68])for(const x of [-14,-7]){this.cube({x,z,width:4,height:13,depth:4},metal);this.cube({x,z,y:9,width:4.15,height:.25,depth:4.15},warm);this.cube({x:x+2.5,z,y:2,width:1,height:9,depth:1},dark);}
+      this.sign('EMBER / BIOTECH CAMPUS',44,7,-12,0,30,1.7,'#224249','#b0f3dc');
+    }else if(profile.style==='military'){
+      for(const z of [8,44,80]){this.cube({x:-8,z,width:3,height:12,depth:3},warm);this.cube({x:-8,z,y:10,width:6,height:2,depth:6},dark);this.cube({x:-8,z,y:12,width:6.5,height:.35,depth:6.5},metal);}
+      this.sign('NORTHGATE / RESTRICTED MILITARY AREA',44,6,-9,0,35,1.6,'#313b2b','#ece8b7');
+    }else if(profile.style==='garden'){
+      for(let i=0;i<10;i++)this.cube({x:-7,z:i*10,width:1.4,height:4.5,depth:7},warm);
+      this.sign('WESTHAVEN / BOTANICAL QUARTER',44,4,-9,0,28,1.2,'#34513a','#e9e4bc');
+    }else if(profile.style==='corporate'){
+      for(const x of [-13,157])for(const z of [20,68]){this.cube({x,z,width:8,height:64,depth:13},dark);for(let y=8;y<60;y+=8)this.cube({x,z:z+6.6,y,width:8.3,height:.25,depth:.12},warm);}
+      this.sign('OBSIDIAN / THE EXCHANGE',44,16,-13,0,33,2,'#1b192d','#dbc2ff');
+    }else this.sign('HELIX / FINANCIAL MILE',44,9,-11,0,28,1.5,'#293337','#f1ddb1');
   }
   private cube(p:Placement,material:T.Material){if(!this.boxes.has(material))this.boxes.set(material,[]);this.boxes.get(material)!.push(p);}
   private flushBoxes(){for(const [material,placements]of this.boxes){const mesh=new T.InstancedMesh(this.box,material,placements.length);placements.forEach((p,i)=>{this.dummy.position.set(p.x,(p.y??0)+(p.height??1)/2,p.z);this.dummy.rotation.set(0,p.yaw??0,0);this.dummy.scale.set(p.width??1,p.height??1,p.depth??1);this.dummy.updateMatrix();mesh.setMatrixAt(i,this.dummy.matrix);});mesh.computeBoundingSphere();mesh.castShadow=mesh.receiveShadow=true;this.root.add(mesh);}this.boxes.clear();}
@@ -127,7 +157,7 @@ export class CityEnvironment {
     }
   }
   private grassPatches(alpha:T.Texture,soil:T.Material){
-    const patches=[{x:20,z:20,width:7,depth:7},{x:44,z:20,width:6,depth:8},{x:20,z:44,width:8,depth:7}];
+    const patches=cityParkPatches(this.seed);
     for(const p of patches)this.cube({...p,y:.04,height:.015},soil);
     const blade=new T.PlaneGeometry(.36,.38);blade.translate(0,.19,0);this.geometries.add(blade);const m=this.material(0x718052);m.alphaMap=alpha;m.alphaTest=.4;m.side=T.DoubleSide;
     this.grass=new T.InstancedMesh(blade,m,540);const random=cityRandom(this.seed);for(let i=0;i<540;i++){const p=patches[i%patches.length];this.dummy.position.set(p.x+(random()-.5)*p.width,.06,p.z+(random()-.5)*p.depth);this.dummy.rotation.set(0,random()*Math.PI,0);this.dummy.scale.setScalar(.5+random()*.6);this.dummy.updateMatrix();this.grass.setMatrixAt(i,this.dummy.matrix);}this.grass.computeBoundingSphere();this.root.add(this.grass);
@@ -139,6 +169,7 @@ export class CityEnvironment {
     this.batch('dumpster',[{x:61,z:49,height:1.4,width:1.9,depth:1.2},{x:73,z:21,height:1.4,width:1.9,depth:1.2}],this.detail,true);
     const wood=this.material(0x705446);
     for(const x of [16,24,40,48])for(const z of [14.5,25.5]) {
+      const site=campaignDistrict(this.seed).site;if(Math.abs(x-site.x)<7&&Math.abs(z-site.z)<6.5)continue;
       this.cube({x,z,y:.48,width:2.1,height:.13,depth:.5},wood);this.cube({x,z:z+.22,y:.61,width:2.1,height:.48,depth:.09},wood);
       for(const side of [-1,1])this.cube({x:x+side*.8,z,y:.05,width:.08,height:.46,depth:.45},metal);
     }
@@ -169,7 +200,6 @@ export class CityEnvironment {
       if(!placements.has(id))placements.set(id,[]);placements.get(id)!.push({x:c.x,z:c.z,width:s.x,depth:s.z,height:s.y});
     }
     for(const [id,p]of placements)this.batch(id,p,this.root);
-    this.sign('HELIX RESERVE / PRIVATE BANKING',38.4,3.8,2.6,0,7.0,.85,'#253837','#e8c08b');
     this.sign(this.plan.label,20,3.8,1.6,0,6.5,.8,'#253837','#e8c08b');
     this.sign('RIVERSIDE SQUARE',20,1.6,26,Math.PI,3,.45,'#31483e','#e5d5ae');
   }
@@ -196,6 +226,6 @@ export class CityEnvironment {
     if(this.lighting==='night'&&this.nightClock>.35){this.nightClock=0;this.lampPositions.sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));this.nightLights.forEach((l,i)=>l.position.set(this.lampPositions[i].x,4.8,this.lampPositions[i].z));}
   }
   private architectureHash(){if(this.architectureFingerprint)return this.architectureFingerprint;let hash=2166136261;for(const mesh of this.architecture){for(const value of mesh.instanceMatrix.array){hash=Math.imul(hash^Math.round(value*10000),16777619);}hash=Math.imul(hash^mesh.geometry.getAttribute('position').count,16777619);}return this.architectureFingerprint=(hash>>>0).toString(16);}
-  get stats(){return{architecture:'photo-textured-fixed-meshes',architectureHash:this.architectureHash(),models:this.assets.models.size,detailModels:this.assets.details.size,grass:this.grass?.count??0,windTime:this.wind.value,quality:this.quality,district:this.plan.district,seed:this.seed,outdoor:true,buildings:this.plan.buildings.length,signature:this.plan.signature,lighting:this.lighting,traffic:{active:this.traffic.active,...this.traffic.simulation.stats},civilians:this.crowd.stats};}
+  get stats(){return{architecture:'photo-textured-fixed-meshes',architectureHash:this.architectureHash(),models:this.assets.models.size,detailModels:this.assets.details.size,grass:this.grass?.count??0,windTime:this.wind.value,quality:this.quality,district:this.plan.district,location:this.plan.label,style:campaignDistrict(this.seed).style,seed:this.seed,outdoor:true,buildings:this.plan.buildings.length,signature:this.plan.signature,lighting:this.lighting,traffic:{active:this.traffic.active,...this.traffic.simulation.stats},civilians:this.crowd.stats};}
   dispose(){this.traffic.dispose();this.crowd.dispose();this.trees.dispose();this.grounding.dispose();this.roadDetail.dispose();this.root.traverse(node=>{if(node instanceof T.InstancedMesh)node.dispose();});this.geometries.forEach(g=>g.dispose());this.materials.forEach(m=>m.dispose());this.textures.forEach(t=>t.dispose());this.root.clear();}
 }

@@ -8,9 +8,9 @@ import type { Target3D } from './Projectile3D';
 export class CivilianCombat {
   readonly targets:Target3D[];private health:Health[];private clock=0;active=0;hits=0;deaths=0;
   onCrime?:()=>void;
-  constructor(readonly people:Civilian[]){
+  constructor(readonly people:Civilian[],prefix='civilian'){
     this.health=people.map(()=>new Health(60,.04));
-    this.targets=people.map((p,i)=>({id:'civilian-'+i,team:'civilian',box:new Box3(),alive:()=>i<this.active&&this.health[i].current>0,damage:event=>this.damage(i,event)}));
+    this.targets=people.map((p,i)=>({id:prefix+'-'+i,team:'civilian',box:new Box3(),alive:()=>i<this.active&&this.health[i].current>0,damage:event=>this.damage(i,event)}));
     this.sync(people.length);
   }
   private damage(index:number,event:DamageEvent){

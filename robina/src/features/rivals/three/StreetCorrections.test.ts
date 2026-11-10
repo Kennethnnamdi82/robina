@@ -63,7 +63,7 @@ describe('street guidance, collision and rolling pursuit corrections',()=>{
   it('pursues stolen valuables beyond the former timeout and fires from the car while moving',()=>{
     const cars=new CitySimulation(4,1).cars;Object.assign(cars[0],{kind:'police',x:20,z:32,dx:1,dz:0,speed:0});const shoot=vi.fn(),police=new PolicePursuit(cars,new NavigationGrid(60,60,64,[],46),[],1,()=>{},shoot);police.alert(true);
     for(let i=0;i<90;i++)police.step(.1,{x:(32+i*.08)*40,y:32*40},[]);expect(shoot).toHaveBeenCalled();expect(police.snapshot.shots).toBeGreaterThan(2);expect(cars[0].travelled).toBeGreaterThan(5);
-    for(let i=0;i<600;i++)police.step(.1,{x:95*40,y:95*40},[]);expect(police.active).toBe(true);expect(police.lost).toBe(false);police.end();expect(police.active).toBe(false);
+    for(let i=0;i<600;i++)police.step(.1,{x:95*40,y:95*40},[{x:95*40+20,y:95*40,alive:true}]);expect(police.active).toBe(true);expect(police.lost).toBe(false);police.end();expect(police.active).toBe(false);
   });
   it('a police window bullet clears only its own car and is stopped by another car',()=>{
     const pool=new Projectile3D(),own={id:'city-traffic-7',enabled:true,kind:'cover' as const,box:new Box3(new Vector3(-2,0,-2),new Vector3(2,2,2))},cover={id:'city-traffic-9',enabled:true,kind:'cover' as const,box:new Box3(new Vector3(4,0,-2),new Vector3(6,2,2))},hurt=vi.fn(()=>6),target={id:'operative',team:'operative' as const,box:new Box3(new Vector3(8,0,-1),new Vector3(9,2,1)),alive:()=>true,damage:hurt};

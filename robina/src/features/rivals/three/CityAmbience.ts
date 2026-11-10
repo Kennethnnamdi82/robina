@@ -6,6 +6,7 @@ export class CityAmbience {
   private context?:AudioContext;private master?:GainNode;private engine?:OscillatorNode;private engineGain?:GainNode;private rolling?:GainNode;private horn?:GainNode;private paused=false;private disposed=false;private lastHorn=-30;
   private crashNoise?:AudioBuffer;
   private score?:HeistScore;
+  private sirens:OscillatorNode[]=[];private sirenGain?:GainNode;private sirenPan?:StereoPannerNode;
   constructor(private settings:GameSettings){document.addEventListener('pointerdown',this.unlock);document.addEventListener('keydown',this.unlock);}
   private unlock=()=>{
     if(this.disposed||this.settings.muted||this.paused)return;
@@ -20,18 +21,24 @@ export class CityAmbience {
       const tire=ctx.createBiquadFilter();tire.type='bandpass';tire.frequency.value=430;tire.Q.value=.5;this.rolling=ctx.createGain();this.rolling.gain.value=0;source.connect(tire);tire.connect(this.rolling);this.rolling.connect(out);
       this.crashNoise=ctx.createBuffer(1,ctx.sampleRate*.75,ctx.sampleRate);const crash=this.crashNoise.getChannelData(0);let seed=419;for(let i=0;i<crash.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const t=i/ctx.sampleRate;crash[i]=(seed/0xffffffff*2-1)*Math.exp(-t*9);}
       this.horn=ctx.createGain();this.horn.gain.value=0;this.horn.connect(out);for(const frequency of [350,440]){const osc=ctx.createOscillator();osc.type='sine';osc.frequency.value=frequency;osc.connect(this.horn);osc.start();}
+      this.sirenGain=ctx.createGain();this.sirenGain.gain.value=0;this.sirenPan=ctx.createStereoPanner();this.sirenGain.connect(this.sirenPan);this.sirenPan.connect(out);
+      for(const frequency of [620,925]){const osc=ctx.createOscillator();osc.type='triangle';osc.frequency.value=frequency;osc.connect(this.sirenGain);osc.start();this.sirens.push(osc);}
     }if(this.settings.musicVolume>0&&!this.score)this.score=new HeistScore(this.context,this.settings);void this.context.resume().catch(()=>{});this.volume();}catch{/* Audio never gates gameplay. */}
   };
   private volume(){if(this.context&&this.master)this.master.gain.setTargetAtTime(this.paused||this.settings.muted?0:this.settings.masterVolume*this.settings.sfxVolume,this.context.currentTime,.15);}
   configure(settings:GameSettings){this.settings=settings;this.volume();this.score?.configure(settings);if(!settings.muted)this.unlock();}
   pause(paused:boolean){this.paused=paused;this.volume();this.score?.pause(paused);if(paused)void this.context?.suspend().catch(()=>{});else this.unlock();}
   duck(){this.score?.duck();}
-  update(time:number,speed:number,distance:number,waiting:boolean,alert=false,driving?:{speed:number;throttle:number}){
+  update(time:number,speed:number,distance:number,waiting:boolean,alert=false,driving?:{speed:number;throttle:number},police?:{distance:number;pan:number;level:number}){
     const ctx=this.context;if(!ctx||ctx.state!=='running'||this.paused||this.settings.muted)return;
     this.score?.setAlert(alert);const velocity=Math.abs(driving?.speed??speed),load=Math.min(1,Math.abs(driving?.throttle??0));
     this.engine?.frequency.setTargetAtTime(driving?45+velocity*5.2+load*18:38+velocity*3,ctx.currentTime,.12);
     this.engineGain?.gain.setTargetAtTime(driving?.065+load*.015:.012/(1+distance*.1),ctx.currentTime,.15);
     this.rolling?.gain.setTargetAtTime(driving?Math.min(.15,velocity*.007):0,ctx.currentTime,.2);
+    const wail=.5+.5*Math.sin(time*(police&&police.level>=3?8:2.8));
+    this.sirens.forEach((osc,i)=>osc.frequency.setTargetAtTime((i?860:560)+wail*(i?370:310),ctx.currentTime,.035));
+    this.sirenGain?.gain.setTargetAtTime(police&&alert?.12/(1+(police.distance/15)**2):0,ctx.currentTime,.18);
+    this.sirenPan?.pan.setTargetAtTime(Math.max(-.85,Math.min(.85,police?.pan??0)),ctx.currentTime,.15);
     if(waiting&&distance<25&&time-this.lastHorn>19&&this.horn){this.lastHorn=time;const gain=.027/(1+distance*.15);this.horn.gain.cancelScheduledValues(ctx.currentTime);this.horn.gain.setValueAtTime(0,ctx.currentTime);this.horn.gain.linearRampToValueAtTime(gain,ctx.currentTime+.025);this.horn.gain.setValueAtTime(gain,ctx.currentTime+.14);this.horn.gain.linearRampToValueAtTime(0,ctx.currentTime+.22);}
   }
   crash(speed:number,distance=0,pan=0){

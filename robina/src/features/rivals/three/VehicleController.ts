@@ -52,7 +52,7 @@ export function driveVehicle(car:CityCar,input:DrivingInput,dt:number,solids:rea
 }
 export function addParkedVehicles(cars:CityCar[]){
   const template=cars[0];if(!template)return;
-  const parking=[{x:18,z:3.5},{x:44,z:27.3},{x:68,z:51.3},{x:68,z:75.3}];
+  const parking=[{x:18,z:3.5},{x:48,z:27.3},{x:68,z:51.3},{x:68,z:75.3}];
   for(const [index,kind]of (['sedan','van','lorry','coupe'] as const).entries())cars.push({...template,id:cars.length,kind,...parking[index],dx:1,dz:0,length:VEHICLE_LENGTH[kind],speed:0,travelled:0,health:200,mode:'parked',driver:false,door:0});
   // Traffic was distributed before parking existed. Resolve conflicts before
   // any scene is shown, never by teleporting an already visible vehicle.

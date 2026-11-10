@@ -1,9 +1,11 @@
 import type { HeistMissionDefinition, MissionObjective } from './types';
+import {CAMPAIGN_DISTRICTS} from '../three/CampaignDistrict';
 
 export interface Assignment {
   id: string; name: string; type: string; location: string; description: string; target: string;
   district: number; site: { x: number; z: number }; extraction: { x: number; z: number };
   tasks: readonly string[]; security: number; response: number; vehicleDelivery?: boolean; hostage?: boolean; convoy?: boolean;
+  entry?:{x:number;z:number}; holdTask?:number; holdSeconds?:number;
 }
 // Immutable mission data. Coordinates are metres; adapters explicitly convert
 // to the existing gameplay engine's coordinates instead of mixing units.
@@ -17,16 +19,25 @@ const CATALOG: readonly Assignment[] = [
   {id:'military',name:'BLACK STANDARD',type:'MILITARY FACILITY RAID',location:'Northgate / Military perimeter',description:'Disable the perimeter relay and command uplink, recover the equipment case and escape a reinforced response. Extraction requires the actual case, not just defeated soldiers.',target:'Designated equipment case',district:1,site:{x:44,z:20},extraction:{x:8,z:80},tasks:['Disable the perimeter relay','Disconnect the command uplink','Unlock the equipment cage'],security:6,response:3},
 ];
 // Preserve existing saved dossier indices while extending the campaign.
-export const ASSIGNMENTS:readonly Assignment[]=[CATALOG[0],CATALOG[1],CATALOG[4],CATALOG[2],CATALOG[3],CATALOG[5],CATALOG[6]];
+const stages = [
+  {name:'THE LAST DEPOSIT',description:'The bank is open. Enter through the lobby or side passages, take the manager’s vault key and start the drill. Keep the vault operation running while police close in, recover the briefcase, then break contact and cross Meridian Bridge to the getaway.',site:{x:44,z:20},extraction:{x:136,z:32},entry:{x:8,z:32},tasks:["Take the manager's vault key",'Start the vault drill and hold the bank'],holdTask:1,holdSeconds:12},
+  {name:'COLD REACTION',site:{x:68,z:44},extraction:{x:136,z:56},entry:{x:80,z:8},holdTask:0,holdSeconds:16},
+  {name:'GHOST IN THE GLASS',site:{x:68,z:68},extraction:{x:8,z:80},entry:{x:8,z:56},holdTask:2,holdSeconds:20},
+  {name:'RUNNING RED',site:{x:44,z:20},extraction:{x:136,z:80},entry:{x:80,z:32}},
+  {name:'NO ONE LEFT BEHIND',site:{x:44,z:68},extraction:{x:136,z:8},entry:{x:56,z:80}},
+  {name:'MIDNIGHT MANIFEST',site:{x:68,z:20},extraction:{x:136,z:56},entry:{x:8,z:8},holdTask:1,holdSeconds:24},
+  {name:'BLACK STANDARD',site:{x:20,z:68},extraction:{x:136,z:80},entry:{x:80,z:80},holdTask:1,holdSeconds:28},
+] as const;
+export const ASSIGNMENTS:readonly Assignment[]=[CATALOG[0],CATALOG[1],CATALOG[4],CATALOG[2],CATALOG[3],CATALOG[5],CATALOG[6]].map((a,i)=>({...a,...stages[i],site:CAMPAIGN_DISTRICTS[i].site,security:3+i,response:Math.min(4,1+Math.floor(i/2))}));
 export const assignmentAt = (index: number) => ASSIGNMENTS[Math.max(0,Math.min(ASSIGNMENTS.length-1,index))];
 export function assignmentObjectives(a: Assignment): MissionObjective[] {
   const marker=(x:number,z:number)=>({x:x*40,y:z*40});
-  const tasks:MissionObjective[] = a.tasks.map((title,i)=>({id:'task-'+i,title,stage:'ON SITE',event:'task-'+i,prerequisites:[i?'task-'+(i-1):'security'],marker:marker(a.site.x-2+i*2,a.site.z-1)}));
+  const tasks:MissionObjective[] = a.tasks.map((title,i)=>({id:'task-'+i,title,stage:a.holdTask===i?'HOLD POSITION':'ON SITE',event:'task-'+i,prerequisites:[i?'task-'+(i-1):a.id==='reserve'?'locate':'security'],marker:a.id==='reserve'?marker(a.site.x+(i===0?-3:0),a.site.z+(i===0?1:-2)):marker(a.site.x-2+i*2,a.site.z-1)}));
   return [
-    {id:'locate',title:'Locate '+a.location.split(' / ')[0],stage:'INFILTRATION',event:'site-entered',prerequisites:[],marker:marker(a.site.x,a.site.z+5)},
-    ...(a.id==='reserve'?[]:[{id:'security',title:'Overcome the site security',stage:'SECURITY',event:'site-secured',prerequisites:['locate'],marker:marker(a.site.x,a.site.z+2)}]),
+    {id:'locate',title:a.convoy?'Locate the moving cargo transport':'Enter '+a.location.split(' / ')[0],stage:'INFILTRATION',event:'site-entered',prerequisites:[],marker:marker(a.site.x,a.site.z+5)},
+    ...(a.id==='reserve'?[]:[{id:'security',title:a.convoy?'Identify the transport':'Bypass the site access control or defeat security',stage:'SECURITY',event:'site-secured',prerequisites:['locate'],marker:marker(a.site.x-4,a.site.z+2)}]),
     ...tasks,
-    {id:'recover',title:a.hostage?'Escort the released witness':'Recover '+a.target,stage:'RECOVERY',event:'cargo-recovered',prerequisites:[a.id==='reserve'?'locate':'task-'+(tasks.length-1)],marker:marker(a.site.x,a.site.z-2)},
+    {id:'recover',title:a.hostage?'Escort the released witness':'Recover '+a.target,stage:'RECOVERY',event:'cargo-recovered',prerequisites:['task-'+(tasks.length-1)],marker:marker(a.site.x,a.site.z-(a.id==='reserve'?4.3:2))},
     {id:'escape',title:'Reach extraction under pursuit',stage:'EVASION',event:'extraction-approach',prerequisites:['recover'],marker:marker(a.extraction.x,a.extraction.z)},
     {id:'extract',title:a.vehicleDelivery?'Deliver the recovered cargo vehicle':a.hostage?'Bring the witness to the safehouse':'Deliver '+a.target+' to extraction',stage:'EXTRACTION',event:'extraction',prerequisites:['recover','escape'],marker:marker(a.extraction.x,a.extraction.z)},
   ];

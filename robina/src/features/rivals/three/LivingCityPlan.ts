@@ -1,5 +1,6 @@
 /** World coordinates, in metres. Rendering, navigation and collision use this
  * same immutable plan. No camera information ever enters city generation. */
+import { campaignDistrict } from './CampaignDistrict';
 export const CITY_SIZE = 96;
 export const CITY_WIDTH = 144;
 export const STREET_CENTRES = [8, 32, 56, 80] as const;
@@ -30,17 +31,19 @@ export function cityRandom(seed: number) {
 }
 export function cityPlan(venue: number, seed: number): CityPlan {
   const random = cityRandom(seed), district = (['downtown', 'industrial', 'residential'] as const)[venue % 3];
-  const variant=Math.floor((seed%21)/3),heightBands=[[22,32],[9,14],[30,44],[7,11],[8,14],[6,10],[8,12]][variant];
+  const variant=Math.floor((seed%21)/3),profile=campaignDistrict(seed),heightBands=profile.heights;
+  const missionLot=profile.site;
   const blocks: CityBlock[] = [], buildings: CityBuilding[] = [];
   for (let row = -1; row < 4; row++) for (let col = -1; col < 4; col++) {
     const x = 20 + col * 24, z = 20 + row * 24;
     // The original mission is now an outdoor civic square. Keep its devices,
     // patrols, phase-link route and vault access in these open blocks.
-    const park = row === 0 && (col === 0 || col === 1) || row === 1 && col === 0 || row>=1&&col>=1&&((row*3+col+variant)%7===(variant===4?2:0));
+    const park = row === 0 && (col === 0 || col === 1) || row === 1 && col === 0 || x===missionLot.x&&z===missionLot.z || (variant===4?(row+col)%2===0:variant===3||variant===5?row>=1&&col>=1:row>=1&&col>=1&&((row*3+col+variant)%7===(variant===4?2:0)));
     const variation=random();
     const model = district === 'residential' ? variation>.25?'residence':'commerce' : district === 'industrial' ? variation>.2?'commerce':'residence' : variation>.5?'headquarters':variation>.15?'commerce':'residence';
+    const footprints=[[9.6,12],[13.6,9.6],[10,10],[14,8],[8,9],[13,8],[12,10]][variant];
     const building: CityBuilding | undefined = park ? undefined : {
-      id: `city-${col}-${row}`, model, x, z, width: 11.2, depth: 11.2,
+      id: `city-${col}-${row}`, model, x, z, width: footprints[0], depth: footprints[1],
       height: heightBands[0]+random()*(heightBands[1]-heightBands[0]),
       yaw: row<0?0:col%2===0?-Math.PI/2:Math.PI/2,
     };
@@ -48,13 +51,16 @@ export function cityPlan(venue: number, seed: number): CityPlan {
   }
   // Entry always offers the requested sunset; later missions vary lighting.
   buildings.push(...WATERFRONT_BUILDINGS.map(b=>({...b})));
-  const weather = (['golden', 'golden', 'daylight', 'night'] as const)[(seed >>> 3) % 4];
-  return { seed, district, weather, label: district === 'downtown' ? 'HELIX / DOWNTOWN' : district === 'industrial' ? 'EMBER / FREIGHT DISTRICT' : 'OBSIDIAN / GARDEN QUARTER', blocks, buildings,
+  const weather = profile.weather;
+  return { seed, district, weather, label: profile.name, blocks, buildings,
     signature: 'district-layout-'+variant+'|'+buildings.map(b => `${b.id}:${b.model}:${b.height.toFixed(2)}`).join('|') };
 }
 export function buildingAt(plan: CityPlan, x: number, z: number) {
   return plan.buildings.find(b => Math.abs(x - b.x) < b.width / 2 && Math.abs(z - b.z) < b.depth / 2);
 }
+/** Width/depth describe world collision. Quarter-turn facades need swapped
+ * local scales to keep their rendered footprint aligned with that collision. */
+export function buildingPlacement(b:CityBuilding){const turned=Math.abs(Math.sin(b.yaw))>.5;return{...b,width:turned?b.depth:b.width,depth:turned?b.width:b.depth};}
 export type TrafficAxis = 'x' | 'z';
 export type SignalColor = 'green' | 'amber' | 'red';
 /** Protected all-red pedestrian interval follows each pair of traffic phases. */
