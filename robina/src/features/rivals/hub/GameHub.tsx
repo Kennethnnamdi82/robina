@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Check, ChevronRight, Clock3, Crosshair, Flag, LogOut, Medal, Shield, ShoppingBag, SlidersHorizontal, Swords, Target, Trophy, UserRound } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Award, BadgeCheck, Check, ChevronRight, Clock3, Crosshair, Flag, LockKeyhole, LogOut, Medal, Shield, ShoppingBag, SlidersHorizontal, Sparkles, Swords, Target, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { HubSettings } from './HubSettings';
 import { addRecord, dossierStats, formatTime, OPERATIONS, PREVIEW_STANDINGS, RANKS, readDossier, readPreferences, runScore, saveDossier, savePreferences,isAssignmentUnlocked, type Dossier, type HeistRecord, type HubPreferences } from './model';
@@ -102,7 +102,44 @@ function Missions({ dossier }: { dossier: Dossier }) {
 }
 function Profile({ dossier }: { dossier: Dossier }) {
   const stats=dossierStats(dossier);
-  return <><PageHeading code="03" title="PLAYER DOSSIER" description="Your operations — Your best times — Your story so far"/><section className="rh-dossier-banner"><div className={'rh-large-emblem '+dossier.emblem}><Shield size={56}/><span>{stats.rankIndex+1}</span></div><div><span className="rh-eyebrow">FIELD OPERATIVE / LOCAL PROFILE</span><h2>{dossier.callsign}</h2><p>{stats.rank.name} <span>·</span> {stats.score.toLocaleString()} PRACTICE POINTS</p></div><Link className="rh-secondary" to="/customization">EDIT DOSSIER <ArrowUpRight size={16}/></Link></section><div className="rh-stat-grid"><Stat label="HEISTS COMPLETED" value={String(stats.wins).padStart(2,'0')}/><Stat label="SUCCESS RATE" value={stats.successRate+'%'}>{stats.attempts} recorded runs</Stat><Stat label="BEST EXTRACTION" value={formatTime(stats.best)}/><Stat label="ELIMINATIONS" value={stats.kills}>{stats.shots} shots fired</Stat></div><div className="rh-section-head"><h2>RECENT DEPLOYMENTS</h2><Link to="/missions" className="rh-text-link">FULL HISTORY <ArrowUpRight size={14}/></Link></div><History records={dossier.records.slice(0,5)}/><p className="rh-local-notice">Your recorded operations on this device</p></>;
+  const progression=profileProgress(stats.score);
+  const achievements=profileAchievements(stats);
+  const cosmetics=profileCosmetics(dossier,stats,achievements);
+  return <><PageHeading code="03" title="OPERATIVE PROFILE" description="Identity, progression and the record you have earned in the city"/>
+    <section className="rh-profile-hero">
+      <div className="rh-profile-portrait" style={{backgroundImage:`url(${ART})`}} aria-hidden="true"><span>ACTIVE OPERATIVE</span><div className={'rh-profile-insignia '+dossier.emblem}><Shield size={31}/><b>LVL<br/>{String(progression.level).padStart(2,'0')}</b></div></div>
+      <div className="rh-profile-identity"><span className="rh-eyebrow">RIVALS COMMAND / FIELD DOSSIER</span><div className="rh-profile-name"><div className={'rh-large-emblem '+dossier.emblem}><Shield size={42}/><span>{stats.rankIndex+1}</span></div><div><h2>{dossier.callsign}</h2><p>{stats.rank.name} <i/> EQUIPPED: {dossier.emblem.toUpperCase()} CREST</p></div></div><div className="rh-xp"><div><span>OPERATIVE LEVEL {progression.level}</span><b>{progression.current.toLocaleString()} / {progression.needed.toLocaleString()} XP</b></div><progress aria-label="Level progress" value={progression.current} max={progression.needed}/><small>{progression.remaining.toLocaleString()} XP UNTIL LEVEL {progression.level + 1} <em>LOCAL PRACTICE XP</em></small></div></div>
+      <div className="rh-profile-actions"><Link className="rh-secondary" to="/customization">CUSTOMIZE IDENTITY <ArrowUpRight size={16}/></Link><span><BadgeCheck size={15}/> SECURE RAID RECORDS<br/><small>AWAITING SERVER VERIFICATION</small></span></div>
+    </section>
+    <section className="rh-profile-command" aria-label="Career snapshot"><Stat label="COMPLETED MISSIONS" value={String(stats.wins).padStart(2,'0')}><span>from {stats.attempts} deployments</span></Stat><Stat label="VERIFIED RAIDS" value="00"><span>secure results only</span></Stat><Stat label="SUCCESS RATE" value={stats.successRate+'%'}><span>local operation record</span></Stat><Stat label="BEST EXTRACTION" value={formatTime(stats.best)}><span>{stats.kills} total eliminations</span></Stat></section>
+    <div className="rh-profile-grid">
+      <section className="rh-profile-panel rh-achievement-panel"><div className="rh-profile-panel-head"><div><span className="rh-eyebrow">CAREER MILESTONES</span><h2>ACHIEVEMENTS</h2></div><span>{achievements.filter(item=>item.unlocked).length}/{achievements.length} EARNED</span></div><div className="rh-achievement-list">{achievements.map(item=><article key={item.name} data-unlocked={item.unlocked}><span className="rh-achievement-icon">{item.unlocked?<Award size={20}/>:<LockKeyhole size={18}/>}</span><div><strong>{item.name}</strong><p>{item.description}</p></div><small>{item.unlocked?'EARNED':'LOCKED'}</small></article>)}</div></section>
+      <section className="rh-profile-panel rh-cosmetics-panel"><div className="rh-profile-panel-head"><div><span className="rh-eyebrow">FIELD LOCKER</span><h2>IDENTITY LOADOUT</h2></div><Link to="/customization" className="rh-text-link">VIEW ALL <ArrowUpRight size={14}/></Link></div><div className="rh-cosmetic-grid">{cosmetics.map(item=><article key={item.name} data-unlocked={item.unlocked}><span>{item.unlocked?<Sparkles size={18}/>:<LockKeyhole size={17}/>}</span><small>{item.type}</small><strong>{item.name}</strong><em>{item.equipped?'EQUIPPED':item.unlocked?'UNLOCKED':'LOCKED'}</em></article>)}</div><p className="rh-profile-note">Cosmetics are identity-only and never affect gameplay. Secure inventory unlocks will appear here when connected.</p></section>
+    </div>
+    <div className="rh-section-head rh-profile-history-head"><div><span className="rh-eyebrow">MISSION ARCHIVE</span><h2>RECENT DEPLOYMENTS</h2></div><Link to="/missions" className="rh-text-link">FULL HISTORY <ArrowUpRight size={14}/></Link></div><History records={dossier.records.slice(0,5)}/><p className="rh-local-notice">Local practice data is stored on this device. Verified raid rewards, XP and inventory require a secure server record.</p></>;
+}
+function profileProgress(score: number) {
+  let level=1, floor=0, next=1000;
+  while (score>=next) { level+=1; floor=next; next+=Math.round(1000*(1+(level-1)*.12)); }
+  return { level, current:score-floor, needed:next-floor, remaining:next-score };
+}
+function profileAchievements(stats: ReturnType<typeof dossierStats>) {
+  return [
+    { name:'FIRST HEIST', description:'Finish your first recorded operation.', unlocked:stats.attempts>0 },
+    { name:'VAULT BREAKER', description:'Complete three successful extractions.', unlocked:stats.wins>=3 },
+    { name:'SECURITY SPECIALIST', description:'Log 25 eliminations across your operations.', unlocked:stats.kills>=25 },
+    { name:'FIRST RIVAL VICTORY', description:'Win a verified rival challenge.', unlocked:false },
+    { name:'VAULT ARCHITECT', description:'Publish a verified community vault.', unlocked:false },
+    { name:'EXPEDITION SURVIVOR', description:'Finish a verified expedition.', unlocked:false },
+  ];
+}
+function profileCosmetics(dossier: Dossier, stats: ReturnType<typeof dossierStats>, achievements: ReturnType<typeof profileAchievements>) {
+  return [
+    { type:'CREST', name:dossier.emblem.toUpperCase()+' INSIGNIA', unlocked:true, equipped:true },
+    { type:'CALLING CARD', name:'FIRST EXTRACTION', unlocked:achievements[0].unlocked, equipped:false },
+    { type:'FINISH', name:'VAULT BREAKER GOLD', unlocked:achievements[1].unlocked, equipped:false },
+    { type:'TITLE', name:'CITY RUNNER', unlocked:stats.wins>=5, equipped:false },
+  ];
 }
 function Leaderboards({ dossier }: { dossier: Dossier }) {
   const [scope,setScope]=useState('preview'),[sort,setSort]=useState('score');
