@@ -35,5 +35,6 @@ src/features/Prepared SFX Library
 src/features/rugfire/RIVALS
 public/assets/rivals/city/premium/*-source.glb
 android/
-assets/
+# Exclude only the native app's top-level artwork, not public/assets game files.
+/assets/
 release/
