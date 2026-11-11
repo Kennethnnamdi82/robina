@@ -1,16 +1,20 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, Award, BadgeCheck, Check, ChevronRight, Clock3, Crosshair, Flag, LockKeyhole, LogOut, Medal, Radio, Shield, ShoppingBag, SlidersHorizontal, Sparkles, Swords, Target, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { HubSettings } from './HubSettings';
+import LeaderboardPage from './LeaderboardPage';
 import { MissionDifficulty, OperationArt } from './OperationArt';
-import { addRecord, dossierStats, formatTime, OPERATIONS, PREVIEW_STANDINGS, RANKS, readDossier, readPreferences, runScore, saveDossier, savePreferences,isAssignmentUnlocked, type Dossier, type HeistRecord, type HubPreferences } from './model';
+import { addRecord, dossierStats, formatTime, OPERATIONS, RANKS, readDossier, readPreferences, runScore, saveDossier, savePreferences,isAssignmentUnlocked, type Dossier, type HeistRecord, type HubPreferences } from './model';
 import type { MissionSnapshot } from '../missions/types';
 import { trapFocus } from '../ui/trapFocus';
 import './hub.css';
 import './command-theme.css';
 import './readability.css';
 import './cinematic.css';
+import '../three/social.css';
+import { createPlayerEconomy, gameMoney } from '../progression/PlayerEconomy';
+import { usePlayerEconomy } from '../progression/usePlayerEconomy';
 
 const PlayPage = lazy(() => import('./PlayPage'));
 const StorePage = lazy(() => import('../store/StorePage'));
@@ -34,6 +38,8 @@ export default function GameHub() {
   return <Hub key={identity} identity={identity}/>;
 }
 function Hub({ identity }: { identity: string }) {
+  const economy=useMemo(()=>createPlayerEconomy(identity),[identity]);
+  const balances=usePlayerEconomy(economy);
   const { signOut } = useAuth();
   const [dossier, setDossier] = useState(() => readDossier(identity));
   const [preferences, setPreferences] = useState(readPreferences);
@@ -51,20 +57,20 @@ function Hub({ identity }: { identity: string }) {
   const updateSettings = (patch: Partial<HubPreferences>) => setPreferences(old => { const next = { ...old, ...patch }; setSaved(savePreferences(next)); return next; });
   const stats = dossierStats(dossier);
   const settings = (back?: () => void) => <HubSettings value={preferences} onChange={updateSettings} saved={saved} onBack={back}/>;
-  if (pathname === '/play') return <Suspense fallback={<main className="rh-loading" role="status">PREPARING INSERTION…</main>}><PlayPage dossier={dossier} preferences={preferences} onResult={record} renderSettings={settings}/></Suspense>;
+  if (pathname === '/play') return <Suspense fallback={<main className="rh-loading" role="status">PREPARING INSERTION…</main>}><PlayPage dossier={dossier} preferences={preferences} economy={economy} onResult={record} renderSettings={settings}/></Suspense>;
   return <div className="rh-app" data-emblem={dossier.emblem} data-contrast={preferences.highContrast} data-reduced={preferences.motion === 'reduce'}>
     <a className="rh-skip" href="#rh-content">Skip to content</a>
-    <header className="rh-topbar"><Link to="/" className="rh-brand" aria-label="RIVALS lobby"><span className="rh-crest"><Swords size={24}/></span><span><strong>RIVALS</strong><small>RIVAL HEIST</small></span></Link><span className="rh-status"><i/> SOLO OPERATIONS</span><Link to="/profile" className="rh-header-profile"><span className="rh-mini-emblem"><Shield size={18}/></span><span><strong>{dossier.callsign}</strong><small>{stats.rank.name} · DEVICE PROFILE</small></span></Link><button className="rh-icon-button" aria-label="Exit game menu" onClick={() => setExitOpen(true)}><LogOut size={18}/></button></header>
+    <header className="rh-topbar"><Link to="/" className="rh-brand" aria-label="RIVALS lobby"><span className="rh-crest"><Swords size={24}/></span><span><strong>RIVALS</strong><small>RIVAL HEIST</small></span></Link><span className="rh-status"><i/> SOLO OPERATIONS</span><div className="rh-campaign-wallet" aria-label="Campaign balances"><span>REVIVE COINS<strong>{balances.coins.toLocaleString()}</strong></span><span>MISSION CASH<strong>{gameMoney(balances.cash)}</strong></span></div><Link to="/profile" className="rh-header-profile"><span className="rh-mini-emblem"><Shield size={18}/></span><span><strong>{dossier.callsign}</strong><small>{stats.rank.name} · DEVICE PROFILE</small></span></Link><button className="rh-icon-button" aria-label="Exit game menu" onClick={() => setExitOpen(true)}><LogOut size={18}/></button></header>
     {pathname !== '/' && <nav className="rh-subnav" aria-label="Game navigation">{NAV.map(({to,label,icon:Icon}) => <NavLink key={to} end={to==='/'} to={to}><Icon size={14}/>{label}</NavLink>)}</nav>}
     <main id="rh-content" ref={title} className={pathname === '/' ? 'rh-main rh-main-lobby' : 'rh-main'}>
       <Routes>
-        <Route index element={<Lobby dossier={dossier} onExit={() => setExitOpen(true)}/>}/>
+        <Route index element={<Lobby dossier={dossier} cash={balances.cash} coins={balances.coins} awards={Object.keys(balances.rewards).length} onExit={() => setExitOpen(true)}/>}/>
         <Route path="missions" element={<Missions dossier={dossier}/>}/>
         <Route path="profile" element={<Profile dossier={dossier}/>}/>
-        <Route path="leaderboards" element={<Leaderboards dossier={dossier}/>}/>
+        <Route path="leaderboards" element={<LeaderboardPage dossier={dossier}/>}/>
         <Route path="rank" element={<Ranks dossier={dossier}/>}/>
         <Route path="settings" element={settings()}/>
-        <Route path="bounties" element={<Suspense fallback={<p role="status">OPENING CREATOR COMMAND…</p>}><BountyPage identity={identity}/></Suspense>}/>
+        <Route path="bounties/*" element={<Suspense fallback={<p role="status">OPENING CREATOR COMMAND…</p>}><BountyPage identity={identity}/></Suspense>}/>
         <Route path="store/*" element={<Suspense fallback={<p role="status">OPENING THE EXCHANGE…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
         <Route path="inventory" element={<Suspense fallback={<p role="status">OPENING FIELD LOCKER…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
         <Route path="purchase-history" element={<Suspense fallback={<p role="status">OPENING PURCHASE HISTORY…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
@@ -81,18 +87,18 @@ function Hub({ identity }: { identity: string }) {
 function PageHeading({ code, title, description }: { code: string; title: string; description: string }) {
   return <header className="rh-page-heading"><Link className="rh-back" to="/"><ArrowLeft size={15}/> BACK TO LOBBY</Link><span className="rh-eyebrow">OPERATIVE COMMAND / {code}</span><h1 tabIndex={-1}>{title}</h1><p>{description}</p></header>;
 }
-function Lobby({ dossier, onExit }: { dossier: Dossier; onExit: () => void }) {
+function Lobby({ dossier, onExit,cash,coins,awards }: { dossier: Dossier; onExit: () => void;cash:number;coins:number;awards:number }) {
   const stats = dossierStats(dossier), next = OPERATIONS.find(op => !dossier.records.some(r => r.venue===op.venue && r.state==='SUCCESS')) || OPERATIONS[((dossier.records.find(r=>r.state==='SUCCESS')?.venue??-1)+1)%OPERATIONS.length];
   return <><section className="rh-lobby rh-command-lobby" aria-label="RIVALS main menu">
     <div className="rh-lobby-art" style={{backgroundImage:`url(${ART})`}} aria-hidden="true"/>
-    <div className="rh-lobby-copy"><span className="rh-eyebrow"><i/> SOLO CAMPAIGN / SEVEN CONTRACTS</span><h1 tabIndex={-1}>RIVAL<br/><em>HEIST<span>01</span></em></h1><p>THE CITY IS YOURS.<br/><strong>IF YOU CAN GET OUT.</strong></p>
+    <div className="rh-lobby-copy"><span className="rh-eyebrow"><i/> SOLO CAMPAIGN / {OPERATIONS.length} CONTRACTS</span><h1 tabIndex={-1}>RIVAL<br/><em>HEIST<span>01</span></em></h1><p>THE CITY IS YOURS.<br/><strong>IF YOU CAN GET OUT.</strong></p>
       <div className="rh-lobby-promos"><Link to="/store/characters"><img src="/assets/rivals/store/commander.webp" alt=""/><span><small>THE COMMAND COLLECTION</small><b>LEAVE A SIGNATURE.</b><em>EXPLORE THE STORE <ArrowUpRight size={13}/></em></span></Link><Link to="/inventory"><Crosshair size={19}/><span><small>QUARTERMASTER</small><b>YOUR FIELD LOCKER</b></span><ArrowUpRight size={16}/></Link></div>
     </div>
     <div className="rh-operative-tag"><span>FIELD OPERATIVE / {dossier.callsign}</span><b>{stats.rank.name}</b><small>READY FOR INSERTION</small></div>
-    <nav className="rh-command-nav" aria-label="Main menu">{NAV.slice(1).map(({to,label,icon:Icon},index) => <Link to={to} key={to} aria-label={label==='CUSTOMIZATION'?'CHARACTER CUSTOMIZATION':label}><span className="rh-nav-index" aria-hidden="true">0{index+1}</span><span><b>{label}</b><small>{to==='/missions'?'SEVEN JOBS. NO TWO ALIKE.':to==='/store'?'HARDWARE / IDENTITY / SIGNATURE':to==='/bounties'?'CREATE / SUBMIT / TRACK':to==='/leaderboards'?'EXHIBITION & YOUR RECORDED RUNS':to==='/profile'?'YOUR RECORD. YOUR REPUTATION.':to==='/settings'?'CONFIGURE YOUR EXPERIENCE':to==='/rank'?'EARN YOUR NEXT INSIGNIA':to==='/inventory'?'ISSUED KIT / VERIFIED COLLECTION':'CALLSIGN / CREST / IDENTITY'}</small></span><Icon size={21}/></Link>)}</nav>
+    <nav className="rh-command-nav" aria-label="Main menu">{NAV.slice(1).map(({to,label,icon:Icon},index) => <Link to={to} key={to} aria-label={label==='CUSTOMIZATION'?'CHARACTER CUSTOMIZATION':label}><span className="rh-nav-index" aria-hidden="true">0{index+1}</span><span><b>{label}</b><small>{to==='/missions'?OPERATIONS.length+' JOBS. YOUR NEXT PAYDAY.':to==='/store'?'HARDWARE / IDENTITY / SIGNATURE':to==='/bounties'?'CREATE / SUBMIT / TRACK':to==='/leaderboards'?'EXHIBITION & YOUR RECORDED RUNS':to==='/profile'?'YOUR RECORD. YOUR REPUTATION.':to==='/settings'?'CONFIGURE YOUR EXPERIENCE':to==='/rank'?'EARN YOUR NEXT INSIGNIA':to==='/inventory'?'ISSUED KIT / VERIFIED COLLECTION':'CALLSIGN / CREST / IDENTITY'}</small></span><Icon size={21}/></Link>)}</nav>
     <div className="rh-lobby-deploy"><div><span className="rh-eyebrow">NEXT CONTRACT / {String(next.venue+1).padStart(2,'0')}</span><h2>{next.name}</h2><p>{next.location}</p></div><Link className="rh-primary rh-play" to={'/play?operation='+next.id} aria-label="PLAY"><PlayGlyph/><span>PLAY<small>DEPLOY TO OPERATION</small></span><ArrowUpRight size={25}/></Link></div>
     <button className="rh-command-exit" onClick={onExit}><LogOut size={15}/><span>EXIT / BACK</span></button>
-  </section><section className="rh-lobby-bottom"><div><Shield size={25}/><span><small>YOUR STANDING</small><strong>{stats.rank.name}</strong></span><Link to="/rank">VIEW RANK <ChevronRight size={14}/></Link></div><div><Crosshair size={24}/><span><small>SUCCESSFUL EXTRACTIONS</small><strong>{String(stats.wins).padStart(2,'0')}</strong></span><span className="rh-muted">LOCAL RECORD</span></div><div><Clock3 size={24}/><span><small>PERSONAL BEST</small><strong>{formatTime(stats.best)}</strong></span><Link to="/profile">DOSSIER <ChevronRight size={14}/></Link></div></section></>;
+  </section><section className="rh-lobby-bottom"><div><Shield size={25}/><span><small>YOUR STANDING</small><strong>{stats.rank.name}</strong></span><Link to="/rank">VIEW RANK <ChevronRight size={14}/></Link></div><div><Crosshair size={24}/><span><small>SUCCESSFUL EXTRACTIONS</small><strong>{String(stats.wins).padStart(2,'0')}</strong></span><span className="rh-muted">LOCAL RECORD</span></div><div><Clock3 size={24}/><span><small>PERSONAL BEST</small><strong>{formatTime(stats.best)}</strong></span><Link to="/profile">DOSSIER <ChevronRight size={14}/></Link></div></section><section className="rh-campaign-awards" aria-label="Campaign earnings and achievements"><div><span>MISSION ACHIEVEMENTS</span><strong>{awards} CONTRACT PAYOUTS</strong></div><div><span>REVIVE COINS</span><strong>{coins.toLocaleString()}</strong></div><div><span>SPENDING CASH</span><strong>{gameMoney(cash)}</strong></div><p>Earn coins for revives and cash for food, drinks and nightlife. Fictional currency, saved on this device.</p></section></>;
 }
 function PlayGlyph(){return <svg viewBox="0 0 24 24" width="25" height="25" fill="currentColor" aria-hidden="true"><path d="M6 3.5 21 12 6 20.5V3.5Z"/></svg>;}
 function Stat({ label, value, children }: { label: string; value: ReactNode; children?: ReactNode }) {
@@ -109,7 +115,7 @@ function History({ records }: { records: HeistRecord[] }) {
 function Missions({ dossier }: { dossier: Dossier }) {
   const [filter, setFilter] = useState('all');
   const records = dossier.records.filter(r => filter==='all' || (filter==='completed' ? r.state==='SUCCESS' : r.state!=='SUCCESS'));
-  return <><PageHeading code="01" title="OPERATIONS" description="Seven contracts. Seven ways into the city. Plan your route. Earn your extraction."/>
+  return <><PageHeading code="01" title="OPERATIONS" description={OPERATIONS.length+" contracts. From bank vaults to bridge interceptions. Earn your extraction."}/>
     <div className="rh-section-head"><h2>AVAILABLE CONTRACTS</h2><span>CONTINUOUS CAMPAIGN / REPLAYABLE</span></div>
     <div className="rh-mission-grid">{OPERATIONS.map(op=>{
       const wins=dossier.records.filter(r=>r.venue===op.venue&&r.state==='SUCCESS'),unlocked=isAssignmentUnlocked(dossier,op.venue);
@@ -159,13 +165,6 @@ function profileCosmetics(dossier: Dossier, stats: ReturnType<typeof dossierStat
     { type:'FINISH', name:'VAULT BREAKER GOLD', unlocked:achievements[1].unlocked, equipped:false },
     { type:'TITLE', name:'CITY RUNNER', unlocked:stats.wins>=5, equipped:false },
   ];
-}
-function Leaderboards({ dossier }: { dossier: Dossier }) {
-  const [scope,setScope]=useState('preview'),[sort,setSort]=useState('score');
-  const rows=[...PREVIEW_STANDINGS].sort((a,b)=>sort==='time'?a.best-b.best:sort==='missions'?b.wins-a.wins:b.score-a.score);
-  const local=dossier.records.filter(r=>r.state==='SUCCESS').sort((a,b)=>sort==='time'?a.seconds-b.seconds:runScore(b)-runScore(a));
-  return <><PageHeading code="04" title="THE RIVALS TO BEAT" description="Performance — Successful heists — Clean extraction times — Nothing else"/><div className="rh-board-toolbar"><div className="rh-tabs" role="group" aria-label="Leaderboard view"><button aria-pressed={scope==='preview'} onClick={()=>setScope('preview')}>EXHIBITION STANDINGS</button><button aria-pressed={scope==='local'} onClick={()=>setScope('local')}>MY RECORDED RUNS</button></div><label className="rh-sort">RANK BY <select aria-label="Rank by" value={sort} onChange={e=>setSort(e.target.value)}><option value="score">Performance score</option><option value="missions">Missions completed</option><option value="time">Fastest extraction</option></select></label></div>{scope==='preview' && <><div className="rh-preview-notice"><span>EXHIBITION BOARD</span><p>Exhibition players illustrate the rankings — select My Recorded Runs to see your own results</p></div><div className="rh-podium">{rows.slice(0,3).map((row,i)=><article key={row.callsign} className={i===0?'rh-podium-first':''}><span className="rh-eyebrow">#{String(i+1).padStart(2,'0')} / {i===0?'TOP OPERATIVE':'CONTENDER'}</span><div className={'rh-large-emblem '+row.emblem}><Shield size={38}/></div><h2>{row.callsign}</h2><strong>{(sort==='time'?formatTime(row.best):sort==='missions'?row.wins:row.score.toLocaleString())}</strong><small>{sort==='time'?'BEST EXTRACTION':sort==='missions'?'HEISTS COMPLETED':'PERFORMANCE POINTS'}</small></article>)}</div></>}
-    {scope==='local' && !local.length ? <Empty title="NO FINISHED HEISTS YET">Your completed runs will be ranked here by performance and extraction time — Preview players never enter your records</Empty> : <div className="rh-table-wrap"><table className="rh-board"><caption>{scope==='preview'?'EXHIBITION STANDINGS · FICTIONAL DATA':'PERSONAL RUN RANKINGS · THIS BROWSER'}</caption><thead><tr><th>RANK</th><th>{scope==='preview'?'OPERATIVE':'OPERATION'}</th><th>SCORE</th><th>{scope==='preview'?'HEISTS':'OBJECTIVES'}</th><th>{scope==='preview'?'BEST TIME':'TIME'}</th></tr></thead><tbody>{scope==='preview'?rows.map((row,i)=><tr key={row.callsign}><td>#{String(i+1).padStart(2,'0')}</td><td><span className={'rh-table-emblem '+row.emblem}><Shield size={17}/></span>{row.callsign}</td><td>{row.score.toLocaleString()}</td><td>{row.wins}</td><td>{formatTime(row.best)}</td></tr>):local.map((row,i)=><tr key={row.runId}><td>#{String(i+1).padStart(2,'0')}</td><td>{OPERATIONS[row.venue].name}</td><td>{runScore(row).toLocaleString()}</td><td>{row.completed}/{row.mandatory??10}</td><td>{formatTime(row.seconds)}</td></tr>)}</tbody></table></div>}<p className="rh-local-notice">Practice scoring: 1,000 per completed heist + up to 600 time-bonus points + 25 per elimination (up to 500). Failures and abandoned runs score zero — No currency or account rewards</p></>;
 }
 function Ranks({ dossier }: { dossier: Dossier }) {
   const stats=dossierStats(dossier), progress=stats.next ? Math.min(100,(stats.score-stats.rank.points)/(stats.next.points-stats.rank.points)*100) : 100;

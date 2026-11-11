@@ -4,6 +4,7 @@ import type { WorldState } from '../world/WorldState';
 import { buildingAt, cityPlan } from './LivingCityPlan';
 import {siteLayout} from './SiteLayout';
 import {assignmentAt} from '../missions/assignments';
+import {socialWalls} from './SocialVenues';
 
 export const METRES = .025;
 export interface Solid3D { id: string; box: Box3; enabled: boolean; kind: 'wall' | 'door' | 'cover' | 'platform'; oriented?: {center:Vector3;half:Vector3;yaw:number} }
@@ -17,13 +18,15 @@ export const platformDefinitions = [
 export function convertSolids(world: WorldState): Solid3D[] {
   const seed=Number(world.level.id.replace('operation-',''));
   const city=Number.isFinite(seed)?cityPlan(seed%3,seed):undefined;
-  const site=Number.isFinite(seed)?siteLayout(assignmentAt(Math.floor(seed%21/3))):[];
+  const site=Number.isFinite(seed)?siteLayout(assignmentAt(world.level.assignmentIndex??Math.floor(seed%21/3))):[];
+  const venues=socialWalls();
   return [
     ...world.blockers.map(b => {
       const kind: Solid3D['kind'] = b.id.startsWith('wall-')||b.id.startsWith('mission-wall-') ? 'wall' : ['transit-door','vault-gate','vault','guardian-lockdown','mission-vault-door'].includes(b.id) ? 'door' : 'cover';
       const part=b.id.match(/^mission-(?:wall|furniture)-(\d+)$/);
       const height = part?site[Number(part[1])]?.height??1.05:kind === 'wall' ? (city?buildingAt(city,b.x*METRES,b.y*METRES)?.height??3.4:3.4) : kind === 'door' ? 3.1 : b.id.startsWith('task-')?1.3:b.id.includes('console') || b.id.startsWith('relay') ? 1.25 : 1.05;
-      return { id: b.id,enabled: b.enabled,kind,box: new Box3(new Vector3((b.x - b.width / 2) * METRES,0,(b.y - b.height / 2) * METRES),new Vector3((b.x + b.width / 2) * METRES,height,(b.y + b.height / 2) * METRES)) };
+      const socialHeight=venues.find(part=>'social-'+part.id===b.id)?.h;
+      return { id: b.id,enabled: b.enabled,kind,box: new Box3(new Vector3((b.x - b.width / 2) * METRES,0,(b.y - b.height / 2) * METRES),new Vector3((b.x + b.width / 2) * METRES,socialHeight??height,(b.y + b.height / 2) * METRES)) };
     }),
     ...(city?[]:platformDefinitions).map(p => ({ id: p.id,enabled: true,kind: 'platform' as const,box: new Box3(new Vector3((p.x - p.width / 2) * METRES,0,(p.z - p.depth / 2) * METRES),new Vector3((p.x + p.width / 2) * METRES,p.height,(p.z + p.depth / 2) * METRES)) })),
   ];

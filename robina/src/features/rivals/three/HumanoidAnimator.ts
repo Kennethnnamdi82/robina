@@ -1,6 +1,7 @@
 import { AnimationClip, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, MathUtils, Quaternion, Vector3, type AnimationAction, type Object3D } from 'three';
 import type { Actor } from '../../rugfire/actors';
 import type { POV } from './CameraRig';
+import { ArmIK } from './ArmIK';
 
 export interface HumanoidFrame {
   vx: number; vz: number; vertical: number; grounded: boolean; sprinting: boolean;
@@ -35,6 +36,7 @@ export class HumanoidAnimator {
   private pelvis: Object3D; private chest: Object3D;
   private pelvisSample = new Quaternion(); private chestSample = new Quaternion(); private corrected = false;
   private weaponPose: { bone: Object3D; source: Quaternion }[] = [];
+  private socialArms?:{left:ArmIK;right:ArmIK};private socialPoint=new Vector3();private socialPole=new Vector3();
   get clipName() { return this.base?.getClip().name.split(':')[1] ?? ''; }
   /** The layered pose that keeps the equipped item readable during locomotion. */
   get upperClipName() { return this.upper?.getClip().name.replace(/^upper-/, '').split(':').pop() ?? ''; }
@@ -203,6 +205,21 @@ export class HumanoidAnimator {
     for (const action of this.actions.values()) if (action.enabled && (action.isRunning() || action.paused)) this.activeActions++;
   }
   /** Useful to validate sockets against the real animated hand in browser QA. */
+  poseSocial(action:string,time:number){
+    if(!this.socialArms){
+      const body=this.actor.body!,upperR=body.getObjectByName('upperarm_r'),lowerR=body.getObjectByName('lowerarm_r'),handR=body.getObjectByName('hand_r'),upperL=body.getObjectByName('upperarm_l'),lowerL=body.getObjectByName('lowerarm_l'),handL=body.getObjectByName('hand_l');
+      // Simplified/legacy animation rigs can still play ordinary locomotion.
+      if(!upperR||!lowerR||!handR||!upperL||!lowerL||!handL)return;
+      this.socialArms={right:new ArmIK(upperR,lowerR,handR),left:new ArmIK(upperL,lowerL,handL)};
+    }
+    const lift=(Math.sin(time*2.2-Math.PI/2)+1)/2;
+    for(const [side,arm]of [[1,this.socialArms.right],[-1,this.socialArms.left]] as const){
+      const mouth=action==='drink'?side===1:action==='eat'?side===1:false;
+      this.socialPoint.set(side*(mouth?.18:.25),mouth?1.15+lift*.34:action==='party'?1.2+Math.sin(time*4+side)*.18:1.08,mouth?.36-lift*.23:.37);
+      if(action==='party')this.socialPoint.x=side*.43;
+      this.actor.root.localToWorld(this.socialPoint);this.socialPole.set(side*.5,.95,.04);this.actor.root.localToWorld(this.socialPole);arm.solve(this.socialPoint,this.socialPole);
+    }
+  }
   socketPosition(target: Vector3) { this.actor.root.updateMatrixWorld(true); return this.sockets.rightHand.getWorldPosition(target); }
   dispose() {
     if (this.disposed) return; this.disposed = true;

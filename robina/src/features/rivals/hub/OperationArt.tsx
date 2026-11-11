@@ -1,5 +1,6 @@
 import type { Assignment } from '../missions/assignments';
 import { siteLayout } from '../three/SiteLayout';
+import { ASSIGNMENTS } from '../missions/assignments';
 
 /** A lightweight briefing drawing of the real mission footprint, not a fake map. */
 export function OperationArt({assignment:a}:{assignment:Assignment}){
@@ -9,6 +10,7 @@ export function OperationArt({assignment:a}:{assignment:Assignment}){
     <path d="M0 160H300M35 0V190M268 0V190" stroke="currentColor" opacity=".2" fill="none"/>
     <g transform="translate(150 88) rotate(-12) scale(8)">
       <rect x="-7" y="-6.4" width="14" height="12.8" fill="#b9c1c6" fillOpacity=".03" stroke="currentColor" strokeWidth=".06" strokeDasharray=".3 .3"/>
+      {a.bridge&&<><path d="M-10 -5.5H10M-10 5.5H10" stroke="currentColor" strokeWidth=".2"/><path d="M-10 0H10" stroke="#ea5b57" strokeWidth=".1" strokeDasharray=".5 .5"/></>}
       {siteLayout(a).map((p,i)=><rect key={i} x={p.x-p.width/2} y={p.z-p.depth/2} width={p.width} height={p.depth} fill="currentColor" fillOpacity={p.kind==='wall'?.75:.2} stroke="currentColor" strokeWidth=".07"/>)}
       <path d="M0 8V3.6m-1 1 1-1 1 1" fill="none" stroke="#ea5b57" strokeWidth=".2"/>
       <circle cx="0" cy="-3.9" r=".6" fill="none" stroke="#ea5b57" strokeWidth=".15"/>
@@ -18,5 +20,5 @@ export function OperationArt({assignment:a}:{assignment:Assignment}){
   </svg>;
 }
 export function MissionDifficulty({stage}:{stage:number}){
-  return <span className="rh-difficulty" aria-label={'Difficulty '+(stage+1)+' of 7'}><span>{['CONTROLLED','GUARDED','ELEVATED','HIGH RISK','SEVERE','CRITICAL','EXTREME'][stage]}</span><span aria-hidden="true">{Array.from({length:7},(_,i)=><i key={i} data-on={i<=stage}/>)}</span></span>;
+  return <span className="rh-difficulty" aria-label={'Difficulty '+(stage+1)+' of '+ASSIGNMENTS.length}><span>{['CONTROLLED','GUARDED','ELEVATED','HIGH RISK','SEVERE','CRITICAL','EXTREME','RELENTLESS','APEX'][stage]}</span><span aria-hidden="true">{Array.from({length:ASSIGNMENTS.length},(_,i)=><i key={i} data-on={i<=stage}/>)}</span></span>;
 }

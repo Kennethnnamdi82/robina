@@ -8,13 +8,14 @@ import type { NavigationGrid,Point } from '../ai/navigation';
 export class CampaignGameplay {
   readonly assignment:Assignment;carrying=false;cargoVehicle:number|null=null;message='';recovery=0;recoveredByPolice=false;
   holdProgress=0;holdActive=false;private holdEvent='';
+  handoff:'none'|'waiting'|'complete'='none';guardsRemaining=0;
   readonly witness:Point;witnessMoving=false;witnessBoarded=false;private witnessPath:Point[]=[];private routeClock=0;
   constructor(index:number,readonly mission:MissionEngine,readonly world:WorldState,readonly vehicles:VehicleController,readonly police:PolicePursuit,private navigation:NavigationGrid){this.assignment=assignmentAt(index);this.witness={x:this.assignment.site.x*40,y:(this.assignment.site.z-2)*40};}
   step(dt:number,p:Vector3,livingGuards:number){
     if(this.mission.state==='FAILED'){this.recovery=Math.min(1,this.recovery+dt/2);return;}
     if(this.mission.state!=='ACTIVE')return;
-    const a=this.assignment,car=this.vehicles.current,transport=this.vehicles.cars.find(c=>c.id===3);
-    if(Math.hypot(p.x-a.site.x,p.z-a.site.z)<8&&this.mission.event('site-entered')){if(a.id!=='reserve'&&a.id!=='archive')this.police.alert();this.message=a.id==='reserve'?'BANK OPEN / FIND THE MANAGER KEY / KEEP CIVILIANS SAFE':'SITE LOCATED / ACCESS PANEL OR SECURITY';}
+    const a=this.assignment,car=this.vehicles.current,transport=this.vehicles.cars.find(c=>c.id===3);this.guardsRemaining=livingGuards;
+    if(Math.hypot(p.x-a.site.x,p.z-a.site.z)<8&&(!a.bridge||Boolean(car))&&this.mission.event('site-entered')){if(a.id!=='reserve'&&a.id!=='archive')this.police.alert();this.message=a.bridge?'BRIDGE REACHED / DISMOUNT AND ELIMINATE THE ESCORT':a.id==='reserve'?'BANK OPEN / FIND THE MANAGER KEY / KEEP CIVILIANS SAFE':'SITE LOCATED / ACCESS PANEL OR SECURITY';}
     if(livingGuards===0)this.mission.event('site-secured');
     if(this.holdActive){
       const device=this.world.level.objects.find(o=>o.id===this.holdEvent);
@@ -41,12 +42,14 @@ export class CampaignGameplay {
     if(this.mission.state!=='ACTIVE')return false;
     const activeId=this.mission.snapshot().activeId,objective=this.mission.definition.objectives.find(o=>o.id===activeId);
     const object=objective&&this.world.level.objects.find(o=>o.id===objective.event);if(!object||!objective||!this.world.reachable(object,{x:p.x*40,y:p.z*40}))return false;
+    if(this.assignment.bridge&&objective.id==='security'){this.message='ELIMINATE THE BRIDGE SECURITY TEAM / '+this.guardsRemaining+' REMAINING';return true;}
     if(this.assignment.convoy&&objective.id==='task-0'&&this.vehicles.current?.id!==3){this.message='ENTER THE MARKED TRANSPORT TO INTERCEPT IT';return true;}
     if(objective.id==='extract'){
       if(!this.carrying){this.message='RECOVER THE OBJECTIVE FIRST';return true;}
       if(this.police.active){this.message='EXTRACTION COMPROMISED / BREAK POLICE LINE OF SIGHT';return true;}
       if(this.assignment.vehicleDelivery&&(this.cargoVehicle===null||this.vehicles.current?.id!==this.cargoVehicle)){this.message='DELIVER THE LOADED CARGO VEHICLE';return true;}
       if(this.assignment.hostage&&Math.hypot(this.witness.x*.025-p.x,this.witness.y*.025-p.z)>4){this.message='WAIT FOR YOUR WITNESS';return true;}
+      if(this.assignment.bossHandoff){this.handoff='waiting';this.message='THE BROKER / HAND OVER THE CASE TO COLLECT YOUR SHARE';return true;}
       if(this.mission.event('extraction')){this.world.extracted=true;this.carrying=false;this.police.end();this.message='EXTRACTION CONFIRMED';}return true;
     }
     if(objective.id==='recover'){this.carrying=true;this.police.alert(true);}
@@ -54,5 +57,10 @@ export class CampaignGameplay {
     if(objective.id.startsWith('task-'))this.police.alert();
     this.mission.event(object.id);this.world.grantFlag(object.id);this.message=objective.title.toUpperCase()+' / CONFIRMED';return true;
   }
-  get snapshot(){return{carrying:this.carrying,cargoVehicle:this.cargoVehicle,message:this.message,holdActive:this.holdActive,holdProgress:this.holdProgress,holdSeconds:this.assignment.holdSeconds??0,recovery:this.recovery,recoveredByPolice:this.recoveredByPolice,witness:this.assignment.hostage?{...this.witness,boarded:this.witnessBoarded}:null};}
+  completeHandoff(){
+    if(this.handoff!=='waiting'||!this.carrying||this.police.active||this.mission.snapshot().activeId!=='extract')return false;
+    if(!this.mission.event('extraction'))return false;
+    this.handoff='complete';this.world.extracted=true;this.carrying=false;this.police.end();this.message='THE BROKER ACCEPTED THE DELIVERY / YOUR SHARE IS PAID';return true;
+  }
+  get snapshot(){return{carrying:this.carrying,cargoVehicle:this.cargoVehicle,message:this.message,handoff:this.handoff,guardsRemaining:this.guardsRemaining,holdActive:this.holdActive,holdProgress:this.holdProgress,holdSeconds:this.assignment.holdSeconds??0,recovery:this.recovery,recoveredByPolice:this.recoveredByPolice,witness:this.assignment.hostage?{...this.witness,boarded:this.witnessBoarded}:null};}
 }

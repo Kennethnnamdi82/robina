@@ -36,7 +36,7 @@ test('cinematic lobby, every player route and all collection categories remain f
  }
  await page.setViewportSize({width:1440,height:1000});
  await page.screenshot({path:info.outputPath('lobby-desktop.png'),fullPage:true});
- for(const [path,heading]of [['/missions','OPERATIONS'],['/profile','OPERATIVE PROFILE'],['/leaderboards','THE RIVALS TO BEAT'],['/rank','EARN YOUR NAME'],['/customization','MAKE IT YOURS'],['/settings','SETTINGS'],['/inventory','THE EXCHANGE'],['/recovery','RECOVERY PROTOCOL']]){
+ for(const [path,heading]of [['/missions','OPERATIONS'],['/profile','OPERATIVE PROFILE'],['/leaderboards','LEADERBOARDS'],['/rank','EARN YOUR NAME'],['/customization','MAKE IT YOURS'],['/settings','SETTINGS'],['/inventory','THE EXCHANGE'],['/recovery','RECOVERY PROTOCOL']]){
   await navigate(page,path);await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();await ready(page);await noOverflow(page);await page.screenshot({path:info.outputPath(path.slice(1)+'-desktop.png'),fullPage:true});
  }
  for(const category of ['featured','weapons','grenades','health','characters','cosmetics','effects','bundles','season','founder','inventory','history']){

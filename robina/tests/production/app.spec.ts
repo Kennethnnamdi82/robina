@@ -93,13 +93,13 @@ test('premium Exchange integrates with the built game hub without transactions',
 
 test('leaderboard ranks stay legible on small phones with clean production copy',async({page},info)=>{
   const errors=await prepare(page,'authenticated');await page.goto('/leaderboards');
-  await expect(page.getByRole('heading',{name:'THE RIVALS TO BEAT',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'LEADERBOARDS',exact:true})).toBeVisible();await page.getByRole('button',{name:'EXHIBITION STANDINGS'}).click();
   for(const [width,height]of [[1440,1000],[390,844],[320,568],[844,390]]){
     await page.setViewportSize({width,height});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-    const readability=await page.locator('.rh-board tbody tr').first().evaluate(row=>{
-      const cell=row.children[0] as HTMLElement,style=getComputedStyle(cell),rgb=(value:string)=>value.match(/[\d.]+/g)!.slice(0,3).map(Number),lum=(values:number[])=>values.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((n,v,i)=>n+v*[.2126,.7152,.0722][i],0);
-      const a=lum(rgb(style.color)),b=lum(rgb(style.backgroundColor));return{font:parseFloat(style.fontSize),contrast:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
+    const readability=await page.locator('.rl-ranking li').first().evaluate(row=>{
+      const cell=row.querySelector('.rl-position') as HTMLElement,style=getComputedStyle(cell),rgb=(value:string)=>value.match(/[\d.]+/g)!.slice(0,3).map(Number),lum=(values:number[])=>values.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((n,v,i)=>n+v*[.2126,.7152,.0722][i],0);
+      const a=lum(rgb(style.color)),b=lum(rgb(getComputedStyle(row).backgroundColor));return{font:parseFloat(style.fontSize),contrast:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
     });expect(readability.font).toBeGreaterThanOrEqual(18);expect(readability.contrast).toBeGreaterThanOrEqual(4.5);
   }
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:info.outputPath('readable-leaderboard-phone.png'),fullPage:true});
@@ -155,6 +155,12 @@ test('built production 3D game draws, pauses and exits without changing accounts
   await page.screenshot({path:info.outputPath('unobstructed-live-game.png')});
   await page.getByRole('button', { name: 'Pause game' }).dispatchEvent('click');
   await expect(page.getByRole('button', { name: 'RESUME RAID' })).toBeVisible();
+  await page.getByRole('button',{name:'BAR & RESTAURANT / SET GPS'}).click();
+  const socialGuide=page.getByRole('dialog',{name:'A MOMENT OFF THE STREET'});await expect(socialGuide).toBeVisible();
+  const socialBounds=await socialGuide.boundingBox();expect(socialBounds!.y).toBeGreaterThanOrEqual(0);expect(socialBounds!.y+socialBounds!.height).toBeLessThanOrEqual(321);
+  await socialGuide.getByRole('button',{name:'SET GPS DETOUR'}).first().click();await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing');
+  await expect.poll(async()=>JSON.parse(await page.getByTestId('three-state').getAttribute('data-social')||'null')?.destination).toBe('bar');
+  await page.getByRole('button',{name:'Pause game'}).click();
   await page.getByRole('button',{name:'SETTINGS',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Raid settings'})).toBeVisible();
   await expect(page.getByRole('button',{name:'LOW graphics'})).toHaveAttribute('aria-pressed','true');

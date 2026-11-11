@@ -1,3 +1,4 @@
+import {SOCIAL_VENUES} from './SocialVenues';
 import {describe,it,expect,vi} from 'vitest';
 import {Group,Vector3} from 'three';
 import {RaidRuntime} from './RaidRuntime';
@@ -39,7 +40,7 @@ describe('open world motion and continuous operations',()=>{
   const operation=createAssignmentOperation(0,31),world=new WorldState(operation.level);addAssignmentWalls(world,ASSIGNMENTS[0]);const solids=convertSolids(world);
   for(const z of STREET_CENTRES){const b={position:new Vector3(88,0,z),vertical:0,grounded:true};for(let i=0;i<550;i++)moveKinematic(b,.075,0,1/60,solids);expect(b.position.x).toBeGreaterThan(128);
    const car=new CitySimulation(1).cars[0];Object.assign(car,{x:88,z,dx:1,dz:0,speed:8,mode:'player',health:200});for(let i=0;i<400;i++)driveVehicle(car,{throttle:1,steer:0,brake:false},1/60,solids);expect(car.x).toBeGreaterThan(128);}
-  const buildings=cityPlan(operation.venue,operation.seed).buildings;expect(buildings.some(b=>b.name==='HOTEL MERIDIAN')).toBe(true);expect(buildings.some(b=>b.name?.includes('/ BAR'))).toBe(true);
+  const buildings=cityPlan(operation.venue,operation.seed).buildings;expect(buildings.some(b=>b.name==='HOTEL MERIDIAN')).toBe(true);expect(buildings.some(b=>b.id==='waterfront-bar')).toBe(false);expect(SOCIAL_VENUES.some(venue=>venue.name==='THE AMBER ROOM')).toBe(true);
   for(const rail of waterfrontRails())for(const z of STREET_CENTRES)expect(Math.abs(rail.z-z)).toBeGreaterThanOrEqual(rail.depth/2+5.79);
  });
  it('does not insert a new roadblock when any mission site is installed',()=>{

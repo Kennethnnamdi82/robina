@@ -11,6 +11,7 @@ export interface WorldObject {
   solid?: { width: number; height: number };
 }
 export interface LevelDefinition {
+  assignmentIndex?:number;
   id: string; title: string; tileSize: number; width: number; height: number;
   spawn: { x: number; y: number }; walls: readonly (readonly number[])[];
   props: typeof NEON_PROPS; objects: readonly WorldObject[];

@@ -26,14 +26,14 @@ describe('frontend-only game hub',()=>{
     fireEvent.click(screen.getByRole('tab',{name:'Controls'}));fireEvent.change(screen.getByLabelText('Default camera'),{target:{value:'first'}});expect(readPreferences().pov).toBe('first');
   });
   it('opens each dedicated menu page',()=>{
-    const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(7);expect(screen.queryAllByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveLength(0);
+    const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(9);expect(screen.queryAllByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveLength(0);
     fireEvent.click(screen.getByRole('link',{name:'PLAYER PROFILE'}));expect(screen.getByRole('heading',{name:'OPERATIVE PROFILE'})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'RANK'}));expect(screen.getByRole('heading',{name:'EARN YOUR NAME'})).toBeTruthy();view.unmount();
   });
   it('labels fictional leaderboard fixtures clearly and keeps them out of personal records',()=>{
     const network=vi.spyOn(globalThis,'fetch');at('/leaderboards');
-    expect(screen.getByText('EXHIBITION BOARD')).toBeTruthy();expect(screen.getByText(/Exhibition players/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button',{name:'MY RECORDED RUNS'}));expect(screen.getByText('NO FINISHED HEISTS YET')).toBeTruthy();expect(screen.queryByText('NIGHTFALL')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();
+    expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'EXHIBITION STANDINGS'}));expect(screen.getByText(/Exhibition players are fictional/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button',{name:'MY RECORDED RUNS'}));expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeTruthy();expect(screen.queryByText('NIGHTFALL')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();
   });
   it('persists callsign and calling card cosmetics without altering the player model',()=>{
     at('/customization');fireEvent.change(screen.getByLabelText('Callsign'),{target:{value:'night runner'}});fireEvent.click(screen.getByRole('button',{name:'ice calling card'}));fireEvent.click(screen.getByRole('button',{name:'SAVE IDENTITY'}));

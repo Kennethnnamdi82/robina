@@ -50,7 +50,8 @@ export function cityPlan(venue: number, seed: number): CityPlan {
     blocks.push({ x, z, park, building }); if (building) buildings.push(building);
   }
   // Entry always offers the requested sunset; later missions vary lighting.
-  buildings.push(...WATERFRONT_BUILDINGS.map(b=>({...b})));
+  // The Amber Room now has an enterable, furnished interior, supplied by SocialScene.
+  buildings.push(...WATERFRONT_BUILDINGS.filter(b=>b.id!=='waterfront-bar').map(b=>({...b})));
   const weather = profile.weather;
   return { seed, district, weather, label: profile.name, blocks, buildings,
     signature: 'district-layout-'+variant+'|'+buildings.map(b => `${b.id}:${b.model}:${b.height.toFixed(2)}`).join('|') };

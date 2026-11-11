@@ -20,6 +20,11 @@ export class AssignmentSite {
     const glow=new T.MeshStandardMaterial({color:0x91dedc,emissive:0x41b6c2,emissiveIntensity:.8,roughness:.3});this.materials.add(glow);
     const glass=new T.MeshStandardMaterial({color:0xafd5db,metalness:.25,roughness:.14,transparent:true,opacity:.24,depthWrite:false});this.materials.add(glass);
     for(const p of siteLayout(a))this.box(p.x,p.height/2,p.z,p.width,p.height,p.depth,p.kind==='wall'?stone:a.id==='reserve'?wood:dark);
+    if(a.bridge){
+      for(const p of siteLayout(a)){for(let dx=-p.width/2+.15;dx<p.width/2;dx+=.3)this.box(p.x+dx,p.height*.6,p.z+p.depth/2+.015,.12,.18,.02,gold);}
+      this.sign(a.id==='bridge'?'MERIDIAN / COURIER TRANSFER':'SOUTHBANK / PAYROLL ESCORT',0,2.1,-3.8,6,.48);
+      this.flush();return;
+    }
     this.box(0,-.025,0,12.5,.08,11.5,stone);
     if(a.id==='reserve'){for(let x=-5;x<=5;x++)for(let z=-5;z<=5;z++)if((x+z)%2===0)this.box(x,.025,z,.98,.012,.98,tile);}
     else if(a.id==='archive'){for(let x=-5;x<=5;x++)for(let z=-5;z<=5;z++){this.box(x,.024,z,.97,.012,.97,metal);this.box(x,.034,z,.8,.012,.12,dark);}}
@@ -74,8 +79,9 @@ export class AssignmentSite {
         for(const x of [-4,4]){this.box(x,1,-2,1.5,1.9,2.2,accent);this.box(x,2.1,-2,1.1,.2,1.8,metal);}this.sign('NORTHGATE / COMMAND BUNKER',0,3,-4.8,9,.5);
       }
     }
-    for(const [material,matrices]of this.parts){const mesh=new T.InstancedMesh(this.geometry,material,matrices.length);matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.computeBoundingSphere();mesh.castShadow=mesh.receiveShadow=true;this.root.add(mesh);}this.parts.clear();
+    this.flush();
   }
+  private flush(){for(const [material,matrices]of this.parts){const mesh=new T.InstancedMesh(this.geometry,material,matrices.length);matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.computeBoundingSphere();mesh.castShadow=mesh.receiveShadow=true;this.root.add(mesh);}this.parts.clear();}
   private box(x:number,y:number,z:number,w:number,h:number,d:number,material:T.Material){this.transform.position.set(this.assignment.site.x+x,y,this.assignment.site.z+z);this.transform.rotation.set(0,0,0);this.transform.scale.set(w,h,d);this.transform.updateMatrix();if(!this.parts.has(material))this.parts.set(material,[]);this.parts.get(material)!.push(this.transform.matrix.clone());}
   private sign(text:string,x:number,y:number,z:number,w:number,h:number){const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=128;const c=canvas.getContext('2d')!;c.fillStyle='#17232c';c.fillRect(0,0,1024,128);c.fillStyle='#eddfbc';c.font='600 42px Arial';c.textAlign='center';c.fillText(text,512,81);const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;this.textures.push(texture);const material=new T.MeshBasicMaterial({map:texture,side:T.DoubleSide});this.materials.add(material);const plane=new T.Mesh(new T.PlaneGeometry(w,h),material);plane.position.set(this.assignment.site.x+x,y,this.assignment.site.z+z);this.root.add(plane);}
   update(dt:number,player:T.Vector3,progress=0){this.opening=T.MathUtils.damp(this.opening,Math.hypot(player.x-this.assignment.site.x,player.z-this.assignment.site.z-5.5)<8?1:0,5,dt);this.doors.forEach((door,i)=>door.position.x=this.assignment.site.x+(i?1:-1)*(.98+this.opening*1.85));if(this.drill&&progress>0&&progress<1)this.drill.rotation.z+=dt*28;if(this.vault){const unlocked=this.world.active.has('task-1');this.vault.rotation.y=T.MathUtils.damp(this.vault.rotation.y,unlocked?-Math.PI*.48:0,2,dt);}}

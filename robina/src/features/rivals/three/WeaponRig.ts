@@ -4,6 +4,7 @@ import type { HumanoidAnimator, HumanoidFrame } from './HumanoidAnimator';
 import { ArmIK, setWorldRotation } from './ArmIK';
 import { traceSolids } from './physics3d';
 import type { Solid3D } from './world3d';
+import { FingerGrip, OperativeHands } from './OperativeHands';
 
 export type GunClass = 'rifle' | 'smg' | 'pistol';
 export interface WeaponMetadata { id: GunClass | 'knife'; length: number; forward: '-Z'; recoil: number; sockets: { grip: number[]; muzzle: number[]; support: number[] | null; eject: number[]; sight: number[] } }
@@ -14,6 +15,7 @@ export function weaponMetadata(model: Object3D): WeaponMetadata {
   return metadata;
 }
 const up = new Vector3(0, 1, 0), barrel = new Vector3(0, 0, -1);
+const fingerRigs = new WeakMap<Object3D,FingerGrip>();
 
 /** One physical weapon, anchored to the actual hand. Model and socket geometry
  * use metres and -Z forward. Cosmetic recoil does not change the aim target. */
@@ -27,12 +29,14 @@ export class WeaponRig {
   private anchor = new Vector3(); private desired = new Vector3(); private goal = new Vector3(); private pole = new Vector3();
   private point = new Vector3(); private direction = new Vector3(); private scale = new Vector3();
   private hand = new Vector3(); private leftTarget = new Vector3();
+  private fingers?:FingerGrip;
   constructor(readonly actor: Actor, readonly model: Object3D, avatar?: HumanoidAnimator) {
     this.metadata = weaponMetadata(model); this.muzzle = model.getObjectByName('weapon-muzzle')!; this.support = model.getObjectByName('weapon-support') ?? undefined;
     // Remove the old torso-mounted proxy and its uncalibrated models.
     actor.weapons.forEach(weapon => weapon.removeFromParent()); actor.weapons.clear(); actor.muzzle.visible = false; actor.muzzleLight.visible = false;
     actor.weapon.position.set(0, 0, 0); actor.weapon.quaternion.identity(); model.visible = true; actor.weapon.add(model);
     if (avatar) {
+      this.fingers=fingerRigs.get(actor.body!)??new FingerGrip(actor.body!);fingerRigs.set(actor.body!,this.fingers);
       this.avatar = avatar; this.rightPalm = avatar.sockets.rightHand; this.leftPalm = avatar.sockets.leftHand;
       const body = actor.body!;
       this.right = new ArmIK(body.getObjectByName('upperarm_r')!, body.getObjectByName('lowerarm_r')!, this.rightPalm.parent!);
@@ -81,6 +85,7 @@ export class WeaponRig {
       setWorldRotation(group, this.rotation, this.scratch);
     }
     this.actor.root.updateMatrixWorld(true);
+    this.fingers?.pose(this.kick>.004,Boolean(frame?.reload));
     this.muzzle.getWorldPosition(this.point); this.direction.subVectors(target, this.point).normalize();
     this.model.getWorldQuaternion(this.scratch); this.hand.copy(barrel).applyQuaternion(this.scratch);
     this.alignment = this.hand.dot(this.direction);
@@ -99,26 +104,27 @@ export function safeMuzzleOrigin(anchor: Vector3, muzzle: Vector3, solids: reado
   return clear < length;
 }
 
-/** Overlay pass shares the existing renderer. No authored FPS arm rig exists in
- * these packs, so this is an aligned weapon view, not fake animated arms. */
+/** Camera-space weapon and articulated gloves share the existing renderer. */
 export class FirstPersonWeapon {
   readonly root = new Group(); readonly metadata: WeaponMetadata; kick = 0;
-  // The supplied weapon view has no authored arm rig. Report that honestly;
-  // diagnostics must not invent hands or add replacement player artwork.
-  readonly handsVisible = false;
-  readonly handsAttachedToWeapon = false;
-  readonly handMeshCount = 0;
+  // Procedural articulated tactical gloves, anchored to calibrated weapon grips.
+  readonly handsVisible = true;
+  readonly handsAttachedToWeapon = true;
+  readonly hands:OperativeHands;
+  get handMeshCount(){return this.hands.meshCount;}
   private look = new Matrix4(); private aimRotation = new Quaternion();
   constructor(readonly model: Object3D) {
     this.metadata = weaponMetadata(model);
     model.visible = true;
     model.traverse(node => { node.frustumCulled = false; });
     this.root.add(model);
+    this.hands=new OperativeHands(this.metadata);this.root.add(this.hands.root);
   }
-  fire() { this.kick = Math.min(.06, this.kick + this.metadata.recoil); }
+  fire() { this.kick = Math.min(.06, this.kick + this.metadata.recoil);this.hands.fire(); }
   aimAt(target: Vector3) { this.look.lookAt(this.root.position,target,up); this.aimRotation.setFromRotationMatrix(this.look); this.root.quaternion.premultiply(this.aimRotation); this.root.visible = true; }
   update(dt: number, ads: boolean, reload: number, reloadDuration: number,action = 'idle',remaining = 0) {
     this.kick *= Math.exp(-dt * 22);
+    this.hands.update(dt,reload,reloadDuration);
     const phase = reload > 0 ? Math.sin(Math.PI * (1 - reload / reloadDuration)) : 0;
     this.root.position.set(ads ? 0 : .19, (ads ? -this.metadata.sockets.sight[1] : -.23) - phase * .12, -.37 + this.kick);
     this.root.rotation.set(this.kick * .45 - phase * .35, phase * -.12, phase * -.25);
@@ -126,5 +132,5 @@ export class FirstPersonWeapon {
     else if (action === 'throw') { const lower = Math.sin(Math.PI * Math.max(0,1 - remaining / .55)); this.root.position.y -= lower * .25; this.root.rotation.x -= lower * .35; }
     else if (action === 'switch') this.root.position.y -= Math.min(1,remaining / .22) * .3;
   }
-  dispose() { this.root.remove(this.model); }
+  dispose() { this.hands.dispose();this.hands.root.removeFromParent();this.root.remove(this.model); }
 }

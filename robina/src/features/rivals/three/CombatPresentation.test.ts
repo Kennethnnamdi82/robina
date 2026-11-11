@@ -37,10 +37,11 @@ describe('combat presentation with unchanged simulation rules', () => {
     expect(trail.mock.calls[0][0].position.distanceTo(impact.mock.calls[0][0])).toBe(0); expect(pool.entries[0].origin.equals(origin)).toBe(true);
     expect(weaponMetadata(gun()).forward).toBe('-Z'); expect(() => weaponMetadata(new Group())).toThrow();
   });
-  it('retains the supplied first-person weapon without inventing an arm rig', () => {
+  it('retains the supplied first-person weapon with articulated gripping gloves', () => {
     const view = new FirstPersonWeapon(gun());
     view.update(1 / 60,false,0,1.2,'idle',0);
-    expect(view.handsVisible).toBe(false); expect(view.handsAttachedToWeapon).toBe(false); expect(view.handMeshCount).toBe(0);
+    expect(view.handsVisible).toBe(true); expect(view.handsAttachedToWeapon).toBe(true); expect(view.handMeshCount).toBeGreaterThan(10);expect(view.hands.fingerCount).toBe(10);
+    const home=view.hands.left.position.clone();view.update(1/60,false,.6,1.2);expect(view.hands.left.position.distanceTo(home)).toBeGreaterThan(.05);view.update(1/60,false,0,1.2);expect(view.hands.left.position.equals(home)).toBe(true);
     expect(view.model.parent).toBe(view.root);
     view.fire(); view.update(1 / 60,false,0,1.2,'idle',0); view.dispose();
   });

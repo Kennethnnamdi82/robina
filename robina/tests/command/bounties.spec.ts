@@ -46,7 +46,9 @@ test('bounty navigation and layouts fit desktop, small phones and Android-style 
     // Capacitor's Android back handler dispatches this same Escape event.
     await dialog.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     await expect(dialog).toHaveCount(0); await expect(trigger).toBeFocused(); await fits(page);
-    await expect(page.getByRole('button', { name: 'REQUEST WITHDRAWAL', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'REQUEST WITHDRAWAL', exact: true })).toHaveCount(0);
+    for(const section of ['MY BOUNTIES','WALLET','NOTIFICATIONS']){await page.getByRole('navigation',{name:'Bounty sections'}).getByRole('link',{name:new RegExp('^'+section)}).click();await fits(page);if(section==='WALLET')await expect(page.getByRole('button',{name:'REQUEST WITHDRAWAL',exact:true})).toBeDisabled();}
+    await page.getByRole('link',{name:'CONTRACTS',exact:true}).click();
   }
   await page.getByRole('link', { name: 'BACK TO LOBBY' }).click(); await expect(page.getByRole('link', { name: 'PLAY', exact: true })).toBeVisible();
   expect(audit.errors).toEqual([]); expect(audit.writes).toEqual([]);
@@ -62,14 +64,14 @@ test('phone creator submission validates, persists Pending Review and blocks rep
   await dialog.getByLabel('Engagement evidence link (required)', { exact: true }).fill('https://example.com/analytics.png');
   await dialog.getByLabel('Supporting notes (optional)', { exact: true }).fill('5,200 genuine impressions. Demo evidence only.');
   await dialog.getByRole('checkbox').check(); await dialog.getByRole('button', { name: 'CONFIRM SUBMISSION' }).click();
-  await expect(dialog).toHaveCount(0); await expect(x.getByRole('button')).toBeDisabled();
+  await expect(dialog).toHaveCount(0);await expect(page).toHaveURL(/bounties\/mine$/);await expect(x).toHaveCount(0);
   await expect(page.getByRole('status').filter({ hasText: 'Submission received' })).toContainText('Pending Review');
   await expect(page.getByRole('link', { name: /View submission/ })).toHaveAttribute('href', 'https://x.com/rivals/status/123456789');
-  await page.reload(); await expect(x.getByRole('button')).toBeDisabled(); await expect(page.getByText('Awaiting review.', { exact: false })).toBeVisible();
+  await page.reload();await expect(page.getByText('Awaiting review.', { exact: false })).toBeVisible();await page.getByRole('link',{name:'CONTRACTS',exact:true}).click();await expect(x.getByRole('button')).toBeDisabled();await page.getByRole('link',{name:'MY BOUNTIES',exact:true}).click();
   await page.getByRole('button', { name: 'Completed', exact: true }).click(); await expect(page.getByText('NO MATCHING SUBMISSIONS')).toBeVisible();
   await page.getByRole('button', { name: 'All', exact: true }).click();
-  await page.getByRole('button', { name: 'MARK ALL READ' }).click(); await expect(page.getByRole('button', { name: 'MARK ALL READ' })).toBeDisabled();
-  await page.getByLabel('Base wallet address', { exact: true }).fill('0x123'); await page.getByRole('button', { name: 'SAVE DEMO ADDRESS' }).click(); await expect(page.getByRole('alert')).toContainText('40 hexadecimal');
+  await page.getByRole('navigation',{name:'Bounty sections'}).getByRole('link',{name:/NOTIFICATIONS/}).click();await page.getByRole('button', { name: 'MARK ALL READ' }).click(); await expect(page.getByRole('button', { name: 'MARK ALL READ' })).toBeDisabled();
+  await page.getByRole('link',{name:'WALLET',exact:true}).click();await page.getByLabel('Base wallet address', { exact: true }).fill('0x123'); await page.getByRole('button', { name: 'SAVE DEMO ADDRESS' }).click(); await expect(page.getByRole('alert')).toContainText('40 hexadecimal');
   await page.getByLabel('Base wallet address', { exact: true }).fill('0x' + '1'.repeat(40)); await page.getByRole('button', { name: 'SAVE DEMO ADDRESS' }).click();
   await expect(page.getByText('Demo destination saved on this device.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'REQUEST WITHDRAWAL' })).toBeDisabled();

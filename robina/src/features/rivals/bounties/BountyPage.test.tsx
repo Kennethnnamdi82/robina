@@ -1,14 +1,14 @@
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BountyPage from './BountyPage';
 import { createDemoGateway, demoStorageKey } from './demoGateway';
 import { emptyDemoState } from './demoData';
 import { USDC, type BountyGateway, type BountySnapshot, type NotificationKind, type SubmissionStatus } from './model';
 
-function at(gateway?: BountyGateway, identity = 'ui-player') {
-  return render(<MemoryRouter><BountyPage identity={identity} gateway={gateway}/></MemoryRouter>);
+function at(gateway?: BountyGateway, identity = 'ui-player',path='/bounties') {
+  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/bounties/*" element={<BountyPage identity={identity} gateway={gateway}/>}/></Routes></MemoryRouter>);
 }
 async function board() { await screen.findAllByRole('button', { name: 'VIEW TASK / SUBMIT' }); }
 async function openX() {
@@ -30,8 +30,8 @@ describe('Bounty & Earn frontend', () => {
     expect(screen.getByRole('heading', { name: 'BOUNTY & EARN' })).toBeInTheDocument();
     expect(screen.getByText('PHASE 1 / INTERACTIVE DEMO')).toBeInTheDocument();
     expect(screen.getByText('5,000 genuine impressions')).toBeInTheDocument(); expect(screen.getByText('5,000 genuine views')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'REQUEST WITHDRAWAL' })).toBeDisabled();
-    expect(screen.getByText('YOUR NEXT MOVE STARTS HERE')).toBeInTheDocument(); expect(screen.getByText(/No withdrawals yet/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'REQUEST WITHDRAWAL' })).not.toBeInTheDocument();
+    expect(screen.queryByText('YOUR NEXT MOVE STARTS HERE')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('link',{name:'MY BOUNTIES'}));expect(screen.getByText('YOUR NEXT MOVE STARTS HERE')).toBeInTheDocument();fireEvent.click(screen.getByRole('link',{name:'WALLET'}));expect(screen.getByRole('button', { name: 'REQUEST WITHDRAWAL' })).toBeDisabled(); expect(screen.getByText(/No withdrawals yet/)).toBeInTheDocument();
     expect(network).not.toHaveBeenCalled();
   });
   it('validates URLs and evidence, records Pending Review, restores focus, persists and blocks repeats', async () => {
@@ -43,16 +43,15 @@ describe('Bounty & Earn frontend', () => {
     fillX(dialog); fireEvent.change(within(dialog).getByLabelText('Engagement evidence link (required)'), { target: { value: '' } });
     fireEvent.click(submit); expect(screen.getByRole('alert')).toHaveTextContent('evidence');
     fireEvent.change(within(dialog).getByLabelText('Engagement evidence link (required)'), { target: { value: 'https://example.com/analytics.png' } });
-    fireEvent.click(submit);
+    await act(async()=>{fireEvent.click(submit);});
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByText(/Submission received — Pending Review/)).toBeInTheDocument();
-    expect(within(screen.getByRole('article', { name: 'X bounty' })).getByRole('button')).toBeDisabled();
+    await screen.findByRole('link', { name: /View submission/ },{timeout:5000});expect(screen.queryByRole('article', { name: 'X bounty' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View submission/ })).toHaveAttribute('href', 'https://x.com/rivals/status/123456789');
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('article', { name: 'X bounty' })));
-    expect(screen.getByRole('button', { name: 'REQUEST WITHDRAWAL' })).toBeDisabled();
-    view.unmount(); at(); await screen.findByText(/Awaiting review/);
+    expect(screen.queryByRole('button', { name: 'REQUEST WITHDRAWAL' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link',{name:'CONTRACTS'}));view.unmount(); at(); await board();
     expect(within(screen.getByRole('article', { name: 'X bounty' })).getByRole('button')).toBeDisabled();
-    expect(screen.getAllByText('Pending Review').length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole('link',{name:'MY BOUNTIES'}));expect(screen.getAllByText('Pending Review').length).toBeGreaterThan(0);
   });
   it('submits TikTok separately and keeps the other account private', async () => {
     const view = at(); await board();
@@ -62,7 +61,7 @@ describe('Bounty & Earn frontend', () => {
     fireEvent.change(within(dialog).getByLabelText('Engagement evidence link (required)'), { target: { value: 'https://example.com/video-analytics.png' } });
     fireEvent.click(within(dialog).getByRole('checkbox')); fireEvent.click(within(dialog).getByRole('button', { name: 'CONFIRM SUBMISSION' }));
     await screen.findByText(/Awaiting review/); view.unmount(); at(undefined, 'another-player'); await board();
-    expect(screen.getByText('YOUR NEXT MOVE STARTS HERE')).toBeInTheDocument(); expect(screen.queryByRole('link', { name: /View submission/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link',{name:'MY BOUNTIES'}));expect(screen.getByText('YOUR NEXT MOVE STARTS HERE')).toBeInTheDocument(); expect(screen.queryByRole('link', { name: /View submission/ })).not.toBeInTheDocument();
   });
   it('supports all review states, reasons, archived completed tasks and all six notification kinds', async () => {
     const api = createDemoGateway('review-fixture'), data = await api.load();
@@ -73,12 +72,12 @@ describe('Bounty & Earn frontend', () => {
     }));
     data.notifications = (['published', 'received', 'approved', 'rejected', 'credited', 'withdrawal'] as NotificationKind[]).map(kind => ({ id: kind, kind, title: `Event: ${kind}`, message: `Demo ${kind}`, createdAt: '2026-11-11T12:00:00.000Z', read: false }));
     at({ ...api, load: vi.fn().mockResolvedValue(data), markNotificationsRead: vi.fn().mockResolvedValue({ ...data, notifications: data.notifications.map(n => ({ ...n, read: true })) }) });
-    await screen.findByText('CONTRACT 0'); expect(screen.getByText(/Disclosure was missing/)).toBeInTheDocument();
+    await screen.findByRole('article',{name:'X bounty'});fireEvent.click(screen.getByRole('link',{name:'MY BOUNTIES'}));await screen.findByText('CONTRACT 0'); expect(screen.getByText(/Disclosure was missing/)).toBeInTheDocument();
     expect(screen.getByText(/Reward credited. This contract is complete/)).toBeInTheDocument();
-    expect(within(screen.getByRole('article', { name: 'X bounty' })).getByRole('button')).toBeDisabled();
+    fireEvent.click(screen.getByRole('link',{name:'CONTRACTS'}));expect(within(screen.getByRole('article', { name: 'X bounty' })).getByRole('button')).toBeDisabled();fireEvent.click(screen.getByRole('link',{name:/NOTIFICATIONS/}));
     for (const kind of ['published', 'received', 'approved', 'rejected', 'credited', 'withdrawal']) expect(screen.getByText(`Event: ${kind}`)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Completed' })); expect(screen.getByText('CONTRACT 0')).toBeInTheDocument(); expect(screen.queryByText('CONTRACT 1')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'MARK ALL READ' }));
+    fireEvent.click(screen.getByRole('link',{name:'MY BOUNTIES'}));fireEvent.click(screen.getByRole('button', { name: 'Completed' })); expect(screen.getByText('CONTRACT 0')).toBeInTheDocument(); expect(screen.queryByText('CONTRACT 1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link',{name:/NOTIFICATIONS/}));fireEvent.click(screen.getByRole('button', { name: 'MARK ALL READ' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'MARK ALL READ' })).toBeDisabled());
   });
   it('handles loading, empty boards and histories without fake account activity', async () => {
@@ -88,7 +87,7 @@ describe('Bounty & Earn frontend', () => {
     at({ ...api, load: () => pending });
     expect(screen.getByRole('status', { name: 'Loading bounty board' })).toBeInTheDocument();
     await act(async () => { resolve({ ...data, tasks: [], notifications: [] }); });
-    expect(screen.getByText('NEW CONTRACTS INBOUND')).toBeInTheDocument(); expect(screen.getByText('ALL QUIET FOR NOW')).toBeInTheDocument();
+    expect(screen.getByText('NEW CONTRACTS INBOUND')).toBeInTheDocument(); fireEvent.click(screen.getByRole('link',{name:/NOTIFICATIONS/}));expect(screen.getByText('ALL QUIET FOR NOW')).toBeInTheDocument();
   });
   it('recovers a failed load through retry and reports an adapter submission error', async () => {
     const api = createDemoGateway('failure'); const data = await api.load();
@@ -96,17 +95,17 @@ describe('Bounty & Earn frontend', () => {
     await screen.findByText('TRANSMISSION INTERRUPTED'); fireEvent.click(screen.getByRole('button', { name: 'RETRY BOUNTY BOARD' })); await board();
     const dialog = await openX(); fillX(dialog); fireEvent.click(within(dialog).getByRole('button', { name: 'CONFIRM SUBMISSION' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Submission not saved');
-    expect(screen.getByRole('dialog')).toBeInTheDocument(); expect(screen.getByText('YOUR NEXT MOVE STARTS HERE')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument(); expect(screen.queryByText('YOUR NEXT MOVE STARTS HERE')).not.toBeInTheDocument();
   });
   it('validates and saves the Base destination without connecting or signing', async () => {
-    at(); await board(); fireEvent.change(screen.getByLabelText('Base wallet address'), { target: { value: '0x123' } }); fireEvent.click(screen.getByRole('button', { name: 'SAVE DEMO ADDRESS' }));
+    at(); await board();fireEvent.click(screen.getByRole('link',{name:'WALLET'})); fireEvent.change(screen.getByLabelText('Base wallet address'), { target: { value: '0x123' } }); fireEvent.click(screen.getByRole('button', { name: 'SAVE DEMO ADDRESS' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('40 hexadecimal');
     fireEvent.change(screen.getByLabelText('Base wallet address'), { target: { value: '0x' + '1'.repeat(40) } }); fireEvent.click(screen.getByRole('button', { name: 'SAVE DEMO ADDRESS' }));
     expect(await screen.findByText('Demo destination saved on this device.')).toBeInTheDocument();
   });
   it('validates the 5 USDC minimum and confirms only a simulated withdrawal with funded fixture data', async () => {
     const seed = emptyDemoState(); seed.wallet.availableMicros = 10 * USDC; seed.wallet.earnedMicros = 10 * USDC; seed.wallet.address = '0x' + '1'.repeat(40);
-    localStorage.setItem(demoStorageKey('funded-ui'), JSON.stringify(seed)); at(undefined, 'funded-ui'); await board();
+    localStorage.setItem(demoStorageKey('funded-ui'), JSON.stringify(seed)); at(undefined, 'funded-ui'); await board();fireEvent.click(screen.getByRole('link',{name:'WALLET'}));
     fireEvent.click(screen.getByRole('button', { name: 'REQUEST WITHDRAWAL' })); const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Amount (USDC)'), { target: { value: '4' } }); fireEvent.click(within(dialog).getByRole('button', { name: 'CONFIRM DEMO REQUEST' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('at least 5');

@@ -12,9 +12,11 @@ import { VehicleController,addParkedVehicles,driveVehicle,vehicleOverlap } from 
 import { PolicePursuit } from './PolicePursuit';
 import { CampaignGameplay } from './CampaignGameplay';
 import { moveKinematic } from './physics3d';
+import {addSocialWalls,SOCIAL_VENUES} from './SocialVenues';
 function setup(index=0){const operation=createAssignmentOperation(index,43),world=new WorldState(operation.level);addAssignmentWalls(world,ASSIGNMENTS[index]);const solids=convertSolids(world),grid=new NavigationGrid(world.level.width*2,world.level.height*2,32,world.blockers),traffic=new CitySimulation(44);addParkedVehicles(traffic.cars);const vehicles=new VehicleController(traffic.cars),deploy=vi.fn(),police=new PolicePursuit(traffic.cars,grid,solids,ASSIGNMENTS[index].response,deploy),mission=new MissionEngine(operation.mission,'campaign-test-'+index);mission.prepare();mission.start();const game=new CampaignGameplay(index,mission,world,vehicles,police,grid);return{operation,world,solids,grid,vehicles,deploy,police,mission,game};}
 function finishTasks(s:ReturnType<typeof setup>){
   const a=ASSIGNMENTS[s.operation.assignment!];
+  if(a.bridge)s.vehicles.current=s.vehicles.cars[28];
   s.game.step(.1,new Vector3(a.site.x,0,a.site.z+5),0);
   for(let i=0;i<a.tasks.length;i++){
     const object=s.world.level.objects.find(o=>o.id==='task-'+i)!;
@@ -29,9 +31,23 @@ function finishTasks(s:ReturnType<typeof setup>){
   s.grid.rebuild();
 }
 describe('continuous 3D campaign',()=>{
-  it('gives seven named contracts increasing security and distinct insertion points',()=>{
-    expect(ASSIGNMENTS).toHaveLength(7);expect(new Set(ASSIGNMENTS.map(a=>a.name)).size).toBe(7);
-    expect(new Set(ASSIGNMENTS.map(a=>JSON.stringify(a.entry))).size).toBe(7);
+  it('requires driving onto the bridge and defeating its actual guards, not bypassing a panel',()=>{
+    const s=setup(7),a=ASSIGNMENTS[7],at=new Vector3(a.site.x,0,a.site.z);
+    s.game.step(.1,at,10);expect(s.mission.snapshot().activeId).toBe('locate');
+    s.vehicles.current=s.vehicles.cars[28];s.game.step(.1,at,10);expect(s.mission.snapshot().activeId).toBe('security');
+    s.vehicles.current=null;const panel=s.world.level.objects.find(o=>o.id==='site-secured')!;
+    s.game.interact(new Vector3(panel.x*.025,0,panel.y*.025));expect(s.mission.snapshot().activeId).toBe('security');
+    s.game.step(.1,at,0);expect(s.mission.snapshot().activeId).toBe('task-0');
+    expect(s.solids.find(s=>s.id==='mission-furniture-0')?.box.max.y).toBe(.9);
+  });
+  it('keeps social venues reachable through real openings with collision matching full-height walls',()=>{
+    const s=setup();addSocialWalls(s.world);const grid=new NavigationGrid(s.world.level.width*2,s.world.level.height*2,32,s.world.blockers);
+    for(const venue of SOCIAL_VENUES){const goal={x:venue.waiter.x*40,y:venue.waiter.z*40},route=grid.path({x:136*40,y:venue.z*40},goal);expect(route.length).toBeGreaterThan(0);expect(Math.hypot(route.at(-1)!.x-goal.x,route.at(-1)!.y-goal.y)).toBeLessThan(65);}
+    expect(convertSolids(s.world).find(s=>s.id==='social-bar-west')?.box.max.y).toBe(3.1);
+  });
+  it('gives nine named contracts increasing security and distinct insertion points',()=>{
+    expect(ASSIGNMENTS).toHaveLength(9);expect(new Set(ASSIGNMENTS.map(a=>a.name)).size).toBe(9);
+    expect(new Set(ASSIGNMENTS.map(a=>JSON.stringify(a.entry))).size).toBe(9);
     for(let i=1;i<ASSIGNMENTS.length;i++){expect(ASSIGNMENTS[i].security).toBeGreaterThan(ASSIGNMENTS[i-1].security);expect(ASSIGNMENTS[i].response).toBeGreaterThanOrEqual(ASSIGNMENTS[i-1].response);}
     for(const a of ASSIGNMENTS){const mission=assignmentMission(a);expect(mission.timer.seconds).toBeNull();expect(mission.success).toEqual(['extract']);}
   });
@@ -65,7 +81,7 @@ describe('continuous 3D campaign',()=>{
     if(a.vehicleDelivery&&!a.convoy){s.vehicles.current=s.vehicles.cars[29];s.game.step(.1,at,0);}
     if(a.hostage){s.vehicles.current=s.vehicles.cars[28];s.game.step(.1,at,0);expect(s.game.witnessBoarded).toBe(true);}
     const extraction=new Vector3(a.extraction.x,0,a.extraction.z);s.game.step(.1,extraction,0);s.game.interact(extraction);expect(s.mission.state).toBe('ACTIVE');
-    s.police.end();s.police.lost=true;s.game.step(.1,extraction,0);expect(s.game.interact(extraction)).toBe(true);expect(s.mission.state).toBe('SUCCESS');
+    s.police.end();s.police.lost=true;s.game.step(.1,extraction,0);expect(s.game.interact(extraction)).toBe(true);if(a.bossHandoff){expect(s.mission.state).toBe('ACTIVE');expect(s.game.handoff).toBe('waiting');expect(s.game.completeHandoff()).toBe(true);expect(s.game.completeHandoff()).toBe(false);}expect(s.mission.state).toBe('SUCCESS');
   });
   it('does not intercept a convoy by pressing interact without commandeering it',()=>{const index=ASSIGNMENTS.findIndex(a=>a.convoy),s=setup(index),a=ASSIGNMENTS[index],car=s.vehicles.cars[3];s.game.step(.1,new Vector3(a.site.x,0,a.site.z+5),0);s.game.interact(new Vector3(car.x,0,car.z));expect(s.mission.completed.has('task-0')).toBe(false);});
   it('retries the same assignment/seed and advances only after success',()=>{const op=createAssignmentOperation(4,79);expect(nextOperation(op).assignment).toBe(4);expect(nextOperation(op).seed).toBe(op.seed);expect(nextOperation(op).fingerprint).toBe(op.fingerprint);expect(nextOperation(op,true).assignment).toBe(5);const s=setup();s.game.carrying=true;s.mission.fail('down');s.game.interact(new Vector3(136,0,32));expect(s.mission.state).toBe('FAILED');});

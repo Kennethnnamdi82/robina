@@ -29,7 +29,7 @@ describe('requested playable heist repairs',()=>{
     expect(s.game.interact(new Vector3(41,0,21))).toBe(true);expect(s.police.active).toBe(true);
     expect(s.game.interact(new Vector3(44,0,18))).toBe(true);for(let i=0;i<26;i++)s.game.step(.5,new Vector3(44,0,18),3);
     expect(s.game.interact(new Vector3(44,0,15.7))).toBe(true);expect(s.game.carrying).toBe(true);expect(s.world.active.has('cargo-recovered')).toBe(true);
-    s.game.interact(new Vector3(136,0,32));expect(s.mission.state).toBe('ACTIVE');s.police.end();s.police.lost=true;s.game.step(.1,new Vector3(136,0,32),3);s.game.interact(new Vector3(136,0,32));expect(s.mission.state).toBe('SUCCESS');
+    s.game.interact(new Vector3(136,0,32));expect(s.mission.state).toBe('ACTIVE');s.police.end();s.police.lost=true;s.game.step(.1,new Vector3(136,0,32),3);s.game.interact(new Vector3(136,0,32));expect(s.game.handoff).toBe('waiting');expect(s.mission.state).toBe('ACTIVE');expect(s.game.completeHandoff()).toBe(true);expect(s.mission.state).toBe('SUCCESS');
   });
   it('does not award the case from outside its reachable pickup range',()=>{
     const s=bank();s.game.step(.1,new Vector3(44,0,25),3);expect(s.game.interact(new Vector3(8,0,8))).toBe(false);expect(s.game.carrying).toBe(false);

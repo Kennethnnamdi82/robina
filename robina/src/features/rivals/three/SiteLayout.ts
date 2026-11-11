@@ -4,6 +4,7 @@ export interface SitePart { x:number;z:number;width:number;depth:number;height:n
 export function siteLayout(a:Assignment):SitePart[]{
   const wall=(x:number,z:number,width:number,depth:number,height=3.7):SitePart=>({x,z,width,depth,height,kind:'wall'});
   const furniture=(x:number,z:number,width:number,depth:number,height=1):SitePart=>({x,z,width,depth,height,kind:'furniture'});
+  if(a.bridge)return [furniture(-4,-3,2,.65,.9),furniture(4,3,2,.65,.9),furniture(0,-3.8,2,.8,1.05)];
   if(a.convoy)return [furniture(-5,-3,3,2,2.3),furniture(5,2,3,2,2.3),furniture(-4,4,2,1,1.1)];
   if(a.id==='cargo')return [wall(-6,0,.3,10,2.5),wall(6,0,.3,10,2.5),wall(0,-5,12,.3,2.5),furniture(-4,-1,2.3,5,2.4),furniture(4,-1,2.3,5,2.4)];
   if(a.id==='reactor')return [wall(0,-5.5,12,.3,3.3),wall(-6,-2.5,.3,6,3.3),wall(6,2.5,.3,6,1),wall(-4,2.5,4,.15,.65),wall(4,2.5,4,.15,.65),furniture(-3,0,1.8,4,1),furniture(3,0,1.8,4,1)];
