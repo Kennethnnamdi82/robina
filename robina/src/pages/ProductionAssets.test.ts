@@ -28,10 +28,25 @@ describe('production model delivery', () => {
     expect(config.redirects.some((route: { source: string }) => route.source === '/' || route.source.startsWith('/admin') || route.source.startsWith('/api'))).toBe(false);
   });
   it('keeps the application fallback away from assets and backend API paths', () => {
-    const pattern = new RegExp('^' + config.rewrites[0].source + '$');
+    const fallbacks = config.rewrites.filter((route: { destination: string }) => route.destination === '/index.html');
+    expect(fallbacks).toHaveLength(1);
+    const pattern = new RegExp('^' + fallbacks[0].source + '$');
     expect(pattern.test('/gaming')).toBe(true);
     expect(pattern.test('/admin/users')).toBe(true);
     expect(pattern.test('/assets/missing.glb')).toBe(false);
     expect(pattern.test('/api/auth/me')).toBe(false);
+    expect(pattern.test('/api/bounties/tasks')).toBe(false);
+    expect(pattern.test('/api/admin/bounties/summary')).toBe(false);
+    expect(pattern.test('/.well-known/assetlinks.json')).toBe(false);
+  });
+  it('routes bounty and existing owner session APIs before the SPA fallback', () => {
+    expect(config.rewrites.slice(0, -1)).toEqual([
+      { source: '/api/admin/me', destination: '/api/admin-session?__admin_session_route=/api/admin/me' },
+      { source: '/api/admin/login', destination: '/api/admin-session?__admin_session_route=/api/admin/login' },
+      { source: '/api/admin/logout', destination: '/api/admin-session?__admin_session_route=/api/admin/logout' },
+      { source: '/api/bounties/:path*', destination: '/api/bounty-relay?__bounty_route=/api/bounties/:path*' },
+      { source: '/api/admin/bounties/:path*', destination: '/api/bounty-relay?__bounty_route=/api/admin/bounties/:path*' },
+    ]);
+    expect(config.rewrites.at(-1).destination).toBe('/index.html');
   });
 });
