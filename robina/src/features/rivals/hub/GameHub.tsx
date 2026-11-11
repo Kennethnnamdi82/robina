@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Award, BadgeCheck, Check, ChevronRight, Clock3, Crosshair, Flag, LockKeyhole, LogOut, Medal, Shield, ShoppingBag, SlidersHorizontal, Sparkles, Swords, Target, Trophy, UserRound } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Award, BadgeCheck, Check, ChevronRight, Clock3, Crosshair, Flag, LockKeyhole, LogOut, Medal, Radio, Shield, ShoppingBag, SlidersHorizontal, Sparkles, Swords, Target, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { HubSettings } from './HubSettings';
 import { MissionDifficulty, OperationArt } from './OperationArt';
@@ -15,11 +15,13 @@ import './cinematic.css';
 const PlayPage = lazy(() => import('./PlayPage'));
 const StorePage = lazy(() => import('../store/StorePage'));
 const RecoveryPage = lazy(() => import('../store/RecoveryPage'));
+const BountyPage = lazy(() => import('../bounties/BountyPage'));
 const NAV = [
   { to: '/', label: 'LOBBY', icon: Swords }, { to: '/missions', label: 'MISSIONS', icon: Crosshair },
   { to: '/customization', label: 'CUSTOMIZATION', icon: Shield }, { to: '/inventory', label: 'LOADOUT', icon: Target }, { to: '/profile', label: 'PLAYER PROFILE', icon: UserRound },
   { to: '/leaderboards', label: 'LEADERBOARDS', icon: Trophy }, { to: '/rank', label: 'RANK', icon: Medal },
   { to: '/store', label: 'STORE', icon: ShoppingBag },
+  { to: '/bounties', label: 'BOUNTY & EARN', icon: Radio },
   { to: '/settings', label: 'SETTINGS', icon: SlidersHorizontal },
 ];
 const ART = '/assets/rivals/hub/command-keyart-v2.webp';
@@ -62,6 +64,7 @@ function Hub({ identity }: { identity: string }) {
         <Route path="leaderboards" element={<Leaderboards dossier={dossier}/>}/>
         <Route path="rank" element={<Ranks dossier={dossier}/>}/>
         <Route path="settings" element={settings()}/>
+        <Route path="bounties" element={<Suspense fallback={<p role="status">OPENING CREATOR COMMAND…</p>}><BountyPage identity={identity}/></Suspense>}/>
         <Route path="store/*" element={<Suspense fallback={<p role="status">OPENING THE EXCHANGE…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
         <Route path="inventory" element={<Suspense fallback={<p role="status">OPENING FIELD LOCKER…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
         <Route path="purchase-history" element={<Suspense fallback={<p role="status">OPENING PURCHASE HISTORY…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
@@ -86,7 +89,7 @@ function Lobby({ dossier, onExit }: { dossier: Dossier; onExit: () => void }) {
       <div className="rh-lobby-promos"><Link to="/store/characters"><img src="/assets/rivals/store/commander.webp" alt=""/><span><small>THE COMMAND COLLECTION</small><b>LEAVE A SIGNATURE.</b><em>EXPLORE THE STORE <ArrowUpRight size={13}/></em></span></Link><Link to="/inventory"><Crosshair size={19}/><span><small>QUARTERMASTER</small><b>YOUR FIELD LOCKER</b></span><ArrowUpRight size={16}/></Link></div>
     </div>
     <div className="rh-operative-tag"><span>FIELD OPERATIVE / {dossier.callsign}</span><b>{stats.rank.name}</b><small>READY FOR INSERTION</small></div>
-    <nav className="rh-command-nav" aria-label="Main menu">{NAV.slice(1).map(({to,label,icon:Icon},index) => <Link to={to} key={to} aria-label={label==='CUSTOMIZATION'?'CHARACTER CUSTOMIZATION':label}><span className="rh-nav-index" aria-hidden="true">0{index+1}</span><span><b>{label}</b><small>{to==='/missions'?'SEVEN JOBS. NO TWO ALIKE.':to==='/store'?'HARDWARE / IDENTITY / SIGNATURE':to==='/leaderboards'?'EXHIBITION & YOUR RECORDED RUNS':to==='/profile'?'YOUR RECORD. YOUR REPUTATION.':to==='/settings'?'CONFIGURE YOUR EXPERIENCE':to==='/rank'?'EARN YOUR NEXT INSIGNIA':to==='/inventory'?'ISSUED KIT / VERIFIED COLLECTION':'CALLSIGN / CREST / IDENTITY'}</small></span><Icon size={21}/></Link>)}</nav>
+    <nav className="rh-command-nav" aria-label="Main menu">{NAV.slice(1).map(({to,label,icon:Icon},index) => <Link to={to} key={to} aria-label={label==='CUSTOMIZATION'?'CHARACTER CUSTOMIZATION':label}><span className="rh-nav-index" aria-hidden="true">0{index+1}</span><span><b>{label}</b><small>{to==='/missions'?'SEVEN JOBS. NO TWO ALIKE.':to==='/store'?'HARDWARE / IDENTITY / SIGNATURE':to==='/bounties'?'CREATE / SUBMIT / TRACK':to==='/leaderboards'?'EXHIBITION & YOUR RECORDED RUNS':to==='/profile'?'YOUR RECORD. YOUR REPUTATION.':to==='/settings'?'CONFIGURE YOUR EXPERIENCE':to==='/rank'?'EARN YOUR NEXT INSIGNIA':to==='/inventory'?'ISSUED KIT / VERIFIED COLLECTION':'CALLSIGN / CREST / IDENTITY'}</small></span><Icon size={21}/></Link>)}</nav>
     <div className="rh-lobby-deploy"><div><span className="rh-eyebrow">NEXT CONTRACT / {String(next.venue+1).padStart(2,'0')}</span><h2>{next.name}</h2><p>{next.location}</p></div><Link className="rh-primary rh-play" to={'/play?operation='+next.id} aria-label="PLAY"><PlayGlyph/><span>PLAY<small>DEPLOY TO OPERATION</small></span><ArrowUpRight size={25}/></Link></div>
     <button className="rh-command-exit" onClick={onExit}><LogOut size={15}/><span>EXIT / BACK</span></button>
   </section><section className="rh-lobby-bottom"><div><Shield size={25}/><span><small>YOUR STANDING</small><strong>{stats.rank.name}</strong></span><Link to="/rank">VIEW RANK <ChevronRight size={14}/></Link></div><div><Crosshair size={24}/><span><small>SUCCESSFUL EXTRACTIONS</small><strong>{String(stats.wins).padStart(2,'0')}</strong></span><span className="rh-muted">LOCAL RECORD</span></div><div><Clock3 size={24}/><span><small>PERSONAL BEST</small><strong>{formatTime(stats.best)}</strong></span><Link to="/profile">DOSSIER <ChevronRight size={14}/></Link></div></section></>;

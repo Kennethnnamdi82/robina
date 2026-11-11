@@ -1855,3 +1855,12 @@
     margin-top: 5px;
   }
 }
+/* Nine destinations keep clear of the deployment dock on shorter desktops. */
+@media (min-width: 761px) and (max-height: 850px) {
+  .rh-app .rh-command-nav > a { min-height: 44px; padding-block: 5px; }
+  .rh-app .rh-command-nav b { font-size: 20px; }
+  .rh-app .rh-command-nav small { margin-top: 3px; }
+}
+@media (max-width: 760px) {
+  .rh-app.rh-app .rh-command-lobby { min-height: 940px; }
+}

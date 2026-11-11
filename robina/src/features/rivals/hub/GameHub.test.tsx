@@ -56,4 +56,12 @@ describe('frontend-only game hub',()=>{
     expect(screen.getByText('YOUR COLLECTION IS EMPTY')).toBeTruthy();
     expect(screen.queryByText('3D deployment')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();
   },15000);
+  it('opens Bounty & Earn through the existing navigation without starting gameplay or making API calls',async()=>{
+    const network=vi.spyOn(globalThis,'fetch');at();
+    fireEvent.click(screen.getByRole('link',{name:'BOUNTY & EARN'}));
+    expect(await screen.findByRole('heading',{name:'BOUNTY & EARN'})).toBeTruthy();
+    expect(await screen.findByRole('article',{name:'X bounty'})).toBeTruthy();
+    expect(screen.queryByText('3D deployment')).toBeNull();expect(network).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('link',{name:/BACK TO LOBBY/}));expect(screen.getByRole('link',{name:'PLAY'})).toBeTruthy();
+  });
 });
