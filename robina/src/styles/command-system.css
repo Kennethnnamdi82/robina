@@ -1,0 +1,480 @@
+
+@font-face {
+  font-family: Rivals Condensed;
+  src: url('/assets/rivals/ui/BarlowCondensed-SemiBold.ttf') format('truetype');
+  font-weight: 600 900;
+  font-display: swap;
+}
+:root {
+  --command-bg: #0c0f13;
+  --command-panel: #171d23;
+  --command-line: #b7c4d12b;
+  --command-text: #eef1f3;
+  --command-muted: #a4b0bc;
+  --command-red: #cf504b;
+}
+body {
+  background: var(--command-bg);
+}
+/* Authentication is intentionally still the existing account flow. */
+main.rivals-login {
+  background: #10151a;
+  color: #e9eff3;
+  isolation: isolate;
+  padding: max(36px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(36px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));
+  min-height: 100svh;
+  --primary: 3 61% 55%;
+  --background: 215 25% 6%;
+  --card: 215 23% 10%;
+  --border: 214 15% 27%;
+}
+main.rivals-login>div[aria-hidden=true] {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  filter: none;
+  background: linear-gradient(90deg,#0b101233,transparent 40%,#0b1013eb 76%),linear-gradient(0deg,#0c1016e8,transparent 55%),url('/assets/rivals/hub/command-keyart-v2.webp') 35% center/cover;
+}
+main.rivals-login>section {
+  width: min(410px,100%);
+  max-width: 410px;
+  margin-left: auto;
+  margin-right: 6vw;
+  position: relative;
+}
+main.rivals-login section>div:first-child {
+  justify-content: start;
+  gap: 12px;
+  margin-bottom: 28px;
+  font-family: 'Rivals Condensed',Impact,sans-serif;
+  letter-spacing: .12em;
+  font-size: 30px;
+}
+main.rivals-login section>div:first-child>span:last-child {
+  font-family: 'Rivals Condensed',Impact,sans-serif;
+  font-size: 34px;
+  letter-spacing: .12em;
+}
+main.rivals-login section>div:nth-child(2) {
+  border: 1px solid #b3c6d23d;
+  border-top: 2px solid #d45852;
+  border-radius: 0;
+  box-shadow: 0 24px 70px #0005;
+  background: #10161eee;
+  backdrop-filter: none;
+  padding: 32px;
+}
+main.rivals-login header {
+  text-align: left;
+}
+.rivals-login header>span {
+  font: 9px monospace;
+  color: #c5938b;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  letter-spacing: .19em;
+}
+.rivals-login h1 {
+  font: 600 42px/1.05 'Rivals Condensed',Impact,sans-serif;
+  letter-spacing: .02em;
+  margin-top: 13px;
+}
+.rivals-login header>p {
+  font-size: 13px;
+  color: #9cabb8;
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.rivals-login button {
+  border-radius: 1px;
+  min-height: 48px;
+  box-shadow: none;
+  transition: background .15s,border-color .15s;
+}
+.rivals-login button:hover {
+  transform: none;
+}
+.rivals-login section button.bg-white {
+  background: #e3e8eb;
+  color: #151c23;
+  max-width: none;
+  font-size: 12px;
+  letter-spacing: .015em;
+}
+.rivals-login section button.bg-white:hover {
+  background: #fff;
+}
+.rivals-login .bg-primary {
+  background: #c9504c!important;
+  color: #fff;
+  box-shadow: none;
+  border-radius: 0;
+}
+.rivals-login .rounded-full {
+  border-radius: 0;
+}
+.rivals-login section>p {
+  color: #8496a5;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.rivals-login [role=alert] {
+  border: 1px solid #da716973;
+  background: #4a2425;
+  color: #ffd1cb;
+  border-radius: 0;
+  font-size: 12px;
+}
+.rivals-login button:focus-visible {
+  outline: 2px solid #ffa69d;
+  outline-offset: 4px;
+}
+.rh-auth-story {
+  position: absolute;
+  left: 7vw;
+  bottom: 10vh;
+  max-width: 410px;
+  pointer-events: none;
+}
+.rh-auth-story>span {
+  font: 9px monospace;
+  letter-spacing: .2em;
+  color: #c6d0d7;
+  border-left: 2px solid #dd655c;
+  padding-left: 12px;
+}
+.rh-auth-story h2 {
+  font: 600 clamp(70px,7.5vw,120px)/.83 'Rivals Condensed',Impact,sans-serif;
+  letter-spacing: .02em;
+  margin: 23px 0;
+  color: #f1f2ee;
+}
+.rh-auth-story p {
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: #a8b7c2;
+  line-height: 1.8;
+}
+main.native-login {
+  display: grid;
+  place-items: center;
+}
+.native-login>section {
+  padding: 0;
+}
+.native-login .native-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: #e1e5e8;
+}
+.native-wordmark strong {
+  font: 600 38px/.9 'Rivals Condensed',Impact,sans-serif;
+  letter-spacing: .1em;
+}
+.native-wordmark small {
+  display: block;
+  font: 8px monospace;
+  letter-spacing: .2em;
+  margin-top: 8px;
+  color: #b5bfc6;
+}
+.native-login .native-login-card {
+  background: #10161eee;
+  border: 1px solid #a8b9c63d;
+  border-top: 2px solid #d45852;
+  border-radius: 0;
+  padding: 30px;
+}
+.native-login-card .native-eyebrow {
+  font: 8px monospace;
+  letter-spacing: .14em;
+  color: #c5938b;
+}
+.native-login-card h1 {
+  font-size: 41px;
+  margin: 18px 0 12px;
+}
+.native-login-card>p {
+  font-size: 13px;
+  color: #a1b0bc;
+  line-height: 1.8;
+}
+.native-login-card button {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 55px;
+  padding: 13px;
+  background: #c54c47;
+  border: 1px solid #f1938570;
+  color: #fff;
+  margin: 25px 0 20px;
+  font: 700 10px/1.6 Arial,sans-serif;
+  letter-spacing: .07em;
+  border-radius: 0;
+}
+.native-login-card button+button {
+  background: #1b2630;
+  border-color: #ffffff33;
+}
+.native-login-card .native-secure {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10px;
+  color: #93a7b8;
+}
+.native-login .native-footer {
+  font: 8px/1.8 monospace;
+  letter-spacing: .08em;
+  color: #8a9ba8;
+  margin-top: 22px;
+}
+.native-update,.native-return {
+  background: #131b24!important;
+  border: 1px solid #9eb3c54d!important;
+  border-radius: 0!important;
+  color: #dce5eb!important;
+  box-shadow: 0 10px 50px #0006!important;
+}
+.native-update strong,.native-return h1 {
+  font-family: 'Rivals Condensed',Impact,sans-serif!important;
+  letter-spacing: .04em!important;
+}
+.native-update button,.native-return button,.native-return a {
+  border-radius: 0!important;
+  background: #c34a46!important;
+  color: #fff!important;
+  border: 1px solid #db7b6a6b!important;
+}
+.native-update p,.native-return p {
+  color: #acbac6!important;
+}
+.command-loading {
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  text-align: left;
+  gap: 16px;
+  padding: 30px;
+  background: #0d131a;
+  color: #e8eef2;
+  font-family: Arial,sans-serif;
+}
+.command-loading>span {
+  font: 9px monospace;
+  letter-spacing: .25em;
+  color: #b58d89;
+}
+.command-loading h1 {
+  font: 600 52px/1 'Rivals Condensed',Impact,sans-serif;
+  letter-spacing: .03em;
+  margin: 0;
+}
+.command-loading p {
+  font-size: 12px;
+  color: #abbac6;
+  margin: 0;
+}
+.command-loading>i {
+  height: 2px;
+  background: #4e2a2a;
+  width: min(300px,80vw);
+  position: relative;
+  overflow: hidden;
+}
+.command-loading>i:after {
+  content: '';
+  position: absolute;
+  width: 35%;
+  height: 100%;
+  background: #d36960;
+  animation: command-wait 1.8s ease-in-out infinite;
+}
+.command-loading small {
+  font: 8px monospace;
+  letter-spacing: .14em;
+  color: #7d8f9e;
+}
+[data-sonner-toaster] [data-sonner-toast] {
+  border-radius: 1px!important;
+  background: #18212b!important;
+  border: 1px solid #a8bdcf4d!important;
+  color: #e7eef4!important;
+  font-family: Arial,sans-serif!important;
+  box-shadow: 0 10px 30px #0005!important;
+}
+[data-sonner-toaster] [data-description] {
+  color: #aebfcd!important;
+}
+[data-sonner-toast] [data-button] {
+  background: #b94b48!important;
+  color: #fff!important;
+  border-radius: 0!important;
+}
+.command-error {
+  background: #0d151f;
+  color: #e4edf3;
+  font-family: Arial,sans-serif;
+}
+.command-error>div {
+  border: 1px solid #adbfcd3b;
+  border-top: 2px solid #ca6556;
+  background: #192732;
+  padding: 32px;
+}
+.command-error span {
+  font: 8px monospace;
+  color: #c49084;
+  letter-spacing: .13em;
+}
+.command-error h1 {
+  font: 600 40px/1 'Rivals Condensed',Impact,sans-serif;
+}
+.command-error p {
+  font-size: 12px;
+  color: #a7bdcc;
+  line-height: 1.8;
+}
+.command-error button {
+  background: #bd4a43;
+  color: white;
+  border: 1px solid #da84736b;
+  border-radius: 0;
+  font: 700 11px Arial,sans-serif;
+  min-height: 48px;
+  letter-spacing: .08em;
+}
+@keyframes command-wait {
+  from {
+    left: -35%;
+  }
+  to {
+    left: 100%;
+  }
+}
+@media(max-width:760px) {
+  main.rivals-login {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 32px 22px;
+  }
+  .rivals-login>div[aria-hidden=true] {
+    background-position: 51% top!important;
+    background-size: auto 700px!important;
+    background-repeat: no-repeat!important;
+  }
+  .rivals-login>section,main.rivals-login>section {
+    margin: 0;
+    width: 100%;
+    max-width: 390px;
+  }
+  .rh-auth-story {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: 390px;
+    margin: 16px 0 26px;
+    padding-top: 120px;
+  }
+  .rh-auth-story>span {
+    font-size: 8px;
+  }
+  .rh-auth-story h2 {
+    font-size: 65px;
+    margin: 15px 0 0;
+  }
+  .rh-auth-story h2 br {
+    display: none;
+  }
+  .rh-auth-story p {
+    display: none;
+  }
+  main.rivals-login section>div:first-child {
+    margin-bottom: 18px;
+  }
+  main.rivals-login section>div:nth-child(2) {
+    padding: 26px;
+  }
+  .rivals-login h1 {
+    font-size: 37px;
+  }
+  main.native-login>section {
+    padding-top: 160px;
+  }
+  .native-login-card h1 {
+    font-size: 36px;
+  }
+  .native-login .native-login-card {
+    padding: 26px;
+  }
+  .native-login .native-wordmark {
+    margin-bottom: 23px;
+  }
+  .native-login-card button {
+    font-size: 9px;
+  }
+  .command-loading h1 {
+    font-size: 43px;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  .command-loading>i:after {
+    animation: none;
+    left: 20%;
+  }
+}
+.rivals-login .android-download {
+  background: #18232c;
+  border: 1px solid #a6bccf40;
+  border-radius: 0;
+  box-shadow: none;
+}
+.rivals-login .android-download h2 {
+  font: 600 26px 'Rivals Condensed',Impact,sans-serif;
+  letter-spacing: .02em;
+}
+.rivals-login .android-download-heading>div>span {
+  color: #9fb8ca;
+  font-size: 7px;
+}
+.rivals-login .android-download-icon {
+  color: #c1d0db;
+  border-color: #abc0ce3b;
+}
+.rivals-login .android-apk-label {
+  color: #a9c2d4;
+  border-color: #abc0ce3b;
+  border-radius: 0;
+}
+.rivals-login .android-download>p {
+  color: #adbfcc;
+  font-size: 11px;
+}
+.rivals-login .android-download-button {
+  border-radius: 0;
+  background: #dae3e9;
+  color: #17212a;
+  font-size: 10px;
+  min-height: 54px;
+}
+.rivals-login .android-download-button:disabled {
+  background: #273643;
+  color: #a2b8c9;
+  border-color: #a7c3d235;
+}
+.rivals-login .android-download-button small {
+  color: #3e5364;
+}
+.rivals-login .android-download .android-download-safety {
+  font-size: 9px;
+  color: #9fb6c6;
+  line-height: 1.8;
+}

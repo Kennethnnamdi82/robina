@@ -126,6 +126,7 @@ function WebLoginPage() {
         <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:28px_28px]" />
       </div>
 
+      <aside className="rh-auth-story"><span>SEVEN CONTRACTS. ONE CITY. YOUR RULES.</span><h2>RIVAL<br/> HEIST</h2><p>PLAN YOUR ENTRANCE.<br/>MAKE YOUR OWN WAY OUT.</p></aside>
       <section className="relative w-full max-w-[390px]">
         <div className="mb-6 flex items-center justify-center gap-2.5 text-white">
           <RobinaMark />
@@ -186,7 +187,7 @@ function WebLoginPage() {
 
           <p className="mt-6 flex items-start gap-2 border-t border-white/10 pt-4 text-[11px] leading-5 text-slate-400">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-            Robina never asks for your recovery phrase, password, or private keys.
+            RIVALS never asks for your recovery phrase, password, or private keys.
           </p>
         </div>
 

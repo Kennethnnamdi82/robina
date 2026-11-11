@@ -3,24 +3,26 @@ import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-route
 import { ArrowLeft, ArrowUpRight, Award, BadgeCheck, Check, ChevronRight, Clock3, Crosshair, Flag, LockKeyhole, LogOut, Medal, Shield, ShoppingBag, SlidersHorizontal, Sparkles, Swords, Target, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { HubSettings } from './HubSettings';
+import { MissionDifficulty, OperationArt } from './OperationArt';
 import { addRecord, dossierStats, formatTime, OPERATIONS, PREVIEW_STANDINGS, RANKS, readDossier, readPreferences, runScore, saveDossier, savePreferences,isAssignmentUnlocked, type Dossier, type HeistRecord, type HubPreferences } from './model';
 import type { MissionSnapshot } from '../missions/types';
 import { trapFocus } from '../ui/trapFocus';
 import './hub.css';
 import './command-theme.css';
 import './readability.css';
+import './cinematic.css';
 
 const PlayPage = lazy(() => import('./PlayPage'));
 const StorePage = lazy(() => import('../store/StorePage'));
 const RecoveryPage = lazy(() => import('../store/RecoveryPage'));
 const NAV = [
   { to: '/', label: 'LOBBY', icon: Swords }, { to: '/missions', label: 'MISSIONS', icon: Crosshair },
-  { to: '/customization', label: 'CUSTOMIZATION', icon: Shield }, { to: '/profile', label: 'PLAYER PROFILE', icon: UserRound },
+  { to: '/customization', label: 'CUSTOMIZATION', icon: Shield }, { to: '/inventory', label: 'LOADOUT', icon: Target }, { to: '/profile', label: 'PLAYER PROFILE', icon: UserRound },
   { to: '/leaderboards', label: 'LEADERBOARDS', icon: Trophy }, { to: '/rank', label: 'RANK', icon: Medal },
   { to: '/store', label: 'STORE', icon: ShoppingBag },
   { to: '/settings', label: 'SETTINGS', icon: SlidersHorizontal },
 ];
-const ART = '/assets/rivals/hub/menu-keyart-v1.webp';
+const ART = '/assets/rivals/hub/command-keyart-v2.webp';
 
 export default function GameHub() {
   const { baseUser } = useAuth();
@@ -78,12 +80,18 @@ function PageHeading({ code, title, description }: { code: string; title: string
 }
 function Lobby({ dossier, onExit }: { dossier: Dossier; onExit: () => void }) {
   const stats = dossierStats(dossier), next = OPERATIONS.find(op => !dossier.records.some(r => r.venue===op.venue && r.state==='SUCCESS')) || OPERATIONS[((dossier.records.find(r=>r.state==='SUCCESS')?.venue??-1)+1)%OPERATIONS.length];
-  return <><section className="rh-lobby" aria-label="RIVALS main menu"><div className="rh-lobby-art" style={{backgroundImage:`url(${ART})`}} aria-hidden="true"/><div className="rh-lobby-grid" aria-hidden="true"/>
-    <div className="rh-lobby-copy"><span className="rh-eyebrow">THE CITY KEEPS ITS SECRETS</span><h1 tabIndex={-1}>RIVAL<br/><em>HEIST</em></h1><p>Get in — Find your edge<br/>Leave your rivals behind</p><nav className="rh-main-actions" aria-label="Main menu"><Link className="rh-primary" to={'/play?operation='+next.id}><Swords size={20}/><span>PLAY</span><ArrowUpRight size={21}/></Link>{NAV.slice(1).map(({to,label,icon:Icon}) => <Link to={to} key={to}><Icon size={18}/><span>{label === 'CUSTOMIZATION' ? 'CHARACTER CUSTOMIZATION' : label}</span>{to==='/missions' && <small>7 ASSIGNMENTS</small>}{to==='/leaderboards' && <small>EXHIBITION</small>}<ChevronRight size={14}/></Link>)}<button className="rh-menu-exit" onClick={onExit}><ArrowLeft size={17}/><span>EXIT / BACK</span></button></nav></div>
-    <div className="rh-lobby-caption"><span>FINANCIAL DISTRICT / 18:42</span><b>NO CLEAN GETAWAYS</b><small>FINANCIAL DISTRICT</small></div>
-    <aside className="rh-insertion"><span className="rh-eyebrow">NEXT INSERTION / {next.code}</span><h2>{next.name}</h2><p>{next.location}</p><div className="rh-insertion-meta"><span><Target size={13}/> {next.type}</span><span><Clock3 size={13}/> NO DEADLINE</span></div><Link to="/missions">OPERATION BRIEF <ArrowUpRight size={16}/></Link></aside>
-  </section><section className="rh-lobby-bottom"><div><Shield size={28}/><span><small>YOUR STANDING</small><strong>{stats.rank.name}</strong></span><Link to="/rank">VIEW RANK <ChevronRight size={14}/></Link></div><div><Crosshair size={25}/><span><small>SUCCESSFUL EXTRACTIONS</small><strong>{String(stats.wins).padStart(2,'0')}</strong></span><span className="rh-muted">LOCAL RECORD</span></div><div><Clock3 size={25}/><span><small>PERSONAL BEST</small><strong>{formatTime(stats.best)}</strong></span><Link to="/profile">DOSSIER <ChevronRight size={14}/></Link></div></section></>;
+  return <><section className="rh-lobby rh-command-lobby" aria-label="RIVALS main menu">
+    <div className="rh-lobby-art" style={{backgroundImage:`url(${ART})`}} aria-hidden="true"/>
+    <div className="rh-lobby-copy"><span className="rh-eyebrow"><i/> SOLO CAMPAIGN / SEVEN CONTRACTS</span><h1 tabIndex={-1}>RIVAL<br/><em>HEIST<span>01</span></em></h1><p>THE CITY IS YOURS.<br/><strong>IF YOU CAN GET OUT.</strong></p>
+      <div className="rh-lobby-promos"><Link to="/store/characters"><img src="/assets/rivals/store/commander.webp" alt=""/><span><small>THE COMMAND COLLECTION</small><b>LEAVE A SIGNATURE.</b><em>EXPLORE THE STORE <ArrowUpRight size={13}/></em></span></Link><Link to="/inventory"><Crosshair size={19}/><span><small>QUARTERMASTER</small><b>YOUR FIELD LOCKER</b></span><ArrowUpRight size={16}/></Link></div>
+    </div>
+    <div className="rh-operative-tag"><span>FIELD OPERATIVE / {dossier.callsign}</span><b>{stats.rank.name}</b><small>READY FOR INSERTION</small></div>
+    <nav className="rh-command-nav" aria-label="Main menu">{NAV.slice(1).map(({to,label,icon:Icon},index) => <Link to={to} key={to} aria-label={label==='CUSTOMIZATION'?'CHARACTER CUSTOMIZATION':label}><span className="rh-nav-index" aria-hidden="true">0{index+1}</span><span><b>{label}</b><small>{to==='/missions'?'SEVEN JOBS. NO TWO ALIKE.':to==='/store'?'HARDWARE / IDENTITY / SIGNATURE':to==='/leaderboards'?'EXHIBITION & YOUR RECORDED RUNS':to==='/profile'?'YOUR RECORD. YOUR REPUTATION.':to==='/settings'?'CONFIGURE YOUR EXPERIENCE':to==='/rank'?'EARN YOUR NEXT INSIGNIA':to==='/inventory'?'ISSUED KIT / VERIFIED COLLECTION':'CALLSIGN / CREST / IDENTITY'}</small></span><Icon size={21}/></Link>)}</nav>
+    <div className="rh-lobby-deploy"><div><span className="rh-eyebrow">NEXT CONTRACT / {String(next.venue+1).padStart(2,'0')}</span><h2>{next.name}</h2><p>{next.location}</p></div><Link className="rh-primary rh-play" to={'/play?operation='+next.id} aria-label="PLAY"><PlayGlyph/><span>PLAY<small>DEPLOY TO OPERATION</small></span><ArrowUpRight size={25}/></Link></div>
+    <button className="rh-command-exit" onClick={onExit}><LogOut size={15}/><span>EXIT / BACK</span></button>
+  </section><section className="rh-lobby-bottom"><div><Shield size={25}/><span><small>YOUR STANDING</small><strong>{stats.rank.name}</strong></span><Link to="/rank">VIEW RANK <ChevronRight size={14}/></Link></div><div><Crosshair size={24}/><span><small>SUCCESSFUL EXTRACTIONS</small><strong>{String(stats.wins).padStart(2,'0')}</strong></span><span className="rh-muted">LOCAL RECORD</span></div><div><Clock3 size={24}/><span><small>PERSONAL BEST</small><strong>{formatTime(stats.best)}</strong></span><Link to="/profile">DOSSIER <ChevronRight size={14}/></Link></div></section></>;
 }
+function PlayGlyph(){return <svg viewBox="0 0 24 24" width="25" height="25" fill="currentColor" aria-hidden="true"><path d="M6 3.5 21 12 6 20.5V3.5Z"/></svg>;}
 function Stat({ label, value, children }: { label: string; value: ReactNode; children?: ReactNode }) {
   return <div className="rh-stat"><span>{label}</span><strong>{value}</strong>{children && <small>{children}</small>}</div>;
 }
@@ -98,7 +106,15 @@ function History({ records }: { records: HeistRecord[] }) {
 function Missions({ dossier }: { dossier: Dossier }) {
   const [filter, setFilter] = useState('all');
   const records = dossier.records.filter(r => filter==='all' || (filter==='completed' ? r.state==='SUCCESS' : r.state!=='SUCCESS'));
-  return <><PageHeading code="01" title="OPERATIONS" description="Choose your next job — Review every route you took and every extraction you earned"/><div className="rh-section-head"><h2>AVAILABLE CONTRACTS</h2><span>CONTINUOUS CAMPAIGN / REPLAYABLE</span></div><div className="rh-mission-grid">{OPERATIONS.map(op => { const wins=dossier.records.filter(r => r.venue===op.venue && r.state==='SUCCESS'),unlocked=isAssignmentUnlocked(dossier,op.venue); return <article className="rh-mission-card" key={op.id} data-locked={!unlocked} data-accent={op.accent}><div className="rh-mission-visual" style={{backgroundImage:`url(${ART})`}}><span>OP / {op.code}</span><span>{wins.length ? <><Check size={12}/> COMPLETED</> : unlocked?'AUTHORIZED':'CLASSIFIED'}</span><Crosshair className="rh-reticle-art" size={50}/></div><div className="rh-mission-body"><span className="rh-eyebrow">{op.type}</span><h2>{op.name}</h2><p>{op.description}</p><div className="rh-mission-data"><span>BEST EXTRACTION <b>{formatTime(wins.length ? Math.min(...wins.map(r=>r.seconds)) : null)}</b></span><span>COMPLETED <b>{String(wins.length).padStart(2,'0')}</b></span></div><Link className="rh-secondary" to={'/play?operation='+op.id}>{!unlocked?'REVIEW UNLOCK REQUIREMENT':wins.length?'REPLAY OPERATION':'VIEW BRIEFING'}<ArrowUpRight size={16}/></Link></div></article>; })}</div><div className="rh-section-head rh-history-heading"><h2>OPERATION HISTORY</h2><span>BROWSER RECORDS</span></div><div className="rh-tabs" role="group" aria-label="History filter">{[['all','ALL RUNS'],['completed','COMPLETED'],['other','OTHER OUTCOMES']].map(([id,label]) => <button key={id} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div><History records={records}/><p className="rh-local-notice">History is saved only in this browser for this profile — Clearing browser data removes it; it does not sync between devices</p></>;
+  return <><PageHeading code="01" title="OPERATIONS" description="Seven contracts. Seven ways into the city. Plan your route. Earn your extraction."/>
+    <div className="rh-section-head"><h2>AVAILABLE CONTRACTS</h2><span>CONTINUOUS CAMPAIGN / REPLAYABLE</span></div>
+    <div className="rh-mission-grid">{OPERATIONS.map(op=>{
+      const wins=dossier.records.filter(r=>r.venue===op.venue&&r.state==='SUCCESS'),unlocked=isAssignmentUnlocked(dossier,op.venue);
+      return <article className="rh-mission-card" key={op.id} data-locked={!unlocked} data-stage={op.venue}>
+        <div className="rh-mission-visual"><div className="rh-recon-label"><span>CONTRACT / {String(op.venue+1).padStart(2,'0')}</span><span>{wins.length?<><Check size={12}/> COMPLETED</>:unlocked?'AUTHORIZED':'CLASSIFIED'}</span></div><OperationArt assignment={op}/><strong className="rh-mission-number">0{op.venue+1}</strong></div>
+        <div className="rh-mission-body"><span className="rh-eyebrow">{op.type} / {op.location}</span><h2>{op.name}</h2><MissionDifficulty stage={op.venue}/><p>{op.description}</p><div className="rh-mission-data"><span>BEST EXTRACTION <b>{formatTime(wins.length?Math.min(...wins.map(r=>r.seconds)):null)}</b></span><span>COMPLETED <b>{String(wins.length).padStart(2,'0')}</b></span><span>SECURITY <b>{op.security} UNITS</b></span></div><Link className="rh-secondary" to={'/play?operation='+op.id}>{!unlocked?'REVIEW UNLOCK REQUIREMENT':wins.length?'REPLAY OPERATION':'VIEW BRIEFING'}<ArrowUpRight size={16}/></Link></div>
+      </article>;
+    })}</div><div className="rh-section-head rh-history-heading"><h2>OPERATION HISTORY</h2><span>DEVICE RECORDS</span></div><div className="rh-tabs" role="group" aria-label="History filter">{[['all','ALL RUNS'],['completed','COMPLETED'],['other','OTHER OUTCOMES']].map(([id,label])=><button key={id} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div><History records={records}/><p className="rh-local-notice">History is saved only on this device for this profile. It does not sync between devices.</p></>;
 }
 function Profile({ dossier }: { dossier: Dossier }) {
   const stats=dossierStats(dossier);

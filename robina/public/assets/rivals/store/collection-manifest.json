@@ -5,56 +5,56 @@
     {
       "id": "urban",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1444888,
-      "sha256": "0077ca2330a77a52cf255f29aed8f2c687daf9ef72d974cc7e9ea8c078fd208a"
+      "bytes": 1445032,
+      "sha256": "273572de7200bb2686cb4e1a68262bb65884820f62424cd675e373776e6b744d"
     },
     {
       "id": "neon",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1525316,
-      "sha256": "072ba61ac26d36f935fb26371e9a39c1d7a1f4a064658363f33d5b8ad755332d"
+      "bytes": 1476676,
+      "sha256": "da9a153762ed9d500f7a652ffa95dfe85ee7b7153dbd602fe871bd32c0153f12"
     },
     {
       "id": "shadow",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1623688,
-      "sha256": "e2491b4a17005979aa084f0be5e57f2a4fde1df38ad33c0a8df6af638a2475fa"
+      "bytes": 1584852,
+      "sha256": "f726792d857873488056f1aa57f62a5ad9a9548ae574e6e738eacb292ccdf44f"
     },
     {
       "id": "cyber",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1621800,
-      "sha256": "282136f2fe4d8ea67400c73a37e7c4377d53b3b9be36f341bddcfee187f363bc"
+      "bytes": 2743900,
+      "sha256": "8fbd0357e36eff81f225f8d591bb1ca5f825f0294416d2f6aee34635f1a88279"
     },
     {
       "id": "crimson",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1506656,
-      "sha256": "6ba1ebf35ad9121f2431febf0ef2fb245db351b3afc4e573657f7ab94e44c83d"
+      "bytes": 1588572,
+      "sha256": "8e33490d094578f86d45aa8f840541d2f7f479096e2d9cbc8651b45a6a71aba7"
     },
     {
       "id": "golden",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1504420,
-      "sha256": "918107cf4f02eb8fab4bb104a81b0d66bec78b77bc58ace60e5c8fd2804750d7"
+      "bytes": 1579824,
+      "sha256": "152fb822e82e28b13bb2c6e385fdcbb9840b0ed291ad2ae04117e3bf87dee7bc"
     },
     {
       "id": "midnight",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1523104,
-      "sha256": "064bfb405cbfd3b406bfc143de34d3c22282336e7cd0261e85ff8b73987a85d6"
+      "bytes": 2942028,
+      "sha256": "2d0ea808d1245a6844d43bba50c6bfd3a45f72ca427f67ad545e269dc8fff224"
     },
     {
       "id": "commander",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1680692,
-      "sha256": "35dd4730ecf379b467b07c473a651c9826f85c3c74ddedab227803e2ef6ea1a3"
+      "bytes": 3120508,
+      "sha256": "af1befdb1046e7cf8c557644ba75f2a843b595677a5e5f5427309b2068158832"
     },
     {
       "id": "founder",
       "source": "/src/features/Military_Male_03.glb",
-      "bytes": 1504444,
-      "sha256": "2c41ed719519b49a94697abcd166a2b2644a9bd7a8a1d7ce157bf0bb56a573ae"
+      "bytes": 1580116,
+      "sha256": "5a4444db0e20854ee814eb230a819458e3eb5d36e8469c57225e62d959501c00"
     },
     {
       "id": "mp5",

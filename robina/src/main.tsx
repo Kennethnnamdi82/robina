@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { StrictMode } from "react";
 import App from "./App.tsx";
 import "./index.css";
+import "./styles/command-system.css";
 // NOTE: We are removing Web3Provider from here and moving it into App.tsx
 // to fix the "No QueryClient set" error.
 import AppErrorBoundary from "./components/AppErrorBoundary";

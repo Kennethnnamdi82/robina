@@ -1,5 +1,5 @@
-import { AnimationMixer, Box3, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Quaternion, Vector3, type AnimationClip, type Object3D } from 'three';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { AnimationMixer, Box3, Color, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3, type AnimationClip, type Object3D } from 'three';
+import {buildOutfitArmor,uniformFabric} from './OutfitArmor';
 
 import { OUTFITS, type OutfitId } from './outfits';
 
@@ -27,6 +27,7 @@ export function dressCollection(root: Object3D, clips: readonly AnimationClip[],
     }
   }
   const changed = new Map<MeshStandardMaterial, MeshStandardMaterial>();
+  const fabric=id==='urban'?undefined:uniformFabric(id);
   root.traverse(node => {
     if (!(node instanceof Mesh)) return;
     const finish = (source: MeshStandardMaterial) => {
@@ -37,6 +38,10 @@ export function dressCollection(root: Object3D, clips: readonly AnimationClip[],
       if (id === 'urban') { if (/equipment|helmet/.test(name)) m.color.set(outfit.gear); return m; }
       const trim = /accent|lightblue|earrings|visor|equipment|helmet/.test(name);
       m.color.set(trim ? outfit.gear : outfit.body);
+      // Re-tailored albedo retains the source's normal/detail maps and anatomy.
+      // A dark color multiplied into the same camo atlas is not a premium suit.
+      if(/body/.test(name)&&fabric)m.map=fabric;
+      if(/equipment|helmet/.test(name)&&['midnight','commander','cyber'].includes(id))m.map=null;
       if (id === 'neon' && /purple/.test(name)) m.color.set('#121c20');
       if (id === 'crimson' && /red/.test(name)) m.color.set('#a33043');
       if (id === 'cyber' && trim) { m.emissive = new Color('#117f8c'); m.emissiveIntensity = .04; }
@@ -47,43 +52,7 @@ export function dressCollection(root: Object3D, clips: readonly AnimationClip[],
     node.frustumCulled = false;
   });
   const dressed = new Group(); dressed.add(group); dressed.name = group.name;
-  const accent = new Color(id==='cyber'?'#73cdd5':id==='neon'?'#9dbf54':id==='crimson'?'#c37a79':id==='midnight'?'#628cb8':'#c3a36c');
-  const trim = new MeshStandardMaterial({color:accent,roughness:.58,metalness:.36});
-  const armor = new MeshStandardMaterial({color:outfit.gear,roughness:.76,metalness:.12});
-  const facePanel=(width:number,height:number,y:number,glass:boolean)=>{
-    const positions:number[]=[],indices:number[]=[];
-    for(let row=0;row<3;row++)for(let col=0;col<13;col++){
-      const u=col/6-1,v=row/2,x=u*width*.5*(glass?1:.8+v*.2);
-      positions.push(x,y+(v-.5)*height,.118+.035*(1-u*u));
-      if(row<2&&col<12){const i=row*13+col;indices.push(i,i+1,i+13,i+1,i+14,i+13);}
-    }
-    const geometry=new BufferGeometry();geometry.setAttribute('position',new Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
-    const material=glass?new MeshPhysicalMaterial({color:'#243744',roughness:.2,metalness:.32,clearcoat:1,side:DoubleSide}):new MeshStandardMaterial({color:outfit.gear,roughness:.94,side:DoubleSide});
-    dressed.add(new Mesh(geometry,material));
-  };
-  if (id!=='urban') {
-    for (const side of [-1,1]) {
-      const patch = new Mesh(new RoundedBoxGeometry(.065,.045,.012,2,.005),trim);patch.position.set(side*.13,1.37,.145);dressed.add(patch);
-    }
-  }
-  if (['shadow','cyber','commander'].includes(id)) {
-    facePanel(.235,.075,1.685,true);
-  }
-  if (['neon','midnight'].includes(id)) {
-    for (const side of [-1,1]) {
-      const tube=new Mesh(new CylinderGeometry(.026,.03,.1,16),armor);tube.rotation.x=Math.PI/2;tube.position.set(side*.038,1.766,.145);dressed.add(tube);
-      const lens=new Mesh(new CylinderGeometry(.022,.022,.006,16),trim);lens.rotation.x=Math.PI/2;lens.position.set(side*.038,1.766,.197);dressed.add(lens);
-    }
-  }
-  if (['commander','cyber','shadow'].includes(id)) {
-    for (const side of [-1,1]) {
-      const plate=new Mesh(new RoundedBoxGeometry(.105,.035,.125,3,.016),armor);plate.position.set(side*.225,1.435,0);plate.rotation.z=side*-.2;dressed.add(plate);
-      if(id==='commander'){const mark=new Mesh(new RoundedBoxGeometry(.065,.008,.105,2,.003),trim);mark.position.set(side*.225,1.455,.005);dressed.add(mark);}
-    }
-  }
-  if (['neon','crimson','shadow'].includes(id)) {
-    facePanel(.195,.1,1.585,false);
-  }
+  buildOutfitArmor(dressed,id);
   dressed.userData.rivalsOutfit = { id, source: outfit.source, details: outfit.label };
   return dressed;
 }

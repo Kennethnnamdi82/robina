@@ -29,9 +29,10 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center px-6 bg-background text-foreground">
-          <div className="max-w-md w-full glass-card rounded-2xl p-6 space-y-3 text-center">
-            <h1 className="text-xl font-bold">Robina could not start</h1>
+        <div className="command-error min-h-screen flex items-center justify-center px-6 bg-background text-foreground">
+          <div className="max-w-md w-full p-6 space-y-3">
+            <span>RIVALS / CONNECTION STATUS</span>
+            <h1 className="text-xl font-bold">RIVALS could not start</h1>
             <p className="text-sm text-muted-foreground break-words">
               {import.meta.env.DEV ? this.state.message : "Reload the application to restore your session."}
             </p>

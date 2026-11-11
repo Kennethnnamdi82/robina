@@ -27,6 +27,7 @@ import '../missions.css';
 import './sandbox.css';
 import './command-hud.css';
 import './gameplay-clarity.css';
+import './cinematic-hud.css';
 
 function newSession(operation?:Operation3D,preferences?:HubPreferences){const quality=preferences?.quality ?? readGraphicsQuality();return new SandboxSession({quality,settings:preferences ?? {...defaultSettings(),quality,muted:false,mobileControls:'auto'}},operation);}
 interface RaidAppProps {

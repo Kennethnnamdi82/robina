@@ -53,7 +53,8 @@ describe("game-only public entry", () => {
     auth.isAuthLoading = true;
     render(<AppAt path="/" />);
     expect(screen.getByRole("status").textContent).toContain("Restoring");
-    expect(screen.queryByRole("heading")).toBeNull();
+    expect(screen.getByRole("heading",{name:"Welcome to RIVALS"})).toBeTruthy();
+    expect(screen.queryByRole("heading",{name:"Sign in to RIVALS"})).toBeNull();
   });
   it.each(["/ref/player123", "/r/player123", "/?ref=player123", "/gaming?r=player123"])("keeps referral attribution for %s without an extra page", async path => {
     render(<AppAt path={path} />);

@@ -3,16 +3,14 @@ import { Navigate, Route, Routes, useLocation, useParams } from "react-router-do
 import { useAuth } from "@/context/AuthContext";
 import GamingRoute, { gameEngine } from "@/pages/GamingRoute";
 import LoginPage from "@/pages/LoginPage";
+import CommandLoading from '@/components/CommandLoading';
 const GameHub = lazy(() => import("@/features/rivals/hub/GameHub"));
 
 // Keep owner authentication, but retire the old BaseDrop management screens.
 const AdminLoginPage = lazy(() => import("@/pages/AdminLoginPage"));
 
 function SessionRestoreScreen() {
-  return <main className="grid min-h-screen place-content-center gap-3 bg-background p-5 text-center text-foreground">
-    <p className="text-sm font-semibold">Welcome to RIVALS</p>
-    <p role="status" className="text-xs text-slate-400">Restoring your secure session...</p>
-  </main>;
+  return <CommandLoading message="Restoring your secure session..."/>;
 }
 
 function captureReferral(code: string | null | undefined) {
@@ -41,7 +39,7 @@ export default function AppRoutes() {
   }, [search]);
 
   if (isAuthLoading) return <SessionRestoreScreen />;
-  return <Suspense fallback={<main className="grid min-h-screen place-content-center bg-background text-foreground"><p role="status">Loading RIVALS…</p></main>}>
+  return <Suspense fallback={<CommandLoading message="Loading RIVALS…"/>}>
     <Routes>
       <Route path="/ref/:code" element={<ReferralCapture />} />
       <Route path="/r/:code" element={<ReferralCapture />} />
