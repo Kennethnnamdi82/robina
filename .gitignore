@@ -31,3 +31,4 @@ dist-ssr
 *.jks
 *.p12
 *.pfx
+!backend/.env.example

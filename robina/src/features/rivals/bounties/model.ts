@@ -19,6 +19,11 @@ export interface BountyTask {
   instructions: string[];
   disclosure: string;
   evidenceRequired: boolean;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+  revision?: number;
+  submitted?: boolean;
+  submissionStatus?: SubmissionStatus;
 }
 const submissionSchema = z.object({
   id: z.string(), taskId: z.string(), taskTitle: z.string(), platform: z.enum(['x', 'tiktok']),
@@ -36,7 +41,7 @@ const notificationSchema = z.object({
 export type BountyNotification = z.infer<typeof notificationSchema>;
 const withdrawalSchema = z.object({
   id: z.string(), amountMicros: amount, address: z.string(), requestedAt: z.string().datetime(),
-  status: z.enum(['requested', 'processing', 'paid', 'rejected']),
+  status: z.enum(['requested', 'processing', 'pending', 'approved', 'prepared', 'broadcast', 'paid', 'rejected', 'failed']),
   reason: z.string().optional(), transactionUrl: z.string().optional(),
 });
 export type BountyWithdrawal = z.infer<typeof withdrawalSchema>;
@@ -48,8 +53,12 @@ export const demoStateSchema = z.object({
 export type DemoState = z.infer<typeof demoStateSchema>;
 export interface BountySnapshot extends DemoState {
   tasks: BountyTask[];
-  mode: 'demo';
-  persistence: 'device' | 'session';
+  mode: 'demo' | 'live';
+  persistence: 'device' | 'session' | 'server';
+  payoutsEnabled?: boolean;
+  wallet: DemoState['wallet'] & { pendingMicros?: number; reservedMicros?: number };
+  ledger?: import('@/services/bounties').LedgerEntry[];
+  more?: Partial<Record<'submissions' | 'withdrawals' | 'notifications' | 'ledger', boolean>>;
 }
 export interface SubmitBountyInput {
   taskId: string;
@@ -57,6 +66,7 @@ export interface SubmitBountyInput {
   evidenceUrl: string;
   evidenceNotes: string;
   confirmed: boolean;
+  termsRevision?: number;
 }
 export interface WithdrawInput { address: string; amountMicros: number; confirmed: boolean }
 
@@ -70,8 +80,12 @@ export interface BountyGateway {
   saveAddress(address: string): Promise<BountySnapshot>;
   requestWithdrawal(input: WithdrawInput): Promise<BountySnapshot>;
   markNotificationsRead(): Promise<BountySnapshot>;
+  more?(kind: 'submissions' | 'withdrawals' | 'notifications' | 'ledger'): Promise<BountySnapshot>;
 }
-export const money = (micros: number) => (micros / USDC).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+export const money = (micros: number) => {
+  const value = BigInt(micros), fraction = (value % 1_000_000n).toString().padStart(6, '0').replace(/0+$/, '').padEnd(2, '0');
+  return (value / 1_000_000n).toLocaleString() + '.' + fraction;
+};
 export const dateLabel = (date: string) => new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 export function parseUSDC(value: string): number | null {
   if (!/^\d{1,9}(\.\d{1,6})?$/.test(value.trim())) return null;

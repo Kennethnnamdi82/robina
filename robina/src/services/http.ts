@@ -1,4 +1,5 @@
 import {isNativeAndroid,NativeSession} from '@/native/platform';
+import {allowedBountyMethods} from '../../server/bountyPolicy.js';
 export type ApiError = Error & { status?: number; details?: unknown };
 export type RequestOptions = { signal?: AbortSignal; timeoutMs?: number; retries?: number };
 function apiError(message: string, status?: number, details?: unknown): ApiError {
@@ -25,12 +26,13 @@ export async function httpRequest<T>(url: string, init: RequestInit = {}, option
       headers.set('Accept', 'application/json');
       if(isNativeAndroid()){
         const parsed=new URL(url,'https://localhost');
-        if(parsed.origin!=='https://localhost'||!['/api/auth/me','/api/auth/logout'].includes(parsed.pathname))throw apiError('This operation is available through secure browser sign-in',403);
+        const playerBounty=parsed.pathname.startsWith('/api/bounties/')&&allowedBountyMethods(parsed.pathname).includes(method);
+        if(parsed.origin!=='https://localhost'||(!['/api/auth/me','/api/auth/logout'].includes(parsed.pathname)&&!playerBounty))throw apiError('This operation is available through secure browser sign-in',403);
         const response=await new Promise<{status:number;data:unknown}>((resolve,reject)=>{
           const cancelled=()=>reject(new DOMException('Request cancelled','AbortError'));
           controller.signal.addEventListener('abort',cancelled,{once:true});
           if(controller.signal.aborted){cancelled();return;}
-          void NativeSession.request({path:parsed.pathname,method,body:typeof init.body==='string'?init.body:undefined}).then(value=>{controller.signal.removeEventListener('abort',cancelled);resolve(value);},error=>{controller.signal.removeEventListener('abort',cancelled);reject(error);});
+          void NativeSession.request({path:parsed.pathname+parsed.search,method,body:typeof init.body==='string'?init.body:undefined,idempotencyKey:headers.get('idempotency-key')??undefined}).then(value=>{controller.signal.removeEventListener('abort',cancelled);resolve(value);},error=>{controller.signal.removeEventListener('abort',cancelled);reject(error);});
         });
         if(response.status<200||response.status>=300)throw apiError(String((response.data as {error?:string})?.error||'native_request_failed'),response.status,response.data);
         return response.data as T;

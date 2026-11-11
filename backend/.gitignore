@@ -7,3 +7,5 @@ coverage
 .env.example
 .npm-cache
 /audit-*.json
+/.cache/
+!.env.example

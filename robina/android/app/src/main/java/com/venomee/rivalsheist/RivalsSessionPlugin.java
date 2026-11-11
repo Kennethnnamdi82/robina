@@ -86,13 +86,18 @@ public class RivalsSessionPlugin extends Plugin {
     }
     private String random(){byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);return Base64.encodeToString(bytes,Base64.URL_SAFE|Base64.NO_PADDING|Base64.NO_WRAP);}
     private JSObject send(String path,String method,String body) throws Exception {
+        return send(path, method, body, null);
+    }
+    private JSObject send(String path,String method,String body,String idempotencyKey) throws Exception {
         HttpsURLConnection connection=(HttpsURLConnection)new URL(ORIGIN+path).openConnection();
         connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(15000);connection.setReadTimeout(30000);connection.setRequestMethod(method);
         connection.setRequestProperty("Accept","application/json");connection.setRequestProperty("Origin",ORIGIN);
         connection.setRequestProperty("User-Agent","RIVALS-Android/"+BuildConfig.VERSION_NAME);
+        if(path.startsWith("/api/bounties/")) connection.setRequestProperty("X-Rivals-Bounty", "1");
+        if(idempotencyKey!=null) connection.setRequestProperty("Idempotency-Key", idempotencyKey);
         String session=get("session");if(!session.isEmpty())connection.setRequestProperty("Cookie","bd_session="+session);
         try{
-            if(method.equals("POST")){byte[] bytes=(body==null?"{}":body).getBytes(StandardCharsets.UTF_8);if(bytes.length>65536)throw new IllegalArgumentException("Request too large");connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");connection.setFixedLengthStreamingMode(bytes.length);try(var output=connection.getOutputStream()){output.write(bytes);}}
+            if(method.equals("POST")||method.equals("PUT")){byte[] bytes=(body==null?"{}":body).getBytes(StandardCharsets.UTF_8);if(bytes.length>65536)throw new IllegalArgumentException("Request too large");connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");connection.setFixedLengthStreamingMode(bytes.length);try(var output=connection.getOutputStream()){output.write(bytes);}}
             int status=connection.getResponseCode();if(status>=300&&status<400)throw new IllegalStateException("Unexpected authentication redirect");
             for(Map.Entry<String,List<String>> header:connection.getHeaderFields().entrySet()){
                 if(header.getKey()!=null&&header.getKey().equalsIgnoreCase("Set-Cookie"))for(String cookie:header.getValue()){
@@ -103,7 +108,8 @@ public class RivalsSessionPlugin extends Plugin {
             if(status==401&&path.equals("/api/auth/me"))put("session","");
             InputStream input=status>=400?connection.getErrorStream():connection.getInputStream();String text="{}";
             if(input!=null)try(input;ByteArrayOutputStream output=new ByteArrayOutputStream()){
-                byte[] chunk=new byte[4096];int count;while((count=input.read(chunk))!=-1){if(output.size()+count>65536)throw new IllegalStateException("Authentication response too large");output.write(chunk,0,count);}text=output.toString(StandardCharsets.UTF_8.name());
+                int maximum=path.startsWith("/api/bounties/")?2097152:65536;
+                byte[] chunk=new byte[4096];int count;while((count=input.read(chunk))!=-1){if(output.size()+count>maximum)throw new IllegalStateException("Response too large");output.write(chunk,0,count);}text=output.toString(StandardCharsets.UTF_8.name());
             }
             JSObject response=new JSObject();response.put("status",status);response.put("data",new JSObject(text));return response;
         }finally{connection.disconnect();}
@@ -111,7 +117,9 @@ public class RivalsSessionPlugin extends Plugin {
     @PluginMethod public void request(PluginCall call){
         String path=call.getString("path",""),method=call.getString("method","GET");
         if(!NativeSessionPolicy.allowedClientRequest(path,method)){call.reject("Unsupported native operation");return;}
-        executor.execute(()->{try{if(path.endsWith("/me")&&get("session").isEmpty()){JSObject empty=new JSObject();empty.put("status",401);empty.put("data",new JSObject("{\"error\":\"unauthenticated\"}"));call.resolve(empty);return;}JSObject result=send(path,method,call.getString("body","{}"));if(path.endsWith("/logout")&&result.getInteger("status",0)==200){put("session","");put("pending","");}call.resolve(result);}catch(Exception ignored){call.reject("Authentication service unavailable — check your connection");}});
+        String key=call.getString("idempotencyKey",null);
+        if(key!=null&&!key.matches("[A-Za-z0-9_-]{16,100}")){call.reject("Invalid request key");return;}
+        executor.execute(()->{try{if(path.endsWith("/me")&&get("session").isEmpty()){JSObject empty=new JSObject();empty.put("status",401);empty.put("data",new JSObject("{\"error\":\"unauthenticated\"}"));call.resolve(empty);return;}JSObject result=send(path,method,call.getString("body","{}"),key);if(path.endsWith("/logout")&&result.getInteger("status",0)==200){put("session","");put("pending","");}call.resolve(result);}catch(Exception ignored){call.reject("Service unavailable — check your connection");}});
     }
     @PluginMethod public void beginLogin(PluginCall call){
         executor.execute(()->{try{

@@ -10,12 +10,13 @@ export function ExternalLink({ href, children }: { href: string; children: React
   const safe = safeWebUrl(href);
   return safe ? <a className="rb-external" href={safe} target="_blank" rel="noopener noreferrer">{children}<ArrowUpRight size={14}/><span className="sr-only"> (opens in a new tab)</span></a> : <span>Link unavailable</span>;
 }
-export function BountyDialog({ title, description, onClose, returnFocus, children }: {
+export function BountyDialog({ title, description, onClose, returnFocus, children, className = '' }: {
   title: string; description: string; onClose: () => void; returnFocus?: HTMLElement; children: ReactNode;
+  className?: string;
 }) {
   return <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal>
     <Dialog.Overlay className="rb-overlay"/>
-    <Dialog.Content className="rb-dialog" onCloseAutoFocus={event => {
+    <Dialog.Content className={'rb-dialog ' + className} onCloseAutoFocus={event => {
       if (returnFocus) { event.preventDefault(); (returnFocus.matches(':disabled') ? returnFocus.closest<HTMLElement>('article, section') : returnFocus)?.focus(); }
     }}>
       <Dialog.Close className="rb-icon-button rb-close" aria-label="Close bounty dialog"><X size={20}/></Dialog.Close>

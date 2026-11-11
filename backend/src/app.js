@@ -10,10 +10,12 @@ import { env } from "./config/env.js";
 import authRoutes from "./routes/auth.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
 import { notFound, errorHandler } from "./middleware/error.js";
+import { createBountyRoutes } from './bounties/routes.js';
+import { createBaseTreasury } from './bounties/baseTreasury.js';
 
 
 
-export function createApp(isReady = () => mongoose.connection.readyState === 1) {
+export function createApp(isReady = () => mongoose.connection.readyState === 1, options = {}) {
 const app = express();
 
 app.disable("x-powered-by");
@@ -95,6 +97,9 @@ app.use('/api', (_req, res, next) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminAuthRoutes);
+const bountyRoutes = createBountyRoutes(options.bountyChain ?? createBaseTreasury());
+app.use('/api/bounties', bountyRoutes.player);
+app.use('/api/admin/bounties', bountyRoutes.admin);
 
 app.use(notFound);
 app.use(errorHandler);

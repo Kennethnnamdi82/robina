@@ -6,10 +6,19 @@ beforeEach(()=>vi.resetAllMocks());afterEach(()=>vi.useRealTimers());
 describe('native session transport',()=>{
  it('uses the restricted native cookie owner, never JavaScript fetch or token storage',async()=>{
   const network=vi.spyOn(globalThis,'fetch'),storage=vi.spyOn(Storage.prototype,'setItem');mock.request.mockResolvedValue({status:200,data:{user:{wallet:'existing-player'}}});
-  await expect(httpRequest('/api/auth/me')).resolves.toEqual({user:{wallet:'existing-player'}});expect(mock.request).toHaveBeenCalledWith({path:'/api/auth/me',method:'GET',body:undefined});expect(network).not.toHaveBeenCalled();expect(storage).not.toHaveBeenCalled();network.mockRestore();storage.mockRestore();
+  await expect(httpRequest('/api/auth/me')).resolves.toEqual({user:{wallet:'existing-player'}});expect(mock.request).toHaveBeenCalledWith({path:'/api/auth/me',method:'GET',body:undefined,idempotencyKey:undefined});expect(network).not.toHaveBeenCalled();expect(storage).not.toHaveBeenCalled();network.mockRestore();storage.mockRestore();
  });
  it('cannot redirect the cookie bridge to another origin or an unrelated API',async()=>{
   for(const url of ['https://attacker.invalid/api/auth/me','/api/payments/intent','/api/admin/me'])await expect(httpRequest(url)).rejects.toMatchObject({status:403});expect(mock.request).not.toHaveBeenCalled();
+ });
+ it('preserves player bounty pagination and stable withdrawal keys but cannot expose treasury endpoints',async()=>{
+  mock.request.mockResolvedValue({status:200,data:{items:[],nextBefore:null}});
+  await httpRequest('/api/bounties/submissions?limit=20&before=0123456789abcdef01234567');
+  expect(mock.request).toHaveBeenLastCalledWith(expect.objectContaining({path:'/api/bounties/submissions?limit=20&before=0123456789abcdef01234567',method:'GET'}));
+  await httpRequest('/api/bounties/withdrawals',{method:'POST',body:'{}',headers:{'Idempotency-Key':'stable-withdrawal-key-123'}});
+  expect(mock.request).toHaveBeenLastCalledWith(expect.objectContaining({path:'/api/bounties/withdrawals',method:'POST',idempotencyKey:'stable-withdrawal-key-123'}));
+  await httpRequest('/api/bounties/wallet/address',{method:'PUT',body:'{}'});
+  for(const path of ['/api/admin/bounties/summary','/api/admin/bounties/withdrawals/0123456789abcdef01234567/execute'])await expect(httpRequest(path,{method:'POST',body:'{}'})).rejects.toMatchObject({status:403});
  });
  it('preserves the shared timeout and abort deadline even when Android networking is pending',async()=>{
   vi.useFakeTimers();mock.request.mockReturnValue(new Promise(()=>{}));

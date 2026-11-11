@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
       return;
     }
     toast.success('Welcome, Admin');
-    navigate('/', { replace: true });
+    navigate('/admin/bounties', { replace: true });
   }
 
   return (
@@ -45,9 +45,10 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-5 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <label htmlFor="admin-email" className="text-xs font-medium text-muted-foreground">Email</label>
             <input
               type="email"
+              id="admin-email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -57,9 +58,10 @@ export default function AdminLoginPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Password</label>
+            <label htmlFor="admin-password" className="text-xs font-medium text-muted-foreground">Password</label>
             <input
               type="password"
+              id="admin-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

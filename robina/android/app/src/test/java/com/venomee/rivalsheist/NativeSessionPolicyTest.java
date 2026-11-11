@@ -20,6 +20,16 @@ public class NativeSessionPolicyTest {
             assertFalse(value, NativeSessionPolicy.allowedReturnUrl(value));
         }
     }
+    @Test public void playerBountiesAreAllowedButTreasuryAndAdminOperationsRemainBlocked() {
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/bounties/tasks?limit=20&before=0123456789abcdef01234567", "GET"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/bounties/tasks/0123456789abcdef01234567/submissions", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/bounties/withdrawals", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/bounties/wallet/address", "PUT"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/bounties/notifications/read", "POST"));
+        for (String path : new String[]{"/api/admin/bounties/summary", "/api/admin/bounties/withdrawals/0123456789abcdef01234567/execute", "/api/bounties/../admin/bounties/summary", "/api/bounties/%2e%2e/admin/me", "/api/bounties/tasks?redirect=https://evil.invalid", "//evil.invalid/api/bounties/wallet", "/api/bounties/wallet#fragment"}) assertFalse(path, NativeSessionPolicy.allowedClientRequest(path, "GET"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/bounties/wallet", "POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/bounties/withdrawals?limit=20", "POST"));
+    }
 
     @Test public void parametersMustBe256BitBase64UrlValues() {
         assertTrue(NativeSessionPolicy.validParameter("abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"));

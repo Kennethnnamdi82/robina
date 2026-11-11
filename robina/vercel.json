@@ -4,6 +4,10 @@
   "installCommand": "npm ci --include=dev",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "functions": {
+    "api/bounty-relay.js": { "maxDuration": 30 },
+    "api/admin-session.js": { "maxDuration": 30 }
+  },
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -22,6 +26,11 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/admin/me", "destination": "/api/admin-session?__admin_session_route=/api/admin/me" },
+    { "source": "/api/admin/login", "destination": "/api/admin-session?__admin_session_route=/api/admin/login" },
+    { "source": "/api/admin/logout", "destination": "/api/admin-session?__admin_session_route=/api/admin/logout" },
+    { "source": "/api/bounties/:path*", "destination": "/api/bounty-relay?__bounty_route=/api/bounties/:path*" },
+    { "source": "/api/admin/bounties/:path*", "destination": "/api/bounty-relay?__bounty_route=/api/admin/bounties/:path*" },
     { "source": "/((?!assets/|api/|\\.well-known/).*)", "destination": "/index.html" }
   ],
   "redirects": [

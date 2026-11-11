@@ -8,7 +8,7 @@ import { emptyDemoState } from './demoData';
 import { USDC, type BountyGateway, type BountySnapshot, type NotificationKind, type SubmissionStatus } from './model';
 
 function at(gateway?: BountyGateway, identity = 'ui-player',path='/bounties') {
-  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/bounties/*" element={<BountyPage identity={identity} gateway={gateway}/>}/></Routes></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/bounties/*" element={<BountyPage identity={identity} gateway={gateway ?? createDemoGateway(identity)}/>}/></Routes></MemoryRouter>);
 }
 async function board() { await screen.findAllByRole('button', { name: 'VIEW TASK / SUBMIT' }); }
 async function openX() {

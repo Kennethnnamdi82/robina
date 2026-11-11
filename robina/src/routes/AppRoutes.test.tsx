@@ -8,6 +8,7 @@ vi.mock("@/pages/LoginPage", () => ({ default: () => <h1>Sign in to RIVALS</h1> 
 vi.mock("@/pages/GamingRoute", () => ({ default: () => <h1>RIVALS game menu</h1>,gameEngine:(search:string)=>new URLSearchParams(search).get('engine')==='2d'?'2d':'3d' }));
 vi.mock("@/features/rivals/hub/GameHub", () => ({ default: () => <h1>RIVALS game menu</h1> }));
 vi.mock("@/pages/AdminLoginPage", () => ({ default: () => <h1>Owner sign in</h1> }));
+vi.mock('@/features/rivals/admin/AdminBountyPage', () => ({ default: () => <h1>Standalone bounty operations</h1> }));
 import AppRoutes from "./AppRoutes";
 
 function Location() {
@@ -21,6 +22,18 @@ beforeEach(() => { Object.assign(auth, { isLoggedIn: false, isAdmin: false, isAu
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("game-only public entry", () => {
+  it('protects standalone bounty administration from players and anonymous visitors', async () => {
+    auth.isLoggedIn = true;
+    render(<AppAt path="/admin/bounties/withdrawals"/>);
+    expect(await screen.findByRole('heading', {name:'Owner sign in'})).toBeTruthy();
+    expect(screen.getByTestId('location').textContent).toBe('/admin/login');
+  });
+  it('opens standalone bounty administration directly for authenticated owners', async () => {
+    auth.isLoggedIn = auth.isAdmin = true;
+    render(<AppAt path="/admin/bounties"/>);
+    expect(await screen.findByRole('heading', {name:'Standalone bounty operations'})).toBeTruthy();
+    expect(screen.getByTestId('location').textContent).toBe('/admin/bounties');
+  });
   it("shows only login at the main link, then the game immediately when authenticated", async () => {
     const app = render(<AppAt path="/" />);
     expect(screen.getByRole("heading", { name: "Sign in to RIVALS" })).toBeTruthy();

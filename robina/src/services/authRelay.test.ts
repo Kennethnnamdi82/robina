@@ -23,4 +23,20 @@ describe('first-party cookie transport',()=>{
   it('does not follow upstream redirects or return HTML as a session',async()=>{
     for(const upstream of [new Response(null,{status:302,headers:{Location:'https://evil.invalid'}}),new Response('<html>not auth</html>')]){const res=response();await relay(request(),res,'https://render.invalid',vi.fn().mockResolvedValue(upstream));expect(res.code).toBe(502);}
   });
+  it('allows only explicit bounty routes and preserves CSRF and withdrawal idempotency headers',async()=>{
+    const fetcher=vi.fn().mockResolvedValue(new Response('{"status":"pending"}'));
+    const res=response();
+    await relay(request({url:'/api/bounties/withdrawals',method:'POST',body:{amountMicros:'5000000'},headers:{host:'rivals-heist.vercel.app',origin:'https://rivals-heist.vercel.app','content-type':'application/json','x-rivals-bounty':'1','idempotency-key':'stable-withdrawal-key-123',cookie:'bd_session=player; bd_admin=owner; other=secret'}}),res,'https://render.invalid',fetcher);
+    expect(res.code).toBe(200);expect(fetcher.mock.calls[0][1].headers['idempotency-key']).toBe('stable-withdrawal-key-123');
+    expect(fetcher.mock.calls[0][1].headers['x-rivals-bounty']).toBe('1');expect(fetcher.mock.calls[0][1].headers.cookie).toBe('bd_session=player; bd_admin=owner');
+    for(const url of ['/api/bounties/treasury','/api/admin/bounties/force-refund','/api/admin/bounties/withdrawals/invalid/execute']){const out=response();await relay(request({url}),out,'https://render.invalid',fetcher);expect(out.code).toBe(404);}
+  });
+  it('protects PUT/PATCH writes too and never lets a bounty request omit the custom CSRF header',async()=>{
+    const fetcher=vi.fn();
+    for(const [url,method,headers] of [
+      ['/api/bounties/wallet/address','PUT',{host:'rivals-heist.vercel.app',origin:'https://evil.invalid','x-rivals-bounty':'1'}],
+      ['/api/admin/bounties/tasks/0123456789abcdef01234567/status','PATCH',{host:'rivals-heist.vercel.app',origin:'https://evil.invalid','x-rivals-bounty':'1'}],
+      ['/api/bounties/withdrawals','POST',{host:'rivals-heist.vercel.app',origin:'https://rivals-heist.vercel.app'}],
+    ] as const){const out=response();await relay(request({url,method,headers:{...headers,'content-type':'application/json'}}),out,'https://render.invalid',fetcher);expect(out.code).toBe(403);}expect(fetcher).not.toHaveBeenCalled();
+  });
 });

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { env } from './config/env.js';
 import { connectMongo } from './db/mongo.js';
 import { createApp } from './app.js';
+import { initializeBounties } from './bounties/models.js';
 
 let server;
 let stopping = false;
@@ -30,6 +31,7 @@ process.once('SIGINT', () => void shutdown('SIGINT'));
 
 async function start() {
   await connectMongo();
+  await initializeBounties();
   server = app.listen(env.port, () => console.log('[backend] port=' + env.port));
   // Bound idle/request sockets and leave slow external services to their own deadlines.
   server.requestTimeout = 15000;

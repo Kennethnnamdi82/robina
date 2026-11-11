@@ -24,7 +24,7 @@ export interface ApiUser {
   lastDailyTaskDate: string;
 }
 
-// Authentication is the only server API used by RIVALS.
+// Existing authentication transport. Bounty APIs live in services/bounties.ts.
 export const authApi = {
   nonce: (
     wallet: string,

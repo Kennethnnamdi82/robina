@@ -8,6 +8,7 @@ const GameHub = lazy(() => import("@/features/rivals/hub/GameHub"));
 
 // Keep owner authentication, but retire the old BaseDrop management screens.
 const AdminLoginPage = lazy(() => import("@/pages/AdminLoginPage"));
+const AdminBountyPage = lazy(() => import('@/features/rivals/admin/AdminBountyPage'));
 
 function SessionRestoreScreen() {
   return <CommandLoading message="Restoring your secure session..."/>;
@@ -31,7 +32,7 @@ function GameRedirect() {
 }
 
 export default function AppRoutes() {
-  const { isLoggedIn, isAuthLoading } = useAuth();
+  const { isLoggedIn, isAuthLoading, isAdmin } = useAuth();
   const { search } = useLocation();
   useEffect(() => {
     const params = new URLSearchParams(search);
@@ -44,6 +45,7 @@ export default function AppRoutes() {
       <Route path="/ref/:code" element={<ReferralCapture />} />
       <Route path="/r/:code" element={<ReferralCapture />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/bounties/*" element={isAdmin ? <AdminBountyPage/> : <Navigate to="/admin/login" replace/>}/>
       <Route path="/admin/*" element={<GameRedirect />} />
       {["/gaming", "/tasks", "/auto-claim", "/marketplace", "/login"].map(path => <Route key={path} path={path} element={<GameRedirect />} />)}
       <Route path="/*" element={isLoggedIn ? gameEngine(search) === '2d' ? <GamingRoute /> : <GameHub /> : <LoginPage />} />

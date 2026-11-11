@@ -34,11 +34,14 @@
     "siwe": "^2.3.2",
     "tweetnacl": "^1.0.3",
     "viem": "^2.57.3",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "overrides": {
     "braces": "^3.0.3",
     "cross-spawn": "^7.0.5",
     "got": "^11.8.6"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^10.4.3"
   }
 }

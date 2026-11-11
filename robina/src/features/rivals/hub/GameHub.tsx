@@ -34,7 +34,7 @@ export default function GameHub() {
   const { baseUser } = useAuth();
   const identity = baseUser?.wallet || 'local-device';
   // Keying by identity prevents one signed-in player's browser dossier leaking
-  // into another account — Nothing in this module posts to any API.
+    // into another account. Bounty earnings use their own authenticated backend gateway.
   return <Hub key={identity} identity={identity}/>;
 }
 function Hub({ identity }: { identity: string }) {

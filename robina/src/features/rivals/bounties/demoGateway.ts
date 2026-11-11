@@ -16,7 +16,7 @@ export function createDemoGateway(identity: string, storage?: Pick<Storage, 'get
     return memory;
   }
   function snapshot(): BountySnapshot {
-    return structuredClone({ ...memory, tasks: DEMO_TASKS, mode: 'demo' as const, persistence });
+    return structuredClone({ ...memory, wallet: memory.wallet, tasks: DEMO_TASKS, mode: 'demo' as const, persistence });
   }
   function save(next: DemoState) {
     memory = next;
