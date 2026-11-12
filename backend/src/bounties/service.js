@@ -58,8 +58,11 @@ export async function consumeRate(key, maximum, windowMs = 3_600_000) {
 export async function createTask(actor, input) {
   const data = parse(taskInput, input);
   return atomic(async session => {
-    const [task] = await BountyTask.create([{ terms: termsFrom(data, 1), startsAt: data.startsAt, expiresAt: data.expiresAt }], { session });
-    await audit(session, actor, 'task_created', task._id, data);
+    if (data.expiresAt && new Date(data.expiresAt) <= new Date()) fail('task_expired', 400);
+    const [task] = await BountyTask.create([{ terms: termsFrom(data, 1), status: 'active', publishedAt: new Date(),
+      startsAt: data.startsAt, expiresAt: data.expiresAt }], { session });
+    await notice(session, null, 'published', task._id, `New bounty: ${task.terms.title}`);
+    await audit(session, actor, 'task_published', task._id, data);
     return task;
   });
 }

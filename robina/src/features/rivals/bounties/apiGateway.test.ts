@@ -5,12 +5,14 @@ import type { BountyTask, BountySubmission, BountyWithdrawal, BountyWallet, Boun
 const task: BountyTask = { _id:'123456789012345678901234', terms:{title:'Server X Contract',description:'Original RIVALS promotion',platform:'x',instructions:['Publish original content with disclosure.'],disclosure:'Clearly disclose the paid promotion.',evidenceRequired:true,minimumEngagement:5000,rewardMicros:'10000000',revision:1},
   status:'active',budgetMicros:'100000000',committedMicros:'0',rewardedMicros:'0',participationLimit:10,participants:0,createdAt:'2026-11-11T12:00:00.000Z',updatedAt:'2026-11-11T12:00:00.000Z' };
 let tasks:BountyTask[], submissions:BountySubmission[], withdrawals:BountyWithdrawal[], notifications:BountyNotification[], wallet:BountyWallet;
-let lostWithdrawalResponse=false, failWallet=false;
+let lostWithdrawalResponse=false, failWallet=false, failNotifications=false, expireHistorySession=false;
 const accepted = new Map<string,BountyWithdrawal>();
 const fetcher=vi.fn(async (input:string, init:RequestInit={}) => {
   const url=new URL(input,'https://localhost'),kind=url.pathname.split('/').at(-1),method=init.method||'GET';
   if(method==='GET'){
     if(kind==='wallet'){if(failWallet)throw new TypeError('offline');return new Response(JSON.stringify(wallet));}
+    if(kind==='notifications' && failNotifications) return new Response('{"error":"service_unavailable"}', {status:503});
+    if(kind==='submissions' && expireHistorySession) return new Response('{"error":"unauthenticated"}', {status:401});
     const items=kind==='tasks'?tasks:kind==='submissions'?submissions:kind==='withdrawals'?withdrawals:kind==='notifications'?notifications:[];
     return new Response(JSON.stringify({items,nextBefore:null}));
   }
@@ -30,7 +32,7 @@ const fetcher=vi.fn(async (input:string, init:RequestInit={}) => {
   return new Response('{"ok":true}');
 });
 beforeEach(()=>{
-  tasks=structuredClone([task]);submissions=[];withdrawals=[];notifications=[];accepted.clear();lostWithdrawalResponse=false;failWallet=false;
+  tasks=structuredClone([task]);submissions=[];withdrawals=[];notifications=[];accepted.clear();lostWithdrawalResponse=false;failWallet=false;failNotifications=false;expireHistorySession=false;
   wallet={availableMicros:'0',reservedMicros:'0',pendingMicros:'0',earnedMicros:'0',withdrawnMicros:'0',address:'',minimumWithdrawalMicros:'5000000',currency:'USDC',chainId:8453,payoutsEnabled:true};
   localStorage.clear();sessionStorage.clear();fetcher.mockClear();vi.stubGlobal('fetch',fetcher);
 });
@@ -49,6 +51,16 @@ describe('live bounty gateway',()=>{
     tasks=[];const state=await createApiGateway('player').load();
     expect(state.mode).toBe('live');expect(state.persistence).toBe('server');expect(state.tasks).toEqual([]);expect(state.wallet.availableMicros).toBe(0);
     expect(fetcher.mock.calls.every(([,init])=>init.credentials==='include')).toBe(true);
+  });
+  it('keeps campaigns and the authoritative zero wallet visible when optional notifications fail',async()=>{
+    tasks=[];failNotifications=true;
+    const state=await createApiGateway('player').load();
+    expect(state.tasks).toEqual([]);expect(state.wallet.availableMicros).toBe(0);
+    expect(state.unavailable).toEqual(['notifications']);
+  });
+  it('does not disguise an expired session as an empty history',async()=>{
+    expireHistorySession=true;
+    await expect(createApiGateway('player').load()).rejects.toMatchObject({status:401});
   });
   it('submits with promised revision, remains Pending until server approval and maps credited approval to Completed',async()=>{
     const gateway=createApiGateway('player');

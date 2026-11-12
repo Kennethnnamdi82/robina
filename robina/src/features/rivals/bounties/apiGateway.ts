@@ -43,16 +43,27 @@ export function createApiGateway(identity: string): BountyGateway {
     // Tasks are usually a small list. Load all published campaigns, never fabricated examples.
     const tasks: ServerTask[] = []; let before: string | undefined;
     do { const page = await playerBounties.list<ServerTask>('tasks', before, signal); tasks.push(...page.items); before = page.nextBefore || undefined; } while (before);
-    const [wallet, subs, withdrawals, notices, ledger] = await Promise.all([
-      playerBounties.wallet(signal), pages<ServerSubmission>('submissions', pageCounts.submissions, signal),
-      pages<ServerWithdrawal>('withdrawals', pageCounts.withdrawals, signal), pages<ServerNotice>('notifications', pageCounts.notifications, signal),
+    const wallet = await playerBounties.wallet(signal);
+    const historyKinds: History[] = ['submissions', 'withdrawals', 'notifications', 'ledger'];
+    const history = await Promise.allSettled([
+      pages<ServerSubmission>('submissions', pageCounts.submissions, signal),
+      pages<ServerWithdrawal>('withdrawals', pageCounts.withdrawals, signal),
+      pages<ServerNotice>('notifications', pageCounts.notifications, signal),
       pages<LedgerEntry>('ledger', pageCounts.ledger, signal),
     ]);
+    // Never mask an expired session. Other history failures must not hide a successfully
+    // loaded campaign board and authoritative wallet balance.
+    for (const result of history) if (result.status === 'rejected' && [401, 403].includes(result.reason?.status)) throw result.reason;
+    const unavailable = history.flatMap((result, index) => result.status === 'rejected' ? [historyKinds[index]] : []);
+    const subs = history[0].status === 'fulfilled' ? history[0].value : { items: [] as ServerSubmission[], nextBefore: null };
+    const withdrawals = history[1].status === 'fulfilled' ? history[1].value : { items: [] as ServerWithdrawal[], nextBefore: null };
+    const notices = history[2].status === 'fulfilled' ? history[2].value : { items: [] as ServerNotice[], nextBefore: null };
+    const ledger = history[3].status === 'fulfilled' ? history[3].value : { items: [] as LedgerEntry[], nextBefore: null };
     cached = { version: 1, mode: 'live', persistence: 'server', tasks: tasks.map(task), submissions: subs.items.map(submission),
       withdrawals: withdrawals.items.map(withdrawal), notifications: notices.items.map(notification), ledger: ledger.items,
       wallet: { address: wallet.address, availableMicros: exactClientMicros(wallet.availableMicros), earnedMicros: exactClientMicros(wallet.earnedMicros), withdrawnMicros: exactClientMicros(wallet.withdrawnMicros),
         pendingMicros: exactClientMicros(wallet.pendingMicros), reservedMicros: exactClientMicros(wallet.reservedMicros), pendingSubmissions: wallet.pendingSubmissions }, payoutsEnabled: wallet.payoutsEnabled,
-      more: { submissions: Boolean(subs.nextBefore), withdrawals: Boolean(withdrawals.nextBefore), notifications: Boolean(notices.nextBefore), ledger: Boolean(ledger.nextBefore) } };
+      more: { submissions: Boolean(subs.nextBefore), withdrawals: Boolean(withdrawals.nextBefore), notifications: Boolean(notices.nextBefore), ledger: Boolean(ledger.nextBefore) }, unavailable };
     return cached;
   }
   async function mutate(action: () => Promise<unknown>, kind: 'submit' | 'withdrawal' | 'other' = 'other'): Promise<BountySnapshot> {
