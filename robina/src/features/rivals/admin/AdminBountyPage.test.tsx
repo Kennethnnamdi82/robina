@@ -38,7 +38,7 @@ describe('standalone bounty administration', () => {
     at(); await screen.findByRole('alert'); expect(screen.queryByText('ACTIVE BOUNTIES')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name:'TRY AGAIN'})).toBeEnabled();
   });
-  it('creates only an explicitly saved draft using configurable X/TikTok form templates', async () => {
+  it('creates and publishes a campaign with configurable X/TikTok form templates', async () => {
     const create = vi.spyOn(adminBounties, 'create').mockResolvedValue({} as Awaited<ReturnType<typeof adminBounties.create>>), done = vi.fn();
     render(<TaskEditor done={done} close={vi.fn()}/>);
     fireEvent.click(screen.getByRole('button', {name:'TIKTOK VIDEO TEMPLATE'}));
@@ -46,10 +46,10 @@ describe('standalone bounty administration', () => {
     expect(screen.queryByLabelText('Participation limit')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Reward (USDC)')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Task title'), {target:{value:'Creator Night Run'}});
-    await act(async () => { fireEvent.click(screen.getByRole('button', {name:'CREATE DRAFT'})); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', {name:'CREATE & PUBLISH CAMPAIGN'})); });
     expect(create).toHaveBeenCalledOnce(); expect(create).toHaveBeenCalledWith(expect.objectContaining({title:'Creator Night Run',platform:'tiktok',minimumEngagement:5000,startsAt:null,expiresAt:null}));
     expect(create.mock.calls[0][0]).not.toHaveProperty('budgetMicros'); expect(create.mock.calls[0][0]).not.toHaveProperty('rewardMicros');
-    expect(done).toHaveBeenCalledWith(expect.stringContaining('Draft created'));
+    expect(done).toHaveBeenCalledWith(expect.stringContaining('Campaign created and published'));
   });
   it('requires an admin-entered reward and independent checks before a once-only review request', async () => {
     const review = vi.spyOn(adminBounties, 'reviewSubmission').mockResolvedValue({...submission,status:'approved'}), done = vi.fn();

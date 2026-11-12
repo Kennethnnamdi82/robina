@@ -41,7 +41,9 @@ const messages: Record<string, string> = {
   withdrawal_not_payable: 'This request is no longer pending. Refresh its payment record before taking any action.',
   withdrawal_already_paid: 'This withdrawal is already paid. Its payment record cannot be changed or debited again.',
   automatic_payouts_retired: 'Automatic transfers are retired. Pay externally in your Base wallet, then record payment with Mark Paid.',
-  unauthenticated: 'Your session has expired. Sign in again to continue.', invalid_admin_session: 'Your admin session has expired. Sign in again.',
+  unauthenticated: 'Your session has expired. Sign in again to continue.', invalid_token: 'Your session has expired. Sign in again to continue.',
+  token_revoked: 'Your session has expired. Sign in again to continue.', session_expired: 'Your session has expired. Sign in again to continue.',
+  invalid_admin_session: 'Your admin session has expired. Sign in again.',
   service_unavailable: 'The bounty service is unavailable. Please try again.', invalid_request: 'Check the form values and required confirmations.',
   already_submitted: 'You have already submitted this contract. Open My Bounties to see its status.', post_already_submitted: 'This post has already been submitted. Each original post can be used once.',
   duplicate_record: 'This submission or request already exists. Refresh to see its current status.',
@@ -64,5 +66,6 @@ const messages: Record<string, string> = {
 };
 export function bountyError(error: unknown) {
   const code = error instanceof Error ? error.message : '';
+  if (error instanceof TypeError) return 'Could not connect to the bounty service. Check your connection and try again.';
   return messages[code] || 'The action could not be confirmed. Refresh to check the latest server status, then try again if needed.';
 }

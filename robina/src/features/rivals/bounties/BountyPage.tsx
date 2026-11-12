@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, Bell, CircleAlert, ClipboardList, Radio, ShieldCheck, Wallet } from 'lucide-react';
 import { createApiGateway } from './apiGateway';
+import { bountyError } from '@/services/bounties';
 import type { BountyGateway, BountySnapshot, BountyTask } from './model';
 import TaskCard from './TaskCard';
 import SubmissionDialog from './SubmissionDialog';
@@ -22,7 +23,7 @@ export default function BountyPage({ identity, gateway }: { identity: string; ga
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
     if (!quiet) setLoading(true); setError('');
     try { const next = await api.load(controller.signal); if (!controller.signal.aborted && active.current) setData(next); }
-    catch { if (!controller.signal.aborted && active.current) setError('The bounty board could not be loaded. Please try again.'); }
+    catch (cause) { if (!controller.signal.aborted && active.current) setError(bountyError(cause)); }
     finally { if (!controller.signal.aborted && active.current) setLoading(false); }
   }, [api]);
   useEffect(() => { active.current = true; void load(); return () => { active.current = false; request.current?.abort(); }; }, [load]);
@@ -56,17 +57,17 @@ export default function BountyPage({ identity, gateway }: { identity: string; ga
     </nav>
     {demo && <p className="rb-preview-footnote">Demo contracts and simulated USDC. No real earnings, reviews or payments. Progress is device-local.</p>}
     <p role="status" className="rb-announcement" aria-live="polite">{announcement}</p>
-    {loading ? <div className="rb-loading" role="status" aria-label="Loading bounty board"><span className="rh-eyebrow">CONNECTING TO CREATOR COMMAND</span><div/><div/><div/></div> : !data ? <div className="rb-empty rb-load-error" role="alert"><CircleAlert size={28}/><h2>TRANSMISSION INTERRUPTED</h2><p>{error}</p><button className="rh-secondary" onClick={() => void load()}>RETRY BOUNTY BOARD</button></div> : <>
+    {loading ? <div className="rb-loading" role="status" aria-label="Loading bounty board"><span className="rh-eyebrow">CONNECTING TO CREATOR COMMAND</span><div/><div/><div/></div> : !data ? <div className="rb-empty rb-load-error" role="alert"><CircleAlert size={28}/><h2>{/sign in|session/i.test(error) ? 'SIGN IN REQUIRED' : 'BOUNTY SERVICE UNAVAILABLE'}</h2><p>{error}</p><button className="rh-secondary" onClick={() => void load()}>TRY AGAIN</button></div> : <>
       {data.persistence === 'session' && <p className="rb-error" role="alert">Device storage is unavailable or unreadable. This demo is session-only; submissions may disappear when you leave or reload.</p>}
       {error && <p role="alert" className="rb-error">{error}</p>}
       <div className="rb-screen"><Routes><Route index element={<section id="active-bounties" className="rb-section" aria-labelledby="rb-active-title">
         <div className="rb-section-heading"><div><span className="rh-eyebrow">MAKE YOUR NEXT MOVE</span><h2 id="rb-active-title">AVAILABLE CONTRACTS</h2></div><span>{data.tasks.filter(t => t.status === 'active').length.toString().padStart(2, '0')} OPEN CONTRACTS</span></div>
-        {!data.tasks.length ? <div className="rb-empty"><Radio size={27}/><h3>NEW CONTRACTS INBOUND</h3><p>No bounties are available right now. Check back for your next creator assignment.</p></div> : <div className="rb-task-grid">{data.tasks.map(task => <TaskCard key={task.id} task={task} submission={data.submissions.find(s => s.taskId === task.id)} onOpen={(task, trigger) => setSelected({ task, trigger })}/>)}</div>}
+        {!data.tasks.length ? <div className="rb-empty"><Radio size={27}/><h3>NO BOUNTIES YET</h3><p>No campaigns have been published yet. Check back soon for your first creator assignment.</p></div> : <div className="rb-task-grid">{data.tasks.map(task => <TaskCard key={task.id} task={task} submission={data.submissions.find(s => s.taskId === task.id)} onOpen={(task, trigger) => setSelected({ task, trigger })}/>)}</div>}
         <div className="rb-review-note"><ShieldCheck size={18}/><p><strong>REACH IS NOT AN AUTOMATIC REWARD.</strong> Every submission requires review for originality, disclosure and authentic engagement. Never buy views or impressions.</p></div>
         <Link className="rb-record-link" to="/bounties/mine">TRACK YOUR SUBMISSIONS <ArrowUpRight size={16}/></Link>
-      </section>}/><Route path="mine" element={<><MyBounties submissions={data.submissions}/>{more('submissions')}</>}/>
-        <Route path="notifications" element={<><Notifications notifications={data.notifications} busy={busy} onRead={() => { void mutate(() => api.markNotificationsRead(), 'Notifications marked as read.').then(failure => { if (failure && active.current) setError(failure); }); }}/>{more('notifications')}</>}/>
-        <Route path="wallet" element={<div className="rb-wallet-screen"><BountyWallet data={data} busy={busy} onSaveAddress={address => mutate(() => api.saveAddress(address), demo ? 'Demo Base address saved.' : 'Base address saved securely.')} onWithdraw={input => mutate(() => api.requestWithdrawal(input), demo ? 'Demo withdrawal requested. No USDC has been sent.' : 'Withdrawal requested. Funds reserved pending admin review; not yet paid.')}/>{more('withdrawals')}{more('ledger')}</div>}/>
+      </section>}/><Route path="mine" element={data.unavailable?.includes('submissions') ? <p className="rb-error" role="alert">Submission history is temporarily unavailable. Your campaigns and wallet are still up to date. Try refreshing.</p> : <><MyBounties submissions={data.submissions}/>{more('submissions')}</>}/>
+        <Route path="notifications" element={data.unavailable?.includes('notifications') ? <p className="rb-error" role="alert">Notifications are temporarily unavailable. Try refreshing.</p> : <><Notifications notifications={data.notifications} busy={busy} onRead={() => { void mutate(() => api.markNotificationsRead(), 'Notifications marked as read.').then(failure => { if (failure && active.current) setError(failure); }); }}/>{more('notifications')}</>}/>
+        <Route path="wallet" element={<div className="rb-wallet-screen">{(data.unavailable?.includes('withdrawals') || data.unavailable?.includes('ledger')) && <p className="rb-error" role="alert">Some wallet history is temporarily unavailable. Your balance is current, but check your records before requesting another withdrawal.</p>}<BountyWallet data={data} busy={busy} onSaveAddress={address => mutate(() => api.saveAddress(address), demo ? 'Demo Base address saved.' : 'Base address saved securely.')} onWithdraw={input => mutate(() => api.requestWithdrawal(input), demo ? 'Demo withdrawal requested. No USDC has been sent.' : 'Withdrawal requested. Funds reserved pending admin review; not yet paid.')}/>{more('withdrawals')}{more('ledger')}</div>}/>
         <Route path="*" element={<p>Choose a creator screen above.</p>}/>
       </Routes></div>
       {selected && <SubmissionDialog key={selected.task.id} task={selected.task} trigger={selected.trigger} demo={demo} busy={busy} onClose={() => setSelected(null)} onSubmit={async input => {

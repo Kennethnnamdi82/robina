@@ -80,8 +80,7 @@ async function api(path, { method = 'GET', body, cookie: sessionCookie, key, hea
   return { status: response.status, body: await response.json() };
 }
 async function activeTask(overrides) {
-  const task = await service.createTask(reviewer, taskData(overrides));
-  return service.changeTaskStatus(reviewer, String(task._id), { status: 'active' });
+  return service.createTask(reviewer, taskData(overrides));
 }
 async function submitted(user, task, overrides = {}) {
   return service.submit(user._id, String(task._id), { postUrl: `https://x.com/player/status/${++counter}`,
@@ -101,9 +100,7 @@ async function authorized(user, key = 'withdrawal-key-00001', amountMicros = '50
 test('HTTP manual workflow: publish to all → pending → admin-entered reward once → external payment recorded once', async () => {
   const user = await player(), admin = adminCookie();
   let response = await api('/api/admin/bounties/tasks', { method: 'POST', cookie: admin, body: taskData() });
-  assert.equal(response.status, 201); const taskId = response.body._id;
-  response = await api(`/api/admin/bounties/tasks/${taskId}/status`, { method: 'PATCH', cookie: admin, body: { status: 'active' } });
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 201); assert.equal(response.body.status, 'active'); assert.ok(response.body.publishedAt); const taskId = response.body._id;
   response = await api('/api/bounties/tasks', { cookie: cookie(user) });
   assert.equal(response.body.items.length, 1);
   response = await api(`/api/bounties/tasks/${taskId}/submissions`, { method: 'POST', cookie: cookie(user), body: {
@@ -141,6 +138,18 @@ test('HTTP manual workflow: publish to all → pending → admin-entered reward 
   assert.equal((await api('/api/bounties/notifications/read', { method: 'POST', cookie: cookie(user), body: {} })).status, 200);
   assert.ok((await api('/api/bounties/notifications', { cookie: cookie(user) })).body.items.every(n => n.read));
   assert.equal(await models.BountyAudit.countDocuments({ action: 'withdrawal_manually_paid' }), 1);
+});
+test('a new player sees an empty campaign list, empty histories and a real zero balance', async () => {
+  const user = await player();
+  for (const path of ['tasks', 'submissions', 'withdrawals', 'ledger', 'notifications']) {
+    const response = await api(`/api/bounties/${path}`, { cookie: cookie(user) });
+    assert.equal(response.status, 200, path);
+    assert.deepEqual(response.body.items, [], path);
+  }
+  const response = await api('/api/bounties/wallet', { cookie: cookie(user) });
+  assert.equal(response.status, 200);
+  for (const field of ['availableMicros', 'earnedMicros', 'withdrawnMicros', 'reservedMicros']) assert.equal(response.body[field], '0');
+  assert.equal(response.body.pendingSubmissions, 0);
 });
 test('authorization, revoked admin cookies, CSRF, strict validation and private histories', async () => {
   const a = await player(), b = await player();

@@ -87,12 +87,13 @@ describe('Bounty & Earn frontend', () => {
     at({ ...api, load: () => pending });
     expect(screen.getByRole('status', { name: 'Loading bounty board' })).toBeInTheDocument();
     await act(async () => { resolve({ ...data, tasks: [], notifications: [] }); });
-    expect(screen.getByText('NEW CONTRACTS INBOUND')).toBeInTheDocument(); fireEvent.click(screen.getByRole('link',{name:/NOTIFICATIONS/}));expect(screen.getByText('ALL QUIET FOR NOW')).toBeInTheDocument();
+    expect(screen.getByText('NO BOUNTIES YET')).toBeInTheDocument(); fireEvent.click(screen.getByRole('link',{name:/NOTIFICATIONS/}));expect(screen.getByText('ALL QUIET FOR NOW')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link',{name:'WALLET'})); expect(screen.getAllByText('0.00').length).toBeGreaterThan(0);
   });
   it('recovers a failed load through retry and reports an adapter submission error', async () => {
     const api = createDemoGateway('failure'); const data = await api.load();
     at({ ...api, load: vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(data), submit: vi.fn().mockRejectedValue(new Error('Submission not saved. Retry.')) });
-    await screen.findByText('TRANSMISSION INTERRUPTED'); fireEvent.click(screen.getByRole('button', { name: 'RETRY BOUNTY BOARD' })); await board();
+    await screen.findByText('BOUNTY SERVICE UNAVAILABLE'); fireEvent.click(screen.getByRole('button', { name: 'TRY AGAIN' })); await board();
     const dialog = await openX(); fillX(dialog); fireEvent.click(within(dialog).getByRole('button', { name: 'CONFIRM SUBMISSION' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Submission not saved');
     expect(screen.getByRole('dialog')).toBeInTheDocument(); expect(screen.queryByText('YOUR NEXT MOVE STARTS HERE')).not.toBeInTheDocument();

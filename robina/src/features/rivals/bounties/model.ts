@@ -61,6 +61,7 @@ export interface BountySnapshot extends DemoState {
   wallet: DemoState['wallet'] & { pendingMicros?: number; reservedMicros?: number; pendingSubmissions?: number };
   ledger?: import('@/services/bounties').LedgerEntry[];
   more?: Partial<Record<'submissions' | 'withdrawals' | 'notifications' | 'ledger', boolean>>;
+  unavailable?: Array<'submissions' | 'withdrawals' | 'notifications' | 'ledger'>;
 }
 export interface SubmitBountyInput {
   taskId: string;
