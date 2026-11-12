@@ -13,12 +13,10 @@ export const taskInput = z.object({
   title: text(120), description: text(2000), platform: z.enum(['x', 'tiktok']),
   instructions: z.array(text(1000)).min(1).max(20), disclosure: text(1000),
   minimumEngagement: z.number().int().min(1).max(1_000_000_000),
-  rewardMicros: positiveMicros, budgetMicros: positiveMicros,
-  participationLimit: z.number().int().min(1).max(1_000_000),
   evidenceRequired: z.boolean(),
   startsAt: z.string().datetime().nullable().default(null),
   expiresAt: z.string().datetime().nullable().default(null),
-}).strict().refine(v => BigInt(v.budgetMicros) >= BigInt(v.rewardMicros), 'Budget below reward')
+}).strict()
   .refine(v => !v.startsAt || !v.expiresAt || new Date(v.startsAt) < new Date(v.expiresAt), 'Expiration must follow start');
 export const taskStatusInput = z.object({ status: z.enum(['active', 'paused', 'closed']) }).strict();
 
@@ -69,6 +67,7 @@ export const submitInput = z.object({
 }).strict();
 export const reviewInput = z.discriminatedUnion('decision', [
   z.object({ decision: z.literal('approve'), verificationMethod: z.literal('manual'),
+    rewardMicros: positiveMicros,
     ownershipVerified: z.literal(true), engagementVerified: z.literal(true),
     complianceVerified: z.literal(true), disclosureVerified: z.literal(true),
     observedEngagement: z.number().int().min(1).max(1_000_000_000),
@@ -85,6 +84,12 @@ export const withdrawalReviewInput = z.discriminatedUnion('decision', [
   z.object({ decision: z.literal('reject'), reason: text(1500) }).strict(),
 ]);
 export const idempotencyKey = z.string().regex(/^[a-zA-Z0-9_-]{16,100}$/);
+export const manualPaymentInput = z.object({
+  confirmed: z.literal(true),
+  txHash: z.string().trim().regex(/^0x[a-f\d]{64}$/i).transform(value => value.toLowerCase()).optional(),
+  notes: z.string().trim().max(2000).default(''),
+  acknowledgeRisk: z.boolean().default(false),
+}).strict();
 export const pageInput = z.object({
   before: objectId.optional(), limit: z.coerce.number().int().min(1).max(100).default(30),
 }).strict();

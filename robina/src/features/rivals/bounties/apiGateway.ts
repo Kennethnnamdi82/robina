@@ -10,14 +10,14 @@ export function exactClientMicros(value: string): number {
 const titles = { published: 'New bounty published', received: 'Submission received', approved: 'Submission approved', rejected: 'Submission rejected', credited: 'Reward credited', withdrawal: 'Withdrawal status updated' };
 const task = (row: ServerTask): BountyTask => ({ id: row._id, ...row.terms, rewardMicros: exactClientMicros(row.terms.rewardMicros),
   requirement: `${row.terms.minimumEngagement.toLocaleString()} genuine ${row.terms.platform === 'x' ? 'impressions' : 'views'}`,
-  status: row.status === 'active' && row.participants < row.participationLimit && BigInt(row.budgetMicros) - BigInt(row.committedMicros) >= BigInt(row.terms.rewardMicros) ? 'active' : 'closed',
+  status: row.status === 'active' ? 'active' : 'closed',
   startsAt: row.startsAt, expiresAt: row.expiresAt, submitted: Boolean(row.participation),
   submissionStatus: row.participation ? row.participation.status === 'approved' ? 'completed' : row.participation.status === 'pending' ? 'pending_review' : 'rejected' : undefined });
 const submission = (row: ServerSubmission): BountySubmission => ({ id: row._id, taskId: row.taskId, taskTitle: row.terms.title, platform: row.terms.platform,
-  postUrl: row.postUrl, evidenceUrl: row.evidenceUrl || '', evidenceNotes: row.evidenceNotes || '', rewardMicros: exactClientMicros(row.terms.rewardMicros),
+  postUrl: row.postUrl, evidenceUrl: row.evidenceUrl || '', evidenceNotes: row.evidenceNotes || '', rewardMicros: exactClientMicros(row.awardedMicros ?? row.terms.rewardMicros), rewardMode: row.terms.rewardMode,
   status: row.status === 'approved' ? 'completed' : row.status === 'pending' ? 'pending_review' : 'rejected', submittedAt: row.createdAt, rejectionReason: row.review?.reason });
 const withdrawal = (row: ServerWithdrawal): BountyWithdrawal => ({ id: row._id, address: row.address, amountMicros: exactClientMicros(row.amountMicros), requestedAt: row.createdAt,
-  status: row.status, reason: row.review?.reason || row.failureReason,
+  status: row.status, reason: row.review?.reason || row.failureReason, paymentMethod: row.paymentMethod,
   transactionUrl: /^0x[a-f\d]{64}$/i.test(row.txHash || '') ? `https://basescan.org/tx/${row.txHash}` : undefined });
 const notification = (row: ServerNotice): BountyNotification => ({ id: row._id, kind: row.kind, title: titles[row.kind], message: row.message, createdAt: row.createdAt, read: row.read });
 type History = 'submissions' | 'withdrawals' | 'notifications' | 'ledger';
@@ -51,7 +51,7 @@ export function createApiGateway(identity: string): BountyGateway {
     cached = { version: 1, mode: 'live', persistence: 'server', tasks: tasks.map(task), submissions: subs.items.map(submission),
       withdrawals: withdrawals.items.map(withdrawal), notifications: notices.items.map(notification), ledger: ledger.items,
       wallet: { address: wallet.address, availableMicros: exactClientMicros(wallet.availableMicros), earnedMicros: exactClientMicros(wallet.earnedMicros), withdrawnMicros: exactClientMicros(wallet.withdrawnMicros),
-        pendingMicros: exactClientMicros(wallet.pendingMicros), reservedMicros: exactClientMicros(wallet.reservedMicros) }, payoutsEnabled: wallet.payoutsEnabled,
+        pendingMicros: exactClientMicros(wallet.pendingMicros), reservedMicros: exactClientMicros(wallet.reservedMicros), pendingSubmissions: wallet.pendingSubmissions }, payoutsEnabled: wallet.payoutsEnabled,
       more: { submissions: Boolean(subs.nextBefore), withdrawals: Boolean(withdrawals.nextBefore), notifications: Boolean(notices.nextBefore), ledger: Boolean(ledger.nextBefore) } };
     return cached;
   }

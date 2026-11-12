@@ -3,6 +3,12 @@ import { bountyRelay } from '../../server/bountyRelay.js';
 const response = () => ({ code: 0, headers: {} as Record<string,unknown>, data: null as unknown, setHeader(name:string,value:unknown){this.headers[name]=value;},status(code:number){this.code=code;return this;},json(data:unknown){this.data=data;return this;} });
 const headers = {host:'rivals-heist.vercel.app',origin:'https://rivals-heist.vercel.app','content-type':'application/json','x-rivals-bounty':'1',cookie:'bd_admin=signed; other=secret'};
 describe('explicit Vercel bounty rewrites',()=>{
+  it('allows the owner manual-paid action with the existing cookie and CSRF protection',async()=>{
+    const fetcher=vi.fn().mockResolvedValue(new Response('{"status":"paid","paymentMethod":"manual"}')),res=response();
+    await bountyRelay({url:'/api/admin/bounties/withdrawals/0123456789abcdef01234567/paid',method:'POST',headers,body:{confirmed:true}},res,'https://render.invalid',fetcher);
+    expect(res.code).toBe(200);expect(fetcher.mock.calls[0][0].pathname).toBe('/api/admin/bounties/withdrawals/0123456789abcdef01234567/paid');
+    expect(fetcher.mock.calls[0][1].headers.cookie).toBe('bd_admin=signed');expect(fetcher.mock.calls[0][1].body).toBe('{"confirmed":true}');
+  });
   it('preserves the original public URL and strips reserved routing parameters from backend queries',async()=>{
     const fetcher=vi.fn().mockResolvedValue(new Response('{"items":[]}')),res=response();
     await bountyRelay({url:'/api/admin/bounties/players?q=creator&limit=20&__bounty_route=ignored',method:'GET',headers},res,'https://render.invalid',fetcher);

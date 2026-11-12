@@ -20,9 +20,7 @@ if (!process.argv.includes('--create-drafts')) {
           'Reach 5,000 genuine impressions/views. Purchased or automated engagement is ineligible.',
           'Submit the full post URL and evidence of ownership and engagement analytics. A link or screenshot alone does not guarantee approval.'],
         disclosure: 'Include a clear, prominent promotional disclosure such as #ad, plus any platform-specific paid promotion disclosure required for your content.',
-        minimumEngagement: 5000, rewardMicros: platform === 'x' ? '10000000' : '5000000',
-        // Small explicit draft budget. Admin MUST review budget/funding before publishing.
-        budgetMicros: platform === 'x' ? '100000000' : '50000000', participationLimit: 10, evidenceRequired: true,
+        minimumEngagement: 5000, evidenceRequired: true,
       });
       console.log(`${title}: draft ${task._id}`);
     }

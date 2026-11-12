@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '@/lib/backend';
 import { httpRequest } from './http';
-import type { BountyTask, TaskInput, SubmissionInput, SubmissionReview, WithdrawalInput, WithdrawalReview, BountySubmission, BountyWithdrawal, BountyWallet, BountyNotification, LedgerEntry, Page, AdminAccount, AdminSubmission, AdminWithdrawal, BountySummary, PlayerDetail, AuditEntry } from '../../../backend/src/bounties/contracts';
+import type { BountyTask, TaskInput, SubmissionInput, SubmissionReview, WithdrawalInput, WithdrawalReview, ManualPaymentInput, BountySubmission, BountyWithdrawal, BountyWallet, BountyNotification, LedgerEntry, Page, AdminAccount, AdminSubmission, AdminWithdrawal, BountySummary, PlayerDetail, AuditEntry } from '../../../backend/src/bounties/contracts';
 export type { AdminPlayer } from '../../../backend/src/bounties/contracts';
 export type { BountyTask, TaskInput, SubmissionReview, WithdrawalReview, BountySubmission, BountyWithdrawal, BountyWallet, BountyNotification, LedgerEntry, Page, AdminAccount, AdminSubmission, AdminWithdrawal, BountySummary, PlayerDetail, AuditEntry };
 
@@ -29,10 +29,18 @@ export const adminBounties = {
   status: (id: string, status: string) => bountyRequest<BountyTask>(root + '/tasks/' + id + '/status', 'PATCH', { status }),
   reviewSubmission: (id: string, body: SubmissionReview) => bountyRequest<BountySubmission>(root + '/submissions/' + id + '/review', 'POST', body),
   reviewWithdrawal: (id: string, body: WithdrawalReview) => bountyRequest<BountyWithdrawal>(root + '/withdrawals/' + id + '/review', 'POST', body),
+  markPaid: (id: string, body: ManualPaymentInput) => bountyRequest<BountyWithdrawal>(root + '/withdrawals/' + id + '/paid', 'POST', body),
   payout: (id: string, action: 'execute' | 'reconcile') => bountyRequest<BountyWithdrawal>(root + '/withdrawals/' + id + '/' + action, 'POST', {}),
   player: (id: string, signal?: AbortSignal) => bountyRequest<PlayerDetail>(root + '/players/' + id, 'GET', undefined, signal),
 };
 const messages: Record<string, string> = {
+  reward_amount_conflict: 'This submission was already credited with a different amount. Refresh its record; it cannot be credited again.',
+  reward_below_promised_amount: 'This older submission has a promised minimum reward. Do not enter a smaller amount.',
+  payout_transaction_already_recorded: 'This transaction hash is already recorded for another withdrawal. Check your wallet and audit history; do not pay again.',
+  legacy_payment_requires_reconciliation: 'An older signed payment may already be on chain. Do not pay or refund it manually; reconcile the original transaction.',
+  withdrawal_not_payable: 'This request is no longer pending. Refresh its payment record before taking any action.',
+  withdrawal_already_paid: 'This withdrawal is already paid. Its payment record cannot be changed or debited again.',
+  automatic_payouts_retired: 'Automatic transfers are retired. Pay externally in your Base wallet, then record payment with Mark Paid.',
   unauthenticated: 'Your session has expired. Sign in again to continue.', invalid_admin_session: 'Your admin session has expired. Sign in again.',
   service_unavailable: 'The bounty service is unavailable. Please try again.', invalid_request: 'Check the form values and required confirmations.',
   already_submitted: 'You have already submitted this contract. Open My Bounties to see its status.', post_already_submitted: 'This post has already been submitted. Each original post can be used once.',

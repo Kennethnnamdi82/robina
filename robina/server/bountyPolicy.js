@@ -13,6 +13,6 @@ const rules = [
   ['PUT', `^/api/admin/bounties/tasks/${id}$`],
   ['PATCH', `^/api/admin/bounties/tasks/${id}/status$`],
   ['POST', `^/api/admin/bounties/submissions/${id}/review$`],
-  ['POST', `^/api/admin/bounties/withdrawals/${id}/(review|execute|reconcile)$`],
+  ['POST', `^/api/admin/bounties/withdrawals/${id}/(review|paid|execute|reconcile)$`],
 ].map(([method, pattern]) => [method, new RegExp(pattern)]);
 export function allowedBountyMethods(path) { return rules.filter(([, pattern]) => pattern.test(path)).map(([method]) => method); }

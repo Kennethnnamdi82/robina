@@ -1,5 +1,7 @@
 # RIVALS backend
 
+**Current bounty workflow:** [Owner-reviewed rewards and manual Base payments](docs/bounty-manual-flow.md). There are no campaign budgets or participant caps. The owner enters each reward at approval, pays externally and marks the withdrawal paid. Treasury keys and automatic payouts are not used. This guide supersedes the old treasury workflow below.
+
 Express and MongoDB provide the existing Google, EVM wallet, Solana wallet and owner sign-in flows
 
 Phase 2 adds authenticated Bounty & Earn APIs and a separate USDC ledger. See
@@ -25,7 +27,7 @@ Legacy fields in the User schema and public account response remain for compatib
 
 ## Configuration
 
-Use the fully commented [Render environment template](.env.example). Replace placeholders with your existing configuration in Render's Environment tab; do not import the template unchanged. Keep `BOUNTY_PAYOUTS_ENABLED=false` until the dedicated Base treasury is configured, funded and reviewed. The template contains no real credentials and does not change your running environment.
+Use the fully commented [Render environment template](.env.example). Preserve existing credentials; do not import placeholders. No new bounty environment variables or treasury credentials are required for manual withdrawals.
 
 - `MONGODB_URI` — existing account database
 - `JWT_SECRET` — at least 32 characters in production, no placeholder secret
@@ -39,8 +41,8 @@ Use the fully commented [Render environment template](.env.example). Replace pla
 - `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` — existing optional owner credentials
 - `PORT` — defaults to 4000
 
-Treasury wallets and payment RPC settings are not required for authentication.
-New Base bounty payouts remain disabled unless backend-only `BOUNTY_*` settings are explicitly configured.
+Treasury wallets and payment RPC settings are not required for authentication or manual bounty withdrawals.
+The production app never signs/sends payments, even if retired `BOUNTY_*` treasury settings remain configured.
 Do not rename the database, session cookie or JWT issuer as part of this cleanup
 
 ## Retained endpoints

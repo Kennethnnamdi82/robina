@@ -26,10 +26,10 @@ const address = '0x' + '22'.repeat(20);
 const reviewer = 'reviewer@example.com';
 const approval = { decision: 'approve', verificationMethod: 'manual', ownershipVerified: true,
   engagementVerified: true, complianceVerified: true, disclosureVerified: true,
-  observedEngagement: 5000, notes: 'Verified original account ownership and live platform analytics, genuine engagement and #ad disclosure.' };
+  observedEngagement: 5000, rewardMicros: '10000000', notes: 'Verified original account ownership and live platform analytics, genuine engagement and #ad disclosure.' };
 const taskData = (overrides = {}) => ({ title: 'Original RIVALS post', description: 'Promote RIVALS with original gameplay.', platform: 'x',
   instructions: ['Publish original content.', 'Supply ownership and engagement analytics.'], disclosure: 'Clearly disclose the reward using #ad.',
-  minimumEngagement: 5000, rewardMicros: '10000000', budgetMicros: '100000000', participationLimit: 10, evidenceRequired: true, ...overrides });
+  minimumEngagement: 5000, evidenceRequired: true, ...overrides });
 function fakeChain() {
   const account = privateKeyToAccount('0x' + '01'.repeat(32)); // Public deterministic TEST key, never funded.
   return {
@@ -88,9 +88,9 @@ async function submitted(user, task, overrides = {}) {
     evidenceUrl: 'https://evidence.example.com/analytics', evidenceNotes: 'Ownership and engagement analytics', confirmed: true, ...overrides }, 'test-network');
 }
 async function funded(user, rewardMicros = '10000000') {
-  const task = await activeTask({ rewardMicros });
+  const task = await activeTask();
   const submission = await submitted(user, task);
-  await service.reviewSubmission(reviewer, String(submission._id), approval);
+  await service.reviewSubmission(reviewer, String(submission._id), { ...approval, rewardMicros });
   return submission;
 }
 async function authorized(user, key = 'withdrawal-key-00001', amountMicros = '5000000') {
@@ -98,7 +98,7 @@ async function authorized(user, key = 'withdrawal-key-00001', amountMicros = '50
   await service.reviewWithdrawal(reviewer, String(withdrawal._id), { decision: 'approve', notes: 'Destination and source reviewed.' });
   return String(withdrawal._id);
 }
-test('HTTP complete workflow: admin task → pending → exactly-once reward → authorized verified payout', async () => {
+test('HTTP manual workflow: publish to all → pending → admin-entered reward once → external payment recorded once', async () => {
   const user = await player(), admin = adminCookie();
   let response = await api('/api/admin/bounties/tasks', { method: 'POST', cookie: admin, body: taskData() });
   assert.equal(response.status, 201); const taskId = response.body._id;
@@ -111,7 +111,8 @@ test('HTTP complete workflow: admin task → pending → exactly-once reward →
   assert.equal(response.status, 201); assert.equal(response.body.status, 'pending');
   assert.equal(response.body.ipHash, undefined); const submissionId = response.body._id;
   response = await api('/api/bounties/wallet', { cookie: cookie(user) });
-  assert.equal(response.body.pendingMicros, '10000000'); assert.equal(response.body.availableMicros, '0');
+  assert.equal(response.body.pendingMicros, '0'); assert.equal(response.body.pendingSubmissions, 1); assert.equal(response.body.availableMicros, '0');
+  assert.equal(response.body.payoutMode, 'manual'); assert.equal(response.body.payoutsEnabled, true);
   response = await api(`/api/admin/bounties/submissions/${submissionId}/review`, { method: 'POST', cookie: admin, body: approval });
   assert.equal(response.status, 200); assert.equal(response.body.status, 'approved');
   response = await api(`/api/admin/bounties/submissions/${submissionId}/review`, { method: 'POST', cookie: admin, body: approval });
@@ -124,14 +125,13 @@ test('HTTP complete workflow: admin task → pending → exactly-once reward →
   const withdrawalId = response.body._id;
   assert.equal((await api('/api/bounties/withdrawals', request)).body._id, withdrawalId);
   response = await api(`/api/admin/bounties/withdrawals/${withdrawalId}/execute`, { method: 'POST', cookie: admin, body: {} });
-  assert.equal(response.status, 409); // No payout before authorization.
-  response = await api(`/api/admin/bounties/withdrawals/${withdrawalId}/review`, { method: 'POST', cookie: admin, body: { decision: 'approve', notes: 'Verified payout destination.' } });
-  assert.equal(response.status, 200);
-  chain.outcome = 'paid';
-  response = await api(`/api/admin/bounties/withdrawals/${withdrawalId}/execute`, { method: 'POST', cookie: admin, body: {} });
+  assert.equal(response.status, 410); // No automatic sending, even with an injected treasury.
+  const paid = { confirmed: true, txHash: '0x' + 'ab'.repeat(32), notes: 'Owner confirmed external Base payment in this isolated test.' };
+  response = await api(`/api/admin/bounties/withdrawals/${withdrawalId}/paid`, { method: 'POST', cookie: admin, body: paid });
   assert.equal(response.status, 200); assert.equal(response.body.status, 'paid'); assert.equal(response.body.rawTransaction, undefined);
-  await api(`/api/admin/bounties/withdrawals/${withdrawalId}/execute`, { method: 'POST', cookie: admin, body: {} });
-  assert.equal(chain.broadcasts.size, 1);
+  await api(`/api/admin/bounties/withdrawals/${withdrawalId}/paid`, { method: 'POST', cookie: admin, body: paid });
+  assert.equal(chain.broadcasts.size, 0); assert.equal(chain.preparations, 0);
+  assert.equal(response.body.paymentMethod, 'manual'); assert.equal(response.body.receiptBlock, undefined);
   response = await api('/api/bounties/wallet', { cookie: cookie(user) });
   assert.equal(response.body.availableMicros, '5000000'); assert.equal(response.body.reservedMicros, '0'); assert.equal(response.body.withdrawnMicros, '5000000');
   response = await api('/api/bounties/ledger', { cookie: cookie(user) });
@@ -140,7 +140,7 @@ test('HTTP complete workflow: admin task → pending → exactly-once reward →
   for (const kind of ['published', 'received', 'approved', 'credited', 'withdrawal']) assert.ok(response.body.items.some(n => n.kind === kind));
   assert.equal((await api('/api/bounties/notifications/read', { method: 'POST', cookie: cookie(user), body: {} })).status, 200);
   assert.ok((await api('/api/bounties/notifications', { cookie: cookie(user) })).body.items.every(n => n.read));
-  assert.ok(await models.BountyAudit.countDocuments({ action: 'payout_paid' }));
+  assert.equal(await models.BountyAudit.countDocuments({ action: 'withdrawal_manually_paid' }), 1);
 });
 test('authorization, revoked admin cookies, CSRF, strict validation and private histories', async () => {
   const a = await player(), b = await player();
@@ -172,7 +172,7 @@ test('duplicate account/task and cross-account post aliases rejected, including 
 test('published terms are snapshotted; insufficient manual verification never credits rewards', async () => {
   const user = await player(), task = await activeTask();
   const submission = await submitted(user, task);
-  await service.editTask(reviewer, String(task._id), taskData({ rewardMicros: '15000000', minimumEngagement: 10000 }));
+  await service.editTask(reviewer, String(task._id), taskData({ minimumEngagement: 10000 }));
   await assert.rejects(service.reviewSubmission(reviewer, String(submission._id), { ...approval, observedEngagement: 4999 }), /engagement_requirement/);
   await assert.rejects(service.reviewSubmission(reviewer, String(submission._id), { decision: 'approve' }), /invalid_request/);
   await service.reviewSubmission(reviewer, String(submission._id), approval);
@@ -191,29 +191,29 @@ test('concurrent approvals credit exactly once; ledger append failure rolls ever
   finally { models.BountyLedger.create = original; }
   assert.equal((await models.BountySubmission.findById(sub2._id)).status, 'pending');
   assert.equal((await service.wallet(other._id)).availableMicros, 0n);
-  assert.equal((await service.wallet(other._id)).pendingMicros, 10_000_000n);
+  assert.equal((await service.wallet(other._id)).pendingMicros, 0n);
 });
-test('budget and participation caps survive concurrency; rejection releases commitment but never permits resubmission', async () => {
-  const task = await activeTask({ budgetMicros: '10000000' }), a = await player(), b = await player();
+test('bounties have no budget or participant cap; every player can submit once, including concurrently', async () => {
+  const task = await activeTask(), a = await player(), b = await player();
   const results = await Promise.allSettled([submitted(a, task), submitted(b, task)]);
-  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 2);
   const first = results.find(r => r.status === 'fulfilled').value;
   await service.reviewSubmission(reviewer, String(first._id), { decision: 'reject', reason: 'Ownership was not verified.' });
   assert.equal((await service.wallet(first.playerId)).pendingMicros, 0n);
   await assert.rejects(service.submit(first.playerId, String(task._id), { postUrl: `https://x.com/a/status/${++counter}`, evidenceUrl: 'https://evidence.example.com/a', confirmed: true }, 'test-network'), /already_submitted/);
-  const loser = String(first.playerId) === String(a._id) ? b : a;
-  await submitted(loser, task);
-  const limited = await activeTask({ participationLimit: 1 });
-  await submitted(a, limited); await assert.rejects(submitted(b, limited), /participation_limit/);
-  await service.changeTaskStatus(reviewer, String(limited._id), { status: 'paused' });
-  await assert.rejects(submitted(await player(), limited), /task_not_active/);
+  // Even an older stored cap and exhausted budget must no longer gate participation.
+  await models.BountyTask.updateOne({ _id: task._id }, { $set: { participationLimit: 1, budgetMicros: 0n } });
+  const newcomer = await player(); await submitted(newcomer, task);
+  assert.equal((await api('/api/bounties/tasks', { cookie: cookie(newcomer) })).body.items.length, 1);
+  await service.changeTaskStatus(reviewer, String(task._id), { status: 'paused' });
+  await assert.rejects(submitted(await player(), task), /task_not_active/);
 });
 test('TikTok initial requirement/reward and supporting evidence are enforced', async () => {
-  const user = await player(), task = await activeTask({ platform: 'tiktok', rewardMicros: '5000000' });
+  const user = await player(), task = await activeTask({ platform: 'tiktok' });
   await assert.rejects(submitted(user, task), /invalid_post_url/);
   await assert.rejects(submitted(user, task, { postUrl: 'https://www.tiktok.com/@player/video/12345', evidenceUrl: '' }), /evidence_required/);
   const sub = await submitted(user, task, { postUrl: 'https://www.tiktok.com/@player/video/12345' });
-  await service.reviewSubmission(reviewer, String(sub._id), approval);
+  await service.reviewSubmission(reviewer, String(sub._id), { ...approval, rewardMicros: '5000000' });
   assert.equal((await service.wallet(user._id)).availableMicros, 5_000_000n);
 });
 test('concurrent withdrawals cannot overspend; idempotency conflicts and minimums rejected', async () => {
@@ -294,7 +294,7 @@ test('treasury serializes nonces; only a finalized reverted transaction can rele
   const a = await authorized(user, 'first-withdrawal-key'), b = await authorized(user, 'other-withdrawal-key');
   await service.executeWithdrawal(reviewer, a, chain);
   await assert.rejects(service.executeWithdrawal(reviewer, b, chain), /treasury_busy/);
-  await assert.rejects(service.reviewWithdrawal(reviewer, a, { decision: 'reject', reason: 'Do not release signed intent.' }), /already_reviewed/);
+  await assert.rejects(service.reviewWithdrawal(reviewer, a, { decision: 'reject', reason: 'Do not release signed intent.' }), /legacy_payment_requires_reconciliation/);
   assert.equal((await service.wallet(user._id)).reservedMicros, 10_000_000n);
   chain.outcome = 'reverted';
   await service.reconcileWithdrawal(reviewer, a, chain);
@@ -355,16 +355,103 @@ test('scheduled campaigns are server-gated and stale opened briefs cannot silent
   assert.equal(response.body.items.length, 0);
   await assert.rejects(submitted(user, scheduled), /task_outside_schedule/);
   const task = await activeTask();
-  await service.editTask(reviewer, String(task._id), taskData({ rewardMicros: '5000000' }));
+  await service.editTask(reviewer, String(task._id), taskData({ minimumEngagement: 4500 }));
   await assert.rejects(submitted(user, task, { termsRevision: 1 }), /task_terms_changed/);
-  const sub = await submitted(user, task, { termsRevision: 2 }); assert.equal(sub.terms.rewardMicros, 5_000_000n);
+  const sub = await submitted(user, task, { termsRevision: 2 }); assert.equal(sub.terms.minimumEngagement, 4500); assert.equal(sub.terms.rewardMode, 'manual');
   await service.reviewSubmission(reviewer, String(sub._id), approval);
   await models.BountyTask.updateOne({ _id: task._id }, { $set: { expiresAt: new Date(Date.now() - 1000) } });
   response = await api('/api/bounties/tasks', { cookie: cookie(user) });
   assert.equal(response.body.items.length, 0);
-  assert.equal((await service.wallet(user._id)).earnedMicros, 5_000_000n); // expiration does not invalidate accepted terms
+  assert.equal((await service.wallet(user._id)).earnedMicros, 10_000_000n); // expiration does not invalidate accepted terms
   await assert.rejects(service.changeTaskStatus(reviewer, String(task._id), { status: 'paused' }).then(() => service.changeTaskStatus(reviewer, String(task._id), { status: 'active' })), /task_expired/);
 });
+test('manual rewards are chosen per player; conflicting retries cannot change or double-credit them', async () => {
+  const task = await activeTask(), a = await player(), b = await player();
+  const sa = await submitted(a, task), sb = await submitted(b, task);
+  await service.reviewSubmission(reviewer, String(sa._id), { ...approval, rewardMicros: '7250001' });
+  await service.reviewSubmission(reviewer, String(sb._id), { ...approval, rewardMicros: '15500000' });
+  assert.equal((await service.wallet(a._id)).availableMicros, 7_250_001n);
+  assert.equal((await service.wallet(b._id)).availableMicros, 15_500_000n);
+  await assert.rejects(service.reviewSubmission(reviewer, String(sa._id), { ...approval, rewardMicros: '9000000' }), /reward_amount_conflict/);
+  const row = (await api('/api/admin/bounties/submissions?status=approved', { cookie: adminCookie() })).body.items.find(row => row._id === String(sa._id));
+  assert.equal(row.awardedMicros, '7250001'); assert.equal(row.terms.rewardMicros, '0');
+  assert.equal(await models.BountyLedger.countDocuments({ playerId: a._id, kind: 'reward' }), 1);
+});
+
+test('manual Mark Paid is atomic, idempotent and supports no hash without treasury calls', async () => {
+  const user = await player(); await funded(user); const request = await service.requestWithdrawal(user._id, 'manual-concurrent-key', { amountMicros: '5000000', address, confirmed: true });
+  await assert.rejects(service.markWithdrawalPaid(reviewer, String(request._id), { confirmed: false }), /invalid_request/);
+  await Promise.all(Array.from({ length: 6 }, () => service.markWithdrawalPaid(reviewer, String(request._id), { confirmed: true })));
+  assert.equal(await models.BountyLedger.countDocuments({ eventKey: `paid:${request._id}` }), 1);
+  assert.equal(await models.BountyAudit.countDocuments({ action: 'withdrawal_manually_paid' }), 1);
+  const wallet = await service.wallet(user._id); assert.equal(wallet.withdrawnMicros, 5_000_000n); assert.equal(wallet.reservedMicros, 0n); assert.equal(wallet.availableMicros, 5_000_000n);
+  assert.equal(chain.preparations, 0); assert.equal(chain.broadcasts.size, 0);
+  const history = (await api('/api/bounties/withdrawals', { cookie: cookie(user) })).body.items[0];
+  assert.equal(history.paymentMethod, 'manual'); assert.equal(history.paymentConfirmation, undefined); assert.equal(history.receiptBlock, undefined);
+  const notices = (await api('/api/bounties/notifications', { cookie: cookie(user) })).body.items;
+  assert.ok(notices.some(row => row.message.includes('Open your Base wallet to confirm receipt')));
+  await assert.rejects(service.reviewWithdrawal(reviewer, String(request._id), { decision: 'reject', reason: 'Cannot refund a paid request.' }), /already_reviewed/);
+});
+
+test('payment references cannot be reused; ledger failures roll back manual payment completely', async () => {
+  const user = await player(); await funded(user); const a = await authorized(user, 'manual-reference-first'), b = await authorized(user, 'manual-reference-other');
+  const txHash = '0x' + 'bc'.repeat(32);
+  const results = await Promise.allSettled([service.markWithdrawalPaid(reviewer, a, { confirmed: true, txHash }), service.markWithdrawalPaid(reviewer, b, { confirmed: true, txHash })]);
+  assert.equal(results.filter(row => row.status === 'fulfilled').length, 1);
+  assert.equal((await service.wallet(user._id)).reservedMicros, 5_000_000n);
+  const unpaid = await models.BountyWithdrawal.findOne({ status: 'approved' });
+  const original = models.BountyLedger.create; models.BountyLedger.create = async () => { throw new Error('manual ledger failure'); };
+  try { await assert.rejects(service.markWithdrawalPaid(reviewer, String(unpaid._id), { confirmed: true }), /manual ledger failure/); } finally { models.BountyLedger.create = original; }
+  assert.equal((await models.BountyWithdrawal.findById(unpaid._id)).status, 'approved');
+  assert.equal((await service.wallet(user._id)).reservedMicros, 5_000_000n);
+});
+
+test('players cannot mark themselves paid and signed legacy payments cannot be paid manually', async () => {
+  const user = await player(); await funded(user); const id = await authorized(user);
+  assert.equal((await api(`/api/admin/bounties/withdrawals/${id}/paid`, { method: 'POST', cookie: cookie(user), body: { confirmed: true } })).status, 401);
+  assert.equal((await api(`/api/admin/bounties/withdrawals/${id}/paid`, { method: 'POST', cookie: adminCookie(), body: { confirmed: true }, headers: { 'x-rivals-bounty': '' } })).status, 403);
+  await service.executeWithdrawal(reviewer, id, chain); // Historical fixture only; public execution is retired.
+  await assert.rejects(service.markWithdrawalPaid(reviewer, id, { confirmed: true }), /legacy_payment_requires_reconciliation/);
+  assert.equal((await service.wallet(user._id)).reservedMicros, 5_000_000n);
+});
+
+test('older advertised fixed rewards are honored after the bounty switches to manual rewards', async () => {
+  const task = await activeTask();
+  await models.BountyTask.updateOne({ _id: task._id }, { $set: { 'terms.rewardMode': 'fixed', 'terms.rewardMicros': 10_000_000n } });
+  const user = await player(), sub = await submitted(user, task);
+  await service.editTask(reviewer, String(task._id), taskData());
+  await assert.rejects(service.reviewSubmission(reviewer, String(sub._id), { ...approval, rewardMicros: '5000000' }), /reward_below_promised_amount/);
+  await service.reviewSubmission(reviewer, String(sub._id), approval);
+  assert.equal((await service.wallet(user._id)).availableMicros, 10_000_000n);
+});
+
+test('startup upgrades only future briefs, preserving balances and previously submitted fixed promises', async () => {
+  const task = await activeTask();
+  await models.BountyTask.updateOne({ _id: task._id }, { $set: { 'terms.rewardMode': 'fixed', 'terms.rewardMicros': 10_000_000n, participationLimit: 1 } });
+  const user = await player(), sub = await submitted(user, task);
+  await models.initializeBounties(); await models.initializeBounties();
+  const current = await models.BountyTask.findById(task._id);
+  assert.equal(current.terms.rewardMode, 'manual'); assert.equal(current.terms.rewardMicros, 0n);
+  assert.equal(current.terms.revision, 2); assert.equal(current.participationLimit, null);
+  assert.equal((await models.BountySubmission.findById(sub._id)).terms.rewardMicros, 10_000_000n);
+  assert.equal((await service.wallet(user._id)).pendingMicros, 10_000_000n);
+  await assert.rejects(submitted(await player(), current, { termsRevision: 1 }), /task_terms_changed/);
+  assert.equal(await models.BountyAudit.countDocuments({ action: 'task_manual_rewards_enabled' }), 1);
+  await service.reviewSubmission(reviewer, String(sub._id), approval);
+  assert.equal((await service.wallet(user._id)).availableMicros, 10_000_000n);
+});
+
+test('a rejection racing Mark Paid cannot both refund and settle the same reservation', async () => {
+  const user = await player(); await funded(user); const request = await service.requestWithdrawal(user._id, 'manual-racing-reject', { amountMicros: '5000000', address, confirmed: true });
+  const results = await Promise.allSettled([service.markWithdrawalPaid(reviewer, String(request._id), { confirmed: true }), service.reviewWithdrawal(reviewer, String(request._id), { decision: 'reject', reason: 'Owner did not send the external payment.' })]);
+  assert.equal(results.filter(row => row.status === 'fulfilled').length, 1);
+  const row = await models.BountyWithdrawal.findById(request._id), account = await service.wallet(user._id);
+  assert.equal(account.reservedMicros, 0n);
+  assert.equal(account.availableMicros + account.withdrawnMicros, 10_000_000n);
+  assert.equal(await models.BountyLedger.countDocuments({ referenceId: request._id, kind: { $in: ['withdrawal_paid', 'withdrawal_released'] } }), 1);
+  assert.ok(['paid', 'rejected'].includes(row.status));
+});
+
 test('operational totals remain exact when summed accounts exceed the BSON Int64 range', async () => {
   const amount = 9_000_000_000_000_000n;
   await models.BountyAccount.insertMany(Array.from({ length: 1100 }, () => ({ playerId: new mongoose.Types.ObjectId(), availableMicros: amount, earnedMicros: amount })));

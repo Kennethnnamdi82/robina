@@ -10,7 +10,7 @@ export default function SubmissionDialog({ task, trigger, busy, onClose, onSubmi
 }) {
   const [postUrl, setPostUrl] = useState(''), [evidenceUrl, setEvidenceUrl] = useState(''), [evidenceNotes, setEvidenceNotes] = useState('');
   const [confirmed, setConfirmed] = useState(false), [error, setError] = useState('');
-  return <BountyDialog title={task.title} description={`${task.requirement} · ${money(task.rewardMicros)} USDC ${demo ? 'demo reward' : 'reward after verified approval'}`} onClose={() => { if (!busy) onClose(); }} returnFocus={trigger}>
+  return <BountyDialog title={task.title} description={task.rewardMode === 'manual' ? `${task.requirement} · The administrator sets your USDC reward after reviewing your submission.` : `${task.requirement} · ${money(task.rewardMicros)} USDC ${demo ? 'demo reward' : 'reward after verified approval'}`} onClose={() => { if (!busy) onClose(); }} returnFocus={trigger}>
     <section className="rb-brief"><h3>YOUR BRIEF</h3><ol>{task.instructions.map(instruction => <li key={instruction}>{instruction}</li>)}</ol></section>
     <aside className="rb-disclosure"><ShieldCheck size={20}/><div><strong>PROMOTIONAL DISCLOSURE REQUIRED</strong><p>{task.disclosure}</p></div></aside>
     <form noValidate onSubmit={async event => {

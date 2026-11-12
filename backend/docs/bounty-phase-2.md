@@ -1,5 +1,7 @@
 # Bounty & Earn backend (Phase 2)
 
+**Historical design:** The [manual owner payment workflow](bounty-manual-flow.md) supersedes campaign caps and automatic treasury execution below. New rewards are entered at review, payments are external and `/execute` is retired. Existing financial history and legacy transaction recovery remain protected.
+
 This module extends the existing Express/Mongoose ESM backend, `bd_session` player sessions and `bd_admin` owner sessions. It does not replace authentication, touch the game's/store's balances, or change the Phase 1 UI. TypeScript wire interfaces are in `src/bounties/contracts.d.ts`; runtime validation uses the existing Zod dependency.
 
 ## API contract

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { env } from '../config/env.js';
 import { BountyTask, BountyAccount, BountySubmission, BountyWithdrawal, BountyLedger, BountyAudit, BountyNotice, BountyTreasuryLane, BountyRateBucket } from './models.js';
-import { MAX_MICROS, fail, parse, taskInput, taskStatusInput, submitInput, normalizePost, evidenceUrl, reviewInput, withdrawalInput, baseAddress, idempotencyKey, withdrawalReviewInput } from './validation.js';
+import { MAX_MICROS, fail, parse, taskInput, taskStatusInput, submitInput, normalizePost, evidenceUrl, reviewInput, withdrawalInput, baseAddress, idempotencyKey, withdrawalReviewInput, manualPaymentInput } from './validation.js';
 
 const txOptions = { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' }, maxCommitTimeMS: 10_000 };
 export async function atomic(work) {
@@ -33,8 +33,8 @@ function bounded(account) {
   if (account.earnedMicros !== account.availableMicros + account.reservedMicros + account.withdrawnMicros) fail('bounty_ledger_invariant');
 }
 function termsFrom(input, revision) {
-  const { budgetMicros: _budget, participationLimit: _limit, startsAt: _start, expiresAt: _end, ...terms } = input;
-  return { ...terms, rewardMicros: BigInt(input.rewardMicros), revision };
+  const { startsAt: _start, expiresAt: _end, ...terms } = input;
+  return { ...terms, rewardMode: 'manual', rewardMicros: 0n, revision };
 }
 export function hashIp(ip) {
   return crypto.createHmac('sha256', env.jwtSecret).update(`bounty-ip:${ip}`).digest('hex');
@@ -58,7 +58,7 @@ export async function consumeRate(key, maximum, windowMs = 3_600_000) {
 export async function createTask(actor, input) {
   const data = parse(taskInput, input);
   return atomic(async session => {
-    const [task] = await BountyTask.create([{ terms: termsFrom(data, 1), budgetMicros: BigInt(data.budgetMicros), participationLimit: data.participationLimit, startsAt: data.startsAt, expiresAt: data.expiresAt }], { session });
+    const [task] = await BountyTask.create([{ terms: termsFrom(data, 1), startsAt: data.startsAt, expiresAt: data.expiresAt }], { session });
     await audit(session, actor, 'task_created', task._id, data);
     return task;
   });
@@ -69,9 +69,8 @@ export async function editTask(actor, id, input) {
     const task = await BountyTask.findById(id).session(session);
     if (!task) fail('task_not_found', 404);
     if (task.status === 'closed') fail('task_closed');
-    if (BigInt(data.budgetMicros) < task.committedMicros || data.participationLimit < task.participants) fail('budget_or_limit_below_commitments');
     task.terms = termsFrom(data, task.terms.revision + 1);
-    task.budgetMicros = BigInt(data.budgetMicros); task.participationLimit = data.participationLimit;
+    task.participationLimit = null;
     task.startsAt = data.startsAt; task.expiresAt = data.expiresAt;
     await task.save({ session });
     await audit(session, actor, 'task_edited', task._id, data);
@@ -109,8 +108,6 @@ export async function submit(playerId, taskId, input, ipHash) {
     if (task.terms.evidenceRequired && !evidence) fail('evidence_required', 400);
     if (await BountySubmission.exists({ playerId, taskId }).session(session)) fail('already_submitted');
     if (await BountySubmission.exists({ postKey: post.postKey }).session(session)) fail('post_already_submitted');
-    if (task.participants >= task.participationLimit) fail('participation_limit');
-    if (task.committedMicros + task.terms.rewardMicros > task.budgetMicros) fail('campaign_budget_exhausted');
     const user = await User.findById(playerId).session(session);
     if (!user) fail('player_not_found', 404);
     const riskFlags = [];
@@ -135,13 +132,19 @@ export async function reviewSubmission(actor, id, input) {
     const submission = await BountySubmission.findById(id).session(session);
     if (!submission) fail('submission_not_found', 404);
     if (submission.status !== 'pending') {
-      if (submission.status === (review.decision === 'approve' ? 'approved' : 'rejected')) return submission;
+      if (submission.status === (review.decision === 'approve' ? 'approved' : 'rejected')) {
+        if (review.decision === 'approve' && BigInt(review.rewardMicros) !== (submission.awardedMicros ?? submission.terms.rewardMicros)) fail('reward_amount_conflict');
+        return submission;
+      }
       fail('submission_already_reviewed');
     }
     const account = await accountFor(submission.playerId, session);
-    const reward = submission.terms.rewardMicros;
-    account.pendingMicros -= reward;
+    const promised = submission.terms.rewardMicros;
+    account.pendingMicros -= promised;
     if (review.decision === 'approve') {
+      const reward = BigInt(review.rewardMicros);
+      // Never reduce an older submission's explicitly advertised fixed reward.
+      if (submission.terms.rewardMode !== 'manual' && reward < promised) fail('reward_below_promised_amount', 400);
       if (review.observedEngagement < submission.terms.minimumEngagement) fail('engagement_requirement_not_met', 400);
       // Recheck at review time: related accounts may have appeared after submission.
       const user = await User.findById(submission.playerId).session(session);
@@ -151,6 +154,7 @@ export async function reviewSubmission(actor, id, input) {
       if (related.length >= 3 && !submission.riskFlags.includes('shared_submission_network')) submission.riskFlags.push('shared_submission_network');
       if (submission.riskFlags.length && !review.acknowledgeRisk) fail('risk_acknowledgement_required', 400);
       account.availableMicros += reward; account.earnedMicros += reward;
+      submission.awardedMicros = reward;
       submission.status = 'approved';
       const task = await BountyTask.findById(submission.taskId).session(session);
       if (!task) fail('task_not_found', 404);
@@ -164,7 +168,7 @@ export async function reviewSubmission(actor, id, input) {
       submission.status = 'rejected';
       const task = await BountyTask.findById(submission.taskId).session(session);
       if (!task) fail('task_not_found', 404);
-      task.committedMicros -= reward; await task.save({ session });
+      task.committedMicros -= promised; await task.save({ session });
       bounded(account); await account.save({ session });
       await notice(session, submission.playerId, 'rejected', submission._id, review.reason);
     }
@@ -202,7 +206,7 @@ export async function requestWithdrawal(playerId, key, input) {
     bounded(account); await account.save({ session });
     const [withdrawal] = await BountyWithdrawal.create([{ playerId, requestKey: key, amountMicros: amount, address, riskFlags }], { session });
     await ledger(session, account, 'withdrawal_reserved', `reserve:${withdrawal._id}`, withdrawal._id, amount);
-    await notice(session, playerId, 'withdrawal', withdrawal._id, 'Withdrawal requested. Funds reserved pending administrator authorization.');
+    await notice(session, playerId, 'withdrawal', withdrawal._id, 'Withdrawal requested. Funds reserved while the administrator reviews and pays you manually on Base.');
     await audit(session, String(playerId), 'withdrawal_requested', withdrawal._id, { amountMicros: data.amountMicros, address, riskFlags });
     return withdrawal;
   });
@@ -210,9 +214,10 @@ export async function requestWithdrawal(playerId, key, input) {
 export async function reviewWithdrawal(actor, id, input) {
   const review = parse(withdrawalReviewInput, input);
   return atomic(async session => {
-    const withdrawal = await BountyWithdrawal.findById(id).session(session);
+    const withdrawal = await BountyWithdrawal.findById(id).select('+rawTransaction').session(session);
     if (!withdrawal) fail('withdrawal_not_found', 404);
     const target = review.decision === 'approve' ? 'approved' : 'rejected';
+    if (withdrawal.rawTransaction) fail('legacy_payment_requires_reconciliation');
     if (withdrawal.status === target) return withdrawal;
     // An authorized but UNSIGNED request may still be cancelled. Preparation
     // changes this status atomically, so a racing cancellation cannot refund signed funds.
@@ -229,8 +234,39 @@ export async function reviewWithdrawal(actor, id, input) {
     }
     await withdrawal.save({ session });
     await notice(session, withdrawal.playerId, 'withdrawal', withdrawal._id,
-      target === 'approved' ? 'Withdrawal authorized. Awaiting verified Base USDC payout.' : review.reason);
+      target === 'approved' ? 'Withdrawal is being processed. The administrator will pay your Base address manually.' : review.reason);
     await audit(session, actor, `withdrawal_${target}`, withdrawal._id, review);
+    return withdrawal;
+  });
+}
+
+/** Records an owner's external payment; NEVER signs, sends or claims chain verification. */
+export async function markWithdrawalPaid(actor, id, input) {
+  const data = parse(manualPaymentInput, input);
+  return atomic(async session => {
+    const withdrawal = await BountyWithdrawal.findById(id).select('+rawTransaction').session(session);
+    if (!withdrawal) fail('withdrawal_not_found', 404);
+    if (withdrawal.status === 'paid') {
+      if (withdrawal.paymentMethod !== 'manual' || (data.txHash && data.txHash !== withdrawal.txHash)) fail('withdrawal_already_paid');
+      return withdrawal;
+    }
+    if (withdrawal.rawTransaction || ['prepared', 'broadcast'].includes(withdrawal.status)) fail('legacy_payment_requires_reconciliation');
+    if (!['pending', 'approved'].includes(withdrawal.status)) fail('withdrawal_not_payable');
+    if (withdrawal.riskFlags.length && !data.acknowledgeRisk) fail('risk_acknowledgement_required', 400);
+    if (data.txHash && await BountyWithdrawal.exists({ _id: { $ne: withdrawal._id }, txHash: data.txHash }).session(session)) fail('payout_transaction_already_recorded');
+    const account = await accountFor(withdrawal.playerId, session);
+    account.reservedMicros -= withdrawal.amountMicros;
+    account.withdrawnMicros += withdrawal.amountMicros;
+    bounded(account); await account.save({ session });
+    withdrawal.status = 'paid'; withdrawal.paidAt = new Date(); withdrawal.paymentMethod = 'manual'; withdrawal.chainId = 8453;
+    if (data.txHash) withdrawal.txHash = data.txHash;
+    withdrawal.paymentConfirmation = { ...data, actor, amountMicros: withdrawal.amountMicros.toString(), address: withdrawal.address };
+    await withdrawal.save({ session });
+    await ledger(session, account, 'withdrawal_paid', `paid:${id}`, withdrawal._id, withdrawal.amountMicros);
+    const amount = `${withdrawal.amountMicros / 1_000_000n}.${(withdrawal.amountMicros % 1_000_000n).toString().padStart(6, '0')}`.replace(/\.?0+$/, '');
+    await notice(session, withdrawal.playerId, 'withdrawal', withdrawal._id,
+      `The administrator marked your ${amount} USDC withdrawal as paid to ${withdrawal.address} on Base. Open your Base wallet to confirm receipt.`);
+    await audit(session, actor, 'withdrawal_manually_paid', withdrawal._id, { ...data, amountMicros: withdrawal.amountMicros.toString(), address: withdrawal.address, paymentMethod: 'manual' });
     return withdrawal;
   });
 }
@@ -317,7 +353,7 @@ export function paginate(model, filter, page, projection) {
     .select(projection || '').sort({ _id: -1 }).limit(page.limit).setOptions({ useBigInt64: true }).lean();
 }
 export const publicSubmissionFields = '-ipHash -review.actor -review.notes -review.acknowledgeRisk -riskFlags';
-export const publicWithdrawalFields = '-review.actor -review.notes -review.acknowledgeRisk -riskFlags -treasury -nonce';
+export const publicWithdrawalFields = '-review.actor -review.notes -review.acknowledgeRisk -riskFlags -treasury -nonce -paymentConfirmation';
 export async function wallet(playerId) {
   const account = await BountyAccount.findOne({ playerId }).setOptions({ useBigInt64: true }).lean();
   return account || { availableMicros: 0n, reservedMicros: 0n, pendingMicros: 0n, earnedMicros: 0n, withdrawnMicros: 0n, address: '', notificationsReadAt: new Date(0) };

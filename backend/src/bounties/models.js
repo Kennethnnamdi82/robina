@@ -11,11 +11,13 @@ const terms = new Schema({
   platform: { type: String, enum: ['x', 'tiktok'], required: true },
   instructions: [String], disclosure: String, evidenceRequired: Boolean,
   minimumEngagement: { type: Number, required: true }, rewardMicros: money(), revision: Number,
+  rewardMode: { type: String, enum: ['fixed', 'manual'], default: 'fixed' },
 }, { _id: false });
 const taskSchema = new Schema({
   terms: { type: terms, required: true }, status: { type: String, enum: ['draft', 'active', 'paused', 'closed'], default: 'draft', index: true },
   budgetMicros: money(), committedMicros: money(), rewardedMicros: money(),
-  participationLimit: { type: Number, required: true }, participants: { type: Number, default: 0 },
+  // Historical caps remain readable; no new bounty enforces a budget or participant cap.
+  participationLimit: { type: Number, default: null }, participants: { type: Number, default: 0 },
   publishedAt: Date, startsAt: { type: Date, default: null }, expiresAt: { type: Date, default: null },
 }, options);
 export const BountyTask = mongoose.model('BountyTask', taskSchema);
@@ -34,6 +36,7 @@ const submissionSchema = new Schema({
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
   riskFlags: [String], ipHash: { type: String, index: true },
   review: { type: Schema.Types.Mixed, default: null }, reviewedAt: Date,
+  awardedMicros: { type: Schema.Types.BigInt, default: null, validate: value => value === null || (value > 0n && value <= MAX_MICROS) },
 }, options);
 submissionSchema.index({ playerId: 1, taskId: 1 }, { unique: true });
 submissionSchema.index({ postKey: 1 }, { unique: true });
@@ -49,6 +52,8 @@ const withdrawalSchema = new Schema({
   rawTransaction: { type: String, select: false },
   txHash: String, treasury: String, nonce: Number, chainId: Number,
   receiptBlock: String, failureReason: String, paidAt: Date,
+  paymentMethod: { type: String, enum: ['manual'] },
+  paymentConfirmation: { type: Schema.Types.Mixed, default: null },
 }, options);
 withdrawalSchema.index({ playerId: 1, requestKey: 1 }, { unique: true });
 withdrawalSchema.index({ txHash: 1 }, { unique: true, partialFilterExpression: { txHash: { $type: 'string' } } });
@@ -101,4 +106,21 @@ export async function initializeBounties() {
   // No drop/syncIndexes: ensure uniqueness before the server starts accepting writes.
   for (const model of bountyModels) await model.createIndexes();
   await BountyTreasuryLane.updateOne({ _id: 'base-usdc' }, { $setOnInsert: { activeWithdrawalId: null } }, { upsert: true });
+  // Upgrade future task terms only. Existing submission snapshots and all money
+  // records remain unchanged; cached old briefs fail the revision check.
+  let changed;
+  do {
+    changed = await mongoose.connection.transaction(async session => {
+      const tasks = await BountyTask.find({ 'terms.rewardMode': { $ne: 'manual' } }).limit(50).session(session);
+      for (const task of tasks) {
+        const previousReward = task.terms.rewardMicros.toString();
+        task.terms.rewardMode = 'manual'; task.terms.rewardMicros = 0n;
+        task.terms.revision = (task.terms.revision || 0) + 1; task.participationLimit = null;
+        await task.save({ session });
+        await BountyAudit.create([{ actor: 'system:manual-bounty-upgrade', action: 'task_manual_rewards_enabled', referenceId: task._id,
+          details: { previousRewardMicros: previousReward, existingSubmissionsPreserved: true, revision: task.terms.revision } }], { session });
+      }
+      return tasks.length;
+    });
+  } while (changed);
 }

@@ -18,7 +18,7 @@ const profileLookup = [
 ];
 function pageResult(items, limit) { return { items, nextBefore: items.length === limit ? String(items.at(-1)._id) : null }; }
 const moneyProjections = model => Object.fromEntries((model === BountyTask ? ['terms.rewardMicros', 'budgetMicros', 'committedMicros', 'rewardedMicros']
-  : model === BountySubmission ? ['terms.rewardMicros'] : model === BountyWithdrawal ? ['amountMicros']
+  : model === BountySubmission ? ['terms.rewardMicros', 'awardedMicros'] : model === BountyWithdrawal ? ['amountMicros']
     : ['availableMicros', 'reservedMicros', 'pendingMicros', 'earnedMicros', 'withdrawnMicros']).map(key => [key, { $toString: `$${key}` }]));
 
 export async function adminList(model, query) {

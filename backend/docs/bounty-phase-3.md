@@ -1,5 +1,7 @@
 # Standalone Bounty Command — Phase 3
 
+**Updated workflow:** See [manual rewards and external owner payments](bounty-manual-flow.md). The standalone entry and security remain; campaign budgets/caps and automatic sending below are superseded. The current browser fixture has no chain client and no payment processing.
+
 ## Entry and separation
 
 Owner entry is `/admin/login`. Successful existing owner authentication now opens **`/admin/bounties`** directly. This is a standalone application surface, not a section of an existing dashboard. No dashboard route, sidebar item, public player-menu admin link, or new authentication system was added. Anonymous visitors and ordinary players are redirected to the existing owner login; the backend independently enforces the owner cookie and revocation checks on every administrative request.

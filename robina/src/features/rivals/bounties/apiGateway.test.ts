@@ -36,6 +36,14 @@ beforeEach(()=>{
 });
 afterEach(()=>vi.unstubAllGlobals());
 describe('live bounty gateway',()=>{
+  it('does not hide bounties behind old caps and uses the actual admin-awarded amount',async()=>{
+    tasks=[{...task,budgetMicros:'0',committedMicros:'999999999',participationLimit:1,participants:999,terms:{...task.terms,rewardMode:'manual',rewardMicros:'0'}}];
+    submissions=[{_id:'223456789012345678901234',playerId:'323456789012345678901234',taskId:task._id,terms:tasks[0].terms,postUrl:'https://x.com/i/web/status/12345',status:'approved',awardedMicros:'7250001',createdAt:task.createdAt}];
+    wallet.availableMicros='7250001';wallet.earnedMicros='7250001';wallet.pendingSubmissions=0;
+    const state=await createApiGateway('player').load();
+    expect(state.tasks[0].status).toBe('active');expect(state.tasks[0].rewardMode).toBe('manual');
+    expect(state.submissions[0].rewardMicros).toBe(7250001);expect(state.wallet.availableMicros).toBe(7250001);
+  });
   it('uses backend records, never imports device demo balances, and shows empty server state honestly',async()=>{
     localStorage.setItem('rivals_bounties_demo_v1:player','{"wallet":{"availableMicros":999999999}}');
     tasks=[];const state=await createApiGateway('player').load();

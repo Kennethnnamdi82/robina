@@ -11,11 +11,10 @@ export interface TaskTerms {
   evidenceRequired: boolean;
   minimumEngagement: number;
   rewardMicros: UsdcMicros;
+  rewardMode?: 'fixed' | 'manual';
   revision: number;
 }
-export interface TaskInput extends Omit<TaskTerms, 'revision'> {
-  budgetMicros: UsdcMicros;
-  participationLimit: number;
+export interface TaskInput extends Omit<TaskTerms, 'revision' | 'rewardMicros' | 'rewardMode'> {
   startsAt?: string | null;
   expiresAt?: string | null;
 }
@@ -26,7 +25,7 @@ export interface BountyTask {
   budgetMicros: UsdcMicros;
   committedMicros: UsdcMicros;
   rewardedMicros: UsdcMicros;
-  participationLimit: number;
+  participationLimit: number | null;
   participants: number;
   createdAt: string;
   updatedAt: string;
@@ -45,6 +44,7 @@ export interface SubmissionInput {
 export type SubmissionReview = {
   decision: 'approve';
   verificationMethod: 'manual';
+  rewardMicros: UsdcMicros;
   ownershipVerified: true;
   engagementVerified: true;
   complianceVerified: true;
@@ -61,6 +61,7 @@ export interface BountySubmission extends Omit<SubmissionInput, 'confirmed'> {
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
   reviewedAt?: string;
+  awardedMicros?: UsdcMicros | null;
   review?: { decision: 'approve' | 'reject'; reason?: string };
 }
 export interface BountyBalances {
@@ -76,9 +77,12 @@ export interface BountyWallet extends BountyBalances {
   currency: 'USDC';
   chainId: 8453;
   payoutsEnabled: boolean;
+  payoutMode?: 'manual';
+  pendingSubmissions?: number;
 }
 export interface WithdrawalInput { amountMicros: UsdcMicros; address: string; confirmed: true }
 export type WithdrawalReview = { decision: 'approve'; notes: string; acknowledgeRisk?: boolean } | { decision: 'reject'; reason: string };
+export interface ManualPaymentInput { confirmed: true; txHash?: string; notes?: string; acknowledgeRisk?: boolean }
 export interface BountyWithdrawal {
   _id: ObjectId;
   requestKey?: string;
@@ -92,6 +96,7 @@ export interface BountyWithdrawal {
   chainId?: 8453;
   receiptBlock?: string;
   paidAt?: string;
+  paymentMethod?: 'manual';
   failureReason?: string;
   review?: { decision: 'approve' | 'reject'; reason?: string };
 }
@@ -125,6 +130,7 @@ export interface BountySummary {
   pendingApprovals: number; approvedSubmissions: number; pendingWithdrawals: number;
   rewardsIssuedMicros: string; availableMicros: string; outstandingMicros: string;
   reservedMicros: string; withdrawnMicros: string; payoutsEnabled: boolean;
+  payoutMode?: 'manual';
 }
 export interface AuditEntry { _id: string; actor: string; action: string; referenceId: string; details: Record<string, unknown>; createdAt: string }
 export interface PlayerDetail { player: AdminPlayer; wallet: BountyBalances; approvedTasks: number; riskFlags: string[] }

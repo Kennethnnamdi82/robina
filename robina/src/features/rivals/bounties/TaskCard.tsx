@@ -9,7 +9,7 @@ export default function TaskCard({ task, submission, onOpen }: {
     <div className="rb-task-head"><span className="rb-platform">{task.platform === 'x' ? <b aria-hidden="true">X</b> : <Music2 size={25}/>}<span>{task.platform === 'x' ? 'X / TWITTER' : 'TIKTOK'}<small>CREATOR CONTRACT</small></span></span><StatusBadge status={submission?.status ?? task.submissionStatus ?? task.status}/></div>
     <h3>{task.title}</h3><p>{task.description}</p>
     <div className="rb-requirement"><Eye size={16}/><span>{task.requirement}<small>ORIGINAL CONTENT / MANUAL REVIEW</small></span></div>
-    <div className="rb-task-reward"><div><small>CONTRACT REWARD</small><strong>{money(task.rewardMicros)} <span>USDC</span></strong></div><ShieldCheck size={25}/></div>
+    <div className="rb-task-reward"><div><small>BOUNTY REWARD</small>{task.rewardMode === 'manual' ? <strong>Set after review <span>USDC</span></strong> : <strong>{money(task.rewardMicros)} <span>USDC</span></strong>}</div><ShieldCheck size={25}/></div>
     <button className="rh-secondary rb-wide" disabled={!!submission || task.submitted || task.status !== 'active'} onClick={event => onOpen(task, event.currentTarget)}>
       {submission || task.submitted ? 'ALREADY SUBMITTED' : task.status !== 'active' ? 'BOUNTY CLOSED' : 'VIEW TASK / SUBMIT'}<ArrowUpRight size={17}/>
     </button>

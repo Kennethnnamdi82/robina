@@ -11,7 +11,7 @@ import authRoutes from "./routes/auth.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 import { createBountyRoutes } from './bounties/routes.js';
-import { createBaseTreasury } from './bounties/baseTreasury.js';
+import { createLegacyBaseVerifier } from './bounties/baseTreasury.js';
 
 
 
@@ -87,7 +87,7 @@ app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 // Routes
 app.get('/health', (_req, res) => {
   const ready = isReady();
-  res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ok: ready, chainId: env.chainId });
+  res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ok: ready, chainId: env.chainId, bountyPayoutMode: 'manual' });
 });
 app.use('/api', (_req, res, next) => {
   res.set('Cache-Control', 'no-store');
@@ -97,7 +97,7 @@ app.use('/api', (_req, res, next) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminAuthRoutes);
-const bountyRoutes = createBountyRoutes(options.bountyChain ?? createBaseTreasury());
+const bountyRoutes = createBountyRoutes(options.bountyChain ?? createLegacyBaseVerifier());
 app.use('/api/bounties', bountyRoutes.player);
 app.use('/api/admin/bounties', bountyRoutes.admin);
 

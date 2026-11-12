@@ -7,6 +7,5 @@ export function campaignTemplate(platform: 'x' | 'tiktok'): TaskInput {
       'Reach 5,000 genuine impressions/views. Purchased or automated engagement is ineligible.',
       'Provide a full post URL, account ownership evidence and engagement analytics for independent review.'],
     disclosure: 'Include a clear, prominent paid-promotion disclosure, such as #ad, and use any applicable platform paid-promotion disclosure tools.',
-    minimumEngagement: 5000, rewardMicros: platform === 'x' ? '10000000' : '5000000', budgetMicros: platform === 'x' ? '100000000' : '50000000',
-    participationLimit: 10, evidenceRequired: true, startsAt: null, expiresAt: null };
+    minimumEngagement: 5000, evidenceRequired: true, startsAt: null, expiresAt: null };
 }

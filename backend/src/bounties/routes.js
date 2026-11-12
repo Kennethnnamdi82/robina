@@ -78,7 +78,8 @@ export function createBountyRoutes(chain) {
     await list(BountySubmission, { playerId: req.bountyPlayerId }, req, service.publicSubmissionFields))));
   player.get('/wallet', asyncRoute(async (req, res) => send(res, {
     ...await service.wallet(req.bountyPlayerId), minimumWithdrawalMicros: '5000000', currency: 'USDC', chainId: 8453,
-    payoutsEnabled: Boolean(chain?.enabled),
+    payoutsEnabled: true, payoutMode: 'manual',
+    pendingSubmissions: await BountySubmission.countDocuments({ playerId: req.bountyPlayerId, status: 'pending' }),
   })));
   player.put('/wallet/address', limited('address', 20), asyncRoute(async (req, res) => {
     const { address } = parse(z.object({ address: z.string().max(42) }).strict(), req.body);
@@ -104,7 +105,7 @@ export function createBountyRoutes(chain) {
       { $set: { notificationsReadAt: new Date() }, $setOnInsert: { playerId: req.bountyPlayerId } }, { upsert: true });
     send(res, { ok: true });
   }));
-  admin.get('/summary', asyncRoute(async (_req, res) => send(res, await adminSummary(Boolean(chain?.enabled)))));
+  admin.get('/summary', asyncRoute(async (_req, res) => send(res, { ...await adminSummary(true), payoutMode: 'manual' })));
   admin.get('/players', asyncRoute(async (req, res) => send(res, await adminList(BountyAccount, req.query))));
   admin.get('/players/:id', asyncRoute(async (req, res) => send(res, await adminPlayer(id(req)))));
   for (const [kind, model] of Object.entries(playerHistoryModels)) {
@@ -129,16 +130,22 @@ export function createBountyRoutes(chain) {
   admin.get('/withdrawals', asyncRoute(async (req, res) => {
     send(res, await adminList(BountyWithdrawal, req.query));
   }));
-  admin.post('/withdrawals/:id/review', asyncRoute(async (req, res) => send(res, await service.reviewWithdrawal(req.bountyAdmin, id(req), req.body))));
-  for (const action of ['execute', 'reconcile']) {
-    admin.post(`/withdrawals/:id/${action}`, asyncRoute(async (req, res) => {
+  admin.post('/withdrawals/:id/review', asyncRoute(async (req, res) => {
+    const result = await service.reviewWithdrawal(req.bountyAdmin, id(req), req.body);
+    send(res, await BountyWithdrawal.findById(result._id).setOptions({ useBigInt64: true }).lean());
+  }));
+  admin.post('/withdrawals/:id/paid', asyncRoute(async (req, res) => {
+    const result = await service.markWithdrawalPaid(req.bountyAdmin, id(req), req.body);
+    send(res, await BountyWithdrawal.findById(result._id).setOptions({ useBigInt64: true }).lean());
+  }));
+  // Retired even if old BOUNTY_PAYOUTS_ENABLED or private-key variables remain set.
+  admin.post('/withdrawals/:id/execute', asyncRoute(async () => { fail('automatic_payouts_retired', 410); }));
+  admin.post('/withdrawals/:id/reconcile', asyncRoute(async (req, res) => {
       emptyBody(req);
-      const handler = action === 'execute' ? service.executeWithdrawal : service.reconcileWithdrawal;
-      const result = await handler(req.bountyAdmin, id(req), chain);
+      const result = await service.reconcileWithdrawal(req.bountyAdmin, id(req), chain);
       // rawTransaction is intentionally excluded even for administrators.
       send(res, await BountyWithdrawal.findById(result._id).setOptions({ useBigInt64: true }).lean());
     }));
-  }
   admin.get('/audit', asyncRoute(async (req, res) => send(res, await list(BountyAudit, {}, req))));
   return { player, admin };
 }

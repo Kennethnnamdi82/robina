@@ -15,6 +15,7 @@ export interface BountyTask {
   description: string;
   requirement: string;
   rewardMicros: number;
+  rewardMode?: 'fixed' | 'manual';
   status: 'active' | 'closed';
   instructions: string[];
   disclosure: string;
@@ -28,7 +29,7 @@ export interface BountyTask {
 const submissionSchema = z.object({
   id: z.string(), taskId: z.string(), taskTitle: z.string(), platform: z.enum(['x', 'tiktok']),
   postUrl: z.string(), evidenceUrl: z.string(), evidenceNotes: z.string(),
-  rewardMicros: amount, status: submissionStatus, submittedAt: z.string().datetime(),
+  rewardMicros: amount, rewardMode: z.enum(['fixed', 'manual']).optional(), status: submissionStatus, submittedAt: z.string().datetime(),
   rejectionReason: z.string().optional(),
 });
 export type BountySubmission = z.infer<typeof submissionSchema>;
@@ -43,6 +44,7 @@ const withdrawalSchema = z.object({
   id: z.string(), amountMicros: amount, address: z.string(), requestedAt: z.string().datetime(),
   status: z.enum(['requested', 'processing', 'pending', 'approved', 'prepared', 'broadcast', 'paid', 'rejected', 'failed']),
   reason: z.string().optional(), transactionUrl: z.string().optional(),
+  paymentMethod: z.literal('manual').optional(),
 });
 export type BountyWithdrawal = z.infer<typeof withdrawalSchema>;
 export const demoStateSchema = z.object({
@@ -56,7 +58,7 @@ export interface BountySnapshot extends DemoState {
   mode: 'demo' | 'live';
   persistence: 'device' | 'session' | 'server';
   payoutsEnabled?: boolean;
-  wallet: DemoState['wallet'] & { pendingMicros?: number; reservedMicros?: number };
+  wallet: DemoState['wallet'] & { pendingMicros?: number; reservedMicros?: number; pendingSubmissions?: number };
   ledger?: import('@/services/bounties').LedgerEntry[];
   more?: Partial<Record<'submissions' | 'withdrawals' | 'notifications' | 'ledger', boolean>>;
 }

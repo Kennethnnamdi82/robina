@@ -12,6 +12,16 @@ const abi = parseAbi([
 const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 const transferData = withdrawal => encodeFunctionData({ abi, functionName: 'transfer', args: [withdrawal.address, BigInt(withdrawal.amountMicros)] });
 
+/** Recovery ONLY for pre-existing signed payouts. Cannot sign or broadcast anything. */
+export function createLegacyBaseVerifier(configuration = process.env) {
+  if (!configuration.BOUNTY_BASE_RPC_URL) return { enabled: false };
+  let url;
+  try { url = new URL(configuration.BOUNTY_BASE_RPC_URL); if (url.protocol !== 'https:' || url.username || url.password) return { enabled: false }; }
+  catch { return { enabled: false }; }
+  const client = createPublicClient({ chain: base, transport: http(url.href, { timeout: 5000, retryCount: 0 }) });
+  return { enabled: true, inspect: withdrawal => inspectBasePayout(client, withdrawal) };
+}
+
 /** Only used by the backend. Never imported by a frontend/serverless asset bundle. */
 export function createBaseTreasury(configuration = process.env, dependencies = {}) {
   if (configuration.BOUNTY_PAYOUTS_ENABLED !== 'true') return { enabled: false };
