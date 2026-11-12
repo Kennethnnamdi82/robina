@@ -19,14 +19,6 @@ function GoogleIcon() {
   );
 }
 
-function RobinaMark() {
-  return (
-    <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_26px_rgba(194,255,56,0.18)]" aria-hidden="true">
-      <span className="h-4 w-4 rotate-45 rounded-[4px] border-2 border-current" />
-    </span>
-  );
-}
-
 function friendlyAuthError(cause: unknown) {
   const message = cause instanceof Error ? cause.message : "";
   const messages: Record<string, string> = {
@@ -129,7 +121,7 @@ function WebLoginPage() {
       <aside className="rh-auth-story"><span>SEVEN CONTRACTS. ONE CITY. YOUR RULES.</span><h2>RIVAL<br/> HEIST</h2><p>PLAN YOUR ENTRANCE.<br/>MAKE YOUR OWN WAY OUT.</p></aside>
       <section className="relative w-full max-w-[390px]">
         <div className="mb-6 flex items-center justify-center gap-2.5 text-white">
-          <RobinaMark />
+          <img src="/rivals-logo.png" alt="" className="h-14 w-14 object-contain" />
           <span className="text-lg font-semibold tracking-[-0.03em]">RIVALS</span>
         </div>
 

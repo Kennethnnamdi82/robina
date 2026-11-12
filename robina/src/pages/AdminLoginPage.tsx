@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminLoginPage() {
@@ -32,9 +32,7 @@ export default function AdminLoginPage() {
         </Link>
 
         <div className="flex flex-col items-center gap-3">
-          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center neon-glow">
-            <Shield className="w-8 h-8 text-primary-foreground" />
-          </div>
+          <img src="/rivals-logo.png" alt="RIVALS: Rival Heist" className="h-24 w-24 object-contain" />
           <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
             Admin Login
           </h1>

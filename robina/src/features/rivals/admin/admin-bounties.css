@@ -9,7 +9,8 @@
 .ab-dialog button.ab-danger{border-color:#db817b;color:#ffd6d2;background:#e35d5010}
 .ab-header{height:86px;border-bottom:1px solid var(--ab-line);display:flex;align-items:center;justify-content:space-between;gap:18px}
 .ab-brand{display:flex;align-items:center;gap:13px;letter-spacing:.12em;font-size:21px;font-weight:900}
-.ab-brand>svg{border:1px solid #ffffff33;box-sizing:content-box;padding:8px}
+.ab-brand::before{content:"";display:block;flex:none;width:44px;height:44px;background:#050505 url('/rivals-logo.png') center 8% / 165% auto no-repeat;border-radius:4px}
+.ab-brand>svg{display:none}
 .ab-brand small{display:block;font-size:9px;font-weight:550;letter-spacing:.17em;color:var(--ab-muted);margin-top:3px}
 .ab-owner{display:flex;align-items:center;gap:28px}.ab-owner>span,.ab-live>span{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.13em;font-weight:700}
 .ab-owner i,.ab-live i{height:5px;width:5px;background:#cdd6de;border-radius:50%;display:inline-block}

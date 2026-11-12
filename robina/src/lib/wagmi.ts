@@ -59,7 +59,7 @@ function ensureAppKit() {
     name: "Robina",
     description: "Robina wallet authentication and checkout",
     url: window.location.origin,
-    icons: [`${window.location.origin}/basedrop-logo.jpg`],
+    icons: [`${window.location.origin}/rivals-logo.png`],
   },
   featuredWalletIds,
   coinbasePreference: "eoaOnly",

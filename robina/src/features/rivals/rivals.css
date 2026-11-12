@@ -16,6 +16,8 @@
 .rivals-topbar { height: 91px; display: flex; align-items: center; gap: 40px; border-bottom: 1px solid #293347; }
 .rivals-brand { display: flex; gap: 12px; align-items: center; }
 .rivals-crest { display: grid; place-items: center; width: 43px; height: 49px; color: #f7dd98; border: 1px solid #77643c; background: linear-gradient(160deg,#2e2d27,#11151e); clip-path: polygon(50% 0,100% 15%,92% 76%,50% 100%,8% 76%,0 15%); }
+.rivals-brand .rivals-crest { background: #050505 url('/rivals-logo.png') center 8% / 165% auto no-repeat; clip-path: none; border: 0; border-radius: 4px; }
+.rivals-brand .rivals-crest svg { display: none; }
 .rivals-brand strong { display: block; font-size: 29px; font-weight: 900; font-style: italic; letter-spacing: -.06em; line-height: 1; }
 .rivals-brand div > span { display: block; font-size: 8px; letter-spacing: .39em; margin: 7px 0 0 3px; color: #a8b4c9; }
 .rivals-topnav { display: flex; align-self: stretch; align-items: stretch; gap: 32px; margin-left: 25px; }

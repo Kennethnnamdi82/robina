@@ -1864,3 +1864,12 @@
 @media (max-width: 760px) {
   .rh-app.rh-app .rh-command-lobby { min-height: 940px; }
 }
+
+/* Official RIVALS mark, cropped to its emblem for compact navigation. */
+.rh-app .rh-brand .rh-crest {
+  background: #050505 url('/rivals-logo.png') center 8% / 165% auto no-repeat;
+  clip-path: none;
+  border: 0;
+  border-radius: 4px;
+}
+.rh-app .rh-brand .rh-crest svg { display: none; }
