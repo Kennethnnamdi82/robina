@@ -62,7 +62,7 @@ describe('frontend-only game hub',()=>{
       : {items:[],nextBefore:null})));at();
     fireEvent.click(screen.getByRole('link',{name:'BOUNTY & EARN'}));
     expect(await screen.findByRole('heading',{name:'BOUNTY & EARN'})).toBeTruthy();
-    expect(await screen.findByText('NEW CONTRACTS INBOUND')).toBeTruthy();
+    expect(await screen.findByText('NO BOUNTIES YET')).toBeTruthy();
     expect(screen.queryByText('3D deployment')).toBeNull();expect(network).toHaveBeenCalled();
     expect(network.mock.calls.every(([url,init])=>String(url).includes('/api/bounties/')&&(!init?.method||init.method==='GET'))).toBe(true);
     fireEvent.click(screen.getByRole('link',{name:/BACK TO LOBBY/}));expect(screen.getByRole('link',{name:'PLAY'})).toBeTruthy();
