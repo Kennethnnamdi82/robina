@@ -70,6 +70,13 @@ export class MissionEngine {
   }
   fail(reason: string) { if (!this.transition('FAILED')) return false; this.reason = reason; return true; }
   abandon() { if (!this.transition('ABANDONED')) return false; this.reason = 'Insertion abandoned.'; return true; }
+  /** Presentation synchronization; the backend owns these outcomes in live play. */
+  applyAuthority(snapshot: MissionSnapshot, finalized: boolean) {
+    if (snapshot.id !== this.definition.id) throw new Error('Mission configuration mismatch.');
+    this.elapsed = snapshot.elapsed; this.reason = snapshot.reason; this.stats = { ...snapshot.stats };
+    this.completed.clear(); snapshot.objectives.filter(o => o.state === 'COMPLETED').forEach(o => this.completed.add(o.id));
+    this.state = finalized ? snapshot.state : ['SUCCESS', 'FAILED'].includes(snapshot.state) ? 'ACTIVE' : snapshot.state;
+  }
   snapshot(): MissionSnapshot {
     const objectives = this.definition.objectives.map(o => ({ ...o, state: this.completed.has(o.id) ? 'COMPLETED' as const : this.ready(o.id) ? 'ACTIVE' as const : 'LOCKED' as const, remaining: o.seconds && this.activated.has(o.id) ? Math.max(0, o.seconds - (this.elapsed - this.activated.get(o.id)!)) : null }));
     return { runId: this.runId, id: this.definition.id, name: this.definition.name, mode: this.mode, state: this.state, elapsed: this.elapsed,

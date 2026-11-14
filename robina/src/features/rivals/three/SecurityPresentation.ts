@@ -67,6 +67,12 @@ export class SecurityPresentation {
     this.axis.crossVectors(new Vector3(0, 1, 0), this.push).normalize();
     return true;
   }
+  restoreAlive() {
+    this.dead=false;this.deathAge=0;this.hitRemaining=0;this.gaitAction=undefined;
+    this.actor.mixer?.stopAllAction();this.actor.current=undefined;
+    this.fall.position.set(0,0,0);this.fall.rotation.set(0,0,0);this.fall.scale.setScalar(1);
+    this.wrist.add(this.actor.weapon);this.actor.weapon.position.set(0,0,0);this.actor.weapon.rotation.set(0,0,0);this.actor.weapon.visible=true;
+  }
   update(dt: number, speed: number, hurt: number, target: Vector3,tactic = 'patrol',sprinting = false) {
     if (dt <= 0 || !Number.isFinite(dt) || this.dead&&this.deathAge>=10) return;
     this.hitRemaining = Math.max(0, this.hitRemaining - dt);

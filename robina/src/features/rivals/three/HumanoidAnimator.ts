@@ -54,8 +54,14 @@ export class HumanoidAnimator {
     bone('hand_r').add(rightHand); bone('hand_l').add(leftHand);
     // Hand +Y runs along the fingers. Equipment forward is -Z; convert locally,
     // rather than freezing a world-space orientation at attachment time.
-    rightHand.position.set(0, .065, .015); rightHand.rotation.x = Math.PI / 2;
-    leftHand.position.set(0, .065, .015); leftHand.rotation.x = Math.PI / 2;
+    for(const [side,socket]of [['r',rightHand],['l',leftHand]] as const){
+      const knuckle=body.getObjectByName('middle_01_'+side)?.position;
+      // The supplied military rig has +X along its palm, while the Universal
+      // body has +Y. Renaming bones alone must not leave a gun beside the hand.
+      if(knuckle&&Math.abs(knuckle.x)>Math.abs(knuckle.y)*2)socket.position.set(knuckle.x*.62,-.012,knuckle.z*.62);
+      else socket.position.set(0,.065,.015);
+      socket.rotation.x=Math.PI/2;
+    }
     this.sockets = { rightHand, leftHand, chest: bone('spine_03'), rightShoulder: bone('clavicle_r'), leftShoulder: bone('clavicle_l'), head: bone('Head') };
     actor.body = body; actor.torso.add(body); actor.mounted = true;
     this.mixer = new AnimationMixer(body); actor.mixer = this.mixer;

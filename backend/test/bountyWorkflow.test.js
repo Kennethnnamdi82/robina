@@ -21,6 +21,11 @@ const { User } = await import('../src/models/User.js');
 const { RevokedToken } = await import('../src/models/RevokedToken.js');
 const models = await import('../src/bounties/models.js');
 const service = await import('../src/bounties/service.js');
+const { MissionCheckpoint, MissionCombatEvent, MissionLife, MissionSession, VerifiedMissionResult } = await import('../src/missions/models.js');
+const { applyVerifiedCombatEvent } = await import('../src/missions/trustedCombat.js');
+const { saveVerifiedCheckpoint } = await import('../src/missions/trustedCheckpoints.js');
+const { settleVerifiedResult } = await import('../src/missions/trustedResults.js');
+const { scoreVerifiedRun } = await import('../src/missions/score.js');
 let mongo, server, origin, counter = 100000, chain;
 const address = '0x' + '22'.repeat(20);
 const reviewer = 'reviewer@example.com';
@@ -48,9 +53,9 @@ before(async () => {
   const preparedBinary = fileURLToPath(new URL('../.cache/test-mongodb/mongod.exe', import.meta.url));
   mongo = await MongoMemoryReplSet.create({ binary: { version: '7.0.24', ...(process.platform === 'win32' && existsSync(preparedBinary) ? { systemBinary: preparedBinary } : {}) }, replSet: { count: 1, storageEngine: 'wiredTiger' }, instanceOpts: [{ ip: '127.0.0.1' }] });
   await mongoose.connect(mongo.getUri(), { dbName: 'rivals-bounty-isolated-tests' });
-  await User.init(); await RevokedToken.init(); await models.initializeBounties();
+  await User.init(); await RevokedToken.init(); await models.initializeBounties(); await MissionSession.init(); await MissionLife.init(); await MissionCombatEvent.init(); await MissionCheckpoint.init(); await VerifiedMissionResult.init();
   chain = fakeChain();
-  server = createApp(() => true, { bountyChain: chain }).listen(0, '127.0.0.1');
+  server = createApp(() => true, { bountyChain: chain, allowUnverifiedMissions: true }).listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
 }, { timeout: 240000 });
@@ -62,7 +67,7 @@ after(async () => {
 beforeEach(async () => {
   // No delete of financial/audit rows: use a fresh DB per test to exercise append-only guards.
   await mongoose.connection.dropDatabase();
-  await User.createIndexes(); await RevokedToken.createIndexes(); await models.initializeBounties();
+  await User.createIndexes(); await RevokedToken.createIndexes(); await models.initializeBounties(); await MissionSession.createIndexes(); await MissionLife.createIndexes(); await MissionCombatEvent.createIndexes(); await MissionCheckpoint.createIndexes(); await VerifiedMissionResult.createIndexes();
   Object.assign(chain, fakeChain());
 });
 async function player(extra = {}) {
@@ -150,6 +155,127 @@ test('a new player sees an empty campaign list, empty histories and a real zero 
   assert.equal(response.status, 200);
   for (const field of ['availableMicros', 'earnedMicros', 'withdrawnMicros', 'reservedMicros']) assert.equal(response.body[field], '0');
   assert.equal(response.body.pendingSubmissions, 0);
+});
+test('mission sessions are owned, unique while active and cannot submit unverified success', async () => {
+  const a = await player(), b = await player();
+  assert.equal((await api('/api/missions/sessions/current')).status, 401);
+  assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'invented' } })).status, 400);
+  const starts = await Promise.all([0, 1].map(() => api('/api/missions/sessions', {
+    method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reserve' },
+  })));
+  assert.deepEqual(starts.map(row => row.status).sort(), [201, 409]);
+  const id = starts.find(row => row.status === 201).body.session._id;
+  assert.equal((await api('/api/missions/sessions/current', { cookie: cookie(a) })).body.session._id, id);
+  assert.equal((await api(`/api/missions/sessions/${id}/abandon`, { method: 'POST', cookie: cookie(b), body: {} })).status, 409);
+  assert.equal((await api(`/api/missions/sessions/${id}/complete`, { method: 'POST', cookie: cookie(a), body: { kills: 100 } })).status, 404);
+  assert.equal((await api(`/api/missions/sessions/${id}/abandon`, { method: 'POST', cookie: cookie(a), body: {} })).body.session.status, 'abandoned');
+  assert.equal((await api(`/api/missions/sessions/${id}/abandon`, { method: 'POST', cookie: cookie(a), body: {} })).status, 409);
+  assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reactor' } })).status, 201);
+  assert.equal(await MissionSession.countDocuments({ playerId: a._id, status: 'active' }), 1);
+});
+test('mission lease, recovery eligibility and unverified reports fail closed', async () => {
+  const a = await player(), b = await player();
+  let result = await api('/api/missions/eligibility', { cookie: cookie(a) });
+  assert.equal(result.body.eligible, true);
+  result = await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reserve' } });
+  const id = result.body.session._id;
+  assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, false);
+  assert.equal((await api(`/api/missions/sessions/${id}/heartbeat`, { method: 'POST', cookie: cookie(b), body: {} })).status, 409);
+  assert.equal((await api(`/api/missions/sessions/${id}/heartbeat`, { method: 'POST', cookie: cookie(a), body: { health: 100 } })).status, 400);
+  assert.equal((await api(`/api/missions/sessions/${id}/heartbeat`, { method: 'POST', cookie: cookie(a), body: {} })).status, 200);
+  assert.equal((await api(`/api/missions/sessions/${id}/report`, { method: 'POST', cookie: cookie(a), body: { outcome: 'success', kills: 500 } })).status, 400);
+  result = await api(`/api/missions/sessions/${id}/report`, { method: 'POST', cookie: cookie(a), body: { outcome: 'success' } });
+  assert.equal(result.status, 200); assert.equal(result.body.rewardEligible, false); assert.equal(result.body.integrity, 'unverified');
+  assert.equal((await api(`/api/missions/sessions/${id}/report`, { method: 'POST', cookie: cookie(a), body: { outcome: 'success' } })).status, 409);
+  assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, true);
+  result = await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reactor' } });
+  const stale = result.body.session._id;
+  await MissionSession.updateOne({ _id: stale }, { $set: { reconnectDeadline: new Date(Date.now() - 1000) } });
+  assert.equal((await api(`/api/missions/sessions/${stale}/heartbeat`, { method: 'POST', cookie: cookie(a), body: {} })).status, 409);
+  assert.equal((await MissionSession.findById(stale)).status, 'expired');
+  assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, true);
+  await MissionLife.updateOne({ playerId: a._id }, { $set: { recoveryUntil: new Date(Date.now() + 7200000), deaths: 1 } }, { upsert: true });
+  assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reserve' } })).status, 403);
+  assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, false);
+  await MissionLife.updateOne({ playerId: a._id }, { $set: { recoveryUntil: new Date(Date.now() - 1000) } });
+  assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, true);
+});
+test('client reports never appear on the verified leaderboard', async () => {
+  const user = await player(), sessionCookie = cookie(user);
+  assert.equal((await api('/api/missions/leaderboard')).status, 401);
+  const started = await api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reserve' } });
+  const id = started.body.session._id;
+  assert.equal((await api(`/api/missions/sessions/${id}/report`, { method: 'POST', cookie: sessionCookie, body: { outcome: 'success' } })).status, 200);
+  assert.equal((await api('/api/missions/leaderboard', { cookie: sessionCookie })).body.items.length, 0);
+  assert.equal((await api('/api/missions/leaderboard?missionId=invented', { cookie: sessionCookie })).status, 400);
+  assert.equal((await api('/api/missions/leaderboard', { method: 'POST', cookie: sessionCookie, body: { score: 99999 } })).status, 404);
+  assert.equal(await VerifiedMissionResult.countDocuments(), 0);
+});
+test('trusted combat ledger heals once, records death once and enforces server cooldown', async () => {
+  const user = await player(), sessionCookie = cookie(user);
+  const started = await api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reserve' } });
+  const id = started.body.session._id;
+  assert.equal(started.body.session.health, 100);
+  assert.equal((await applyVerifiedCombatEvent(id, { id: 'guard:1', kind: 'damage', amount: 70 })).health, 30);
+  assert.equal((await applyVerifiedCombatEvent(id, { id: 'med:1', kind: 'firstAid', amount: 25 })).health, 55);
+  assert.equal((await applyVerifiedCombatEvent(id, { id: 'med:1', kind: 'firstAid', amount: 25 })).applied, false);
+  assert.equal((await MissionSession.findById(id)).health, 55);
+  const concurrent = await Promise.all([0, 1].map(() => applyVerifiedCombatEvent(id, { id: 'guard:concurrent', kind: 'damage', amount: 5 })));
+  assert.deepEqual(concurrent.map(row => row.applied).sort(), [false, true]);
+  assert.equal((await MissionSession.findById(id)).health, 50);
+  await assert.rejects(applyVerifiedCombatEvent(id, { id: 'med:2', kind: 'firstAid', amount: 50 }), /invalid_trusted_combat_event/);
+  const death = await applyVerifiedCombatEvent(id, { id: 'guard:2', kind: 'damage', amount: 60 });
+  assert.deepEqual({ status: death.status, health: death.health }, { status: 'failed', health: 0 });
+  assert.equal((await applyVerifiedCombatEvent(id, { id: 'guard:2', kind: 'damage', amount: 60 })).applied, false);
+  assert.equal((await MissionLife.findOne({ playerId: user._id })).deaths, 1);
+  const eligibility = await api('/api/missions/eligibility', { cookie: sessionCookie });
+  assert.equal(eligibility.body.eligible, false);
+  const remaining = new Date(eligibility.body.recoveryUntil).getTime() - new Date(eligibility.body.serverTime).getTime();
+  assert.ok(remaining > 7_190_000 && remaining <= 7_200_000);
+  assert.equal((await api(`/api/missions/sessions/${id}/abandon`, { method: 'POST', cookie: sessionCookie, body: {} })).status, 409);
+  assert.equal((await api(`/api/missions/sessions/${id}/report`, { method: 'POST', cookie: sessionCookie, body: { outcome: 'success' } })).status, 409);
+  assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reactor' } })).status, 403);
+  assert.equal(await VerifiedMissionResult.countDocuments(), 0);
+});
+test('trusted checkpoints retain server health and reject duplicate or rolled-back progress', async () => {
+  const user = await player(), sessionCookie = cookie(user);
+  const started = await api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reserve' } });
+  const id = started.body.session._id;
+  await applyVerifiedCombatEvent(id, { id: 'guard:checkpoint', kind: 'damage', amount: 30 });
+  const snapshot = { ordinal: 1, checkpointId: 'site-entered', completedObjectives: ['locate'],
+    loadout: [{ slot: 'primary', weaponId: 'rifle', magazine: 18, reserve: 72 }],
+    defeatedEnemies: [], consumedPickups: [], stats: { enemiesDefeated: 0, shotsFired: 3, successfulHits: 1 } };
+  const checkpoint = await saveVerifiedCheckpoint(id, snapshot);
+  assert.equal(checkpoint.health, 70);
+  assert.equal(checkpoint.configVersion, started.body.session.configVersion);
+  assert.equal((await MissionCheckpoint.findOne({ sessionId: id })).health, 70);
+  await assert.rejects(saveVerifiedCheckpoint(id, snapshot), /checkpoint_out_of_order/);
+  await assert.rejects(saveVerifiedCheckpoint(id, { ...snapshot, ordinal: 2, completedObjectives: [] }), /checkpoint_out_of_order/);
+  const next = await saveVerifiedCheckpoint(id, { ...snapshot, ordinal: 2, checkpointId: 'task-0', completedObjectives: ['locate', 'task-0'] });
+  assert.equal(next.ordinal, 2);
+  assert.equal((await api(`/api/missions/sessions/${id}/checkpoint`, { method: 'POST', cookie: sessionCookie, body: snapshot })).status, 404);
+});
+test('trusted results score once and only first verified completion is reward eligible', async () => {
+  const user = await player(), sessionCookie = cookie(user);
+  const metrics = { enemiesDefeated: 3, expectedEnemies: 3, shotsFired: 10, successfulHits: 7, optionalCompleted: 0, optionalTotal: 0 };
+  assert.equal(scoreVerifiedRun({ ...metrics, durationSeconds: 300, remainingHealth: 100, maxHealth: 100 }), 9550);
+  assert.throws(() => scoreVerifiedRun({ ...metrics, durationSeconds: 300, remainingHealth: 100, maxHealth: 100, successfulHits: 11 }), /invalid_verified_stats/);
+  const start = () => api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reserve' } });
+  const first = (await start()).body.session._id;
+  const proof = { outcome: 'success', objectivesSatisfied: true, metrics };
+  const result = await settleVerifiedResult(first, proof);
+  assert.equal(result.firstCompletion, true); assert.equal(result.rewardEligible, true);
+  const ownResults = await api('/api/missions/results', { cookie: sessionCookie });
+  assert.equal(ownResults.status, 200); assert.equal(ownResults.body.items.length, 1);
+  assert.equal((await api('/api/missions/results', { cookie: cookie(await player()) })).body.items.length, 0);
+  assert.equal(String((await settleVerifiedResult(first, proof))._id), String(result._id));
+  assert.equal((await MissionSession.findById(first)).status, 'verified_success');
+  assert.equal((await api(`/api/missions/sessions/${first}/report`, { method: 'POST', cookie: sessionCookie, body: { outcome: 'failure' } })).status, 409);
+  const replay = (await start()).body.session._id;
+  const replayResult = await settleVerifiedResult(replay, proof);
+  assert.equal(replayResult.firstCompletion, false); assert.equal(replayResult.rewardEligible, false);
+  assert.equal(await VerifiedMissionResult.countDocuments({ playerId: user._id, firstCompletion: true }), 1);
+  assert.equal((await api('/api/missions/leaderboard', { cookie: sessionCookie })).body.items.length, 2);
 });
 test('authorization, revoked admin cookies, CSRF, strict validation and private histories', async () => {
   const a = await player(), b = await player();

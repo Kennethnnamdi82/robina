@@ -3,10 +3,15 @@ import { env } from './config/env.js';
 import { connectMongo } from './db/mongo.js';
 import { createApp } from './app.js';
 import { initializeBounties } from './bounties/models.js';
+import { LiveMissionAuthority } from './missions/liveAuthority.js';
+import { MissionRecoveryEntitlement, MissionCheckpoint, MissionCombatEvent, MissionLife, MissionSession, VerifiedMissionResult } from './missions/models.js';
 
 let server;
 let stopping = false;
-const app = createApp(() => !stopping && mongoose.connection.readyState === 1);
+const missionAuthority = new LiveMissionAuthority({ origins: env.corsOrigins,
+  maxSessions: process.env.MISSION_MAX_ACTIVE_SESSIONS || 4,
+  publicOrigin: process.env.MISSION_SOCKET_ORIGIN || process.env.RENDER_EXTERNAL_URL || '' });
+const app = createApp(() => !stopping && mongoose.connection.readyState === 1, { missionAuthority });
 
 async function shutdown(signal, exitCode = 0) {
   if (stopping) return;
@@ -15,8 +20,9 @@ async function shutdown(signal, exitCode = 0) {
   const deadline = setTimeout(() => process.exit(1), 15000);
   deadline.unref();
   try {
+    await missionAuthority.close();
     await Promise.all([
-      server ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve())) : Promise.resolve(),
+      server?.listening ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve())) : Promise.resolve(),
     ]);
     await mongoose.disconnect();
     clearTimeout(deadline);
@@ -32,7 +38,14 @@ process.once('SIGINT', () => void shutdown('SIGINT'));
 async function start() {
   await connectMongo();
   await initializeBounties();
+  await MissionSession.init();
+  await MissionLife.init();
+  await MissionCombatEvent.init();
+  await MissionCheckpoint.init();
+  await MissionRecoveryEntitlement.init();
+  await VerifiedMissionResult.init();
   server = app.listen(env.port, () => console.log('[backend] port=' + env.port));
+  missionAuthority.attach(server);
   // Bound idle/request sockets and leave slow external services to their own deadlines.
   server.requestTimeout = 15000;
   server.headersTimeout = 10000;

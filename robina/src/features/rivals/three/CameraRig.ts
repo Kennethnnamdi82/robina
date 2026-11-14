@@ -16,7 +16,7 @@ export class CameraRig {
     try { const p = JSON.parse(localStorage.getItem(ZOOM_KEY) ?? '{}'); for (const key of POVS) if (Number.isFinite(p[key])) this.zoom[key] = MathUtils.clamp(p[key],.7,1.4); } catch { /* Local preference may be unavailable. */ }
   }
   get camera(): Camera { return this.pov === 'tactical' || this.pov === 'side' ? this.orthographic : this.perspective; }
-  setPOV(pov: POV) { if (!POVS.includes(pov) || pov === this.pov) return; this.pov = pov; this.ads = false; this.switched = true; this.displayZoom = this.zoom[pov]; this.pitch = pov === 'third' ? -.24 : -.08; }
+  setPOV(pov: POV) { if (!POVS.includes(pov) || pov === this.pov) return; this.pov = pov; this.ads = false; this.switched = true; this.displayZoom = this.zoom[pov]; this.pitch = pov === 'third' ? -.09 : -.08; }
   setZoom(value: number) {
     if (!Number.isFinite(value)) return; this.zoom[this.pov] = MathUtils.clamp(value,.7,1.4);
     try { localStorage.setItem(ZOOM_KEY,JSON.stringify(this.zoom)); } catch { /* Session preference still works. */ }
@@ -50,8 +50,8 @@ export class CameraRig {
     } else {
       this.direction.set(-Math.sin(this.yaw) * Math.cos(this.pitch),Math.sin(this.pitch),-Math.cos(this.yaw) * Math.cos(this.pitch));
       if (this.pov === 'first') this.desired.copy(this.focus);
-      else this.desired.copy(this.focus).addScaledVector(this.direction,-(this.ads ? 2.1 : 4.2) / zoom).add(new Vector3(Math.cos(this.yaw) * .35,.65,-Math.sin(this.yaw) * .35));
-      this.perspective.fov = this.pov === 'first' ? MathUtils.clamp(72 / zoom * (this.ads ? .72 : 1),42,90) : 62;
+      else this.desired.copy(this.focus).addScaledVector(this.direction,-(this.ads ? 1.85 : 3.05) / zoom).add(new Vector3(Math.cos(this.yaw) * .48,.48,-Math.sin(this.yaw) * .48));
+      this.perspective.fov = this.pov === 'first' ? MathUtils.clamp(72 / zoom * (this.ads ? .72 : 1),42,90) : this.ads?49:57;
       this.perspective.updateProjectionMatrix();
     }
     // Tactical uses roofless high framing; every low-angle camera tests full 3D solids.

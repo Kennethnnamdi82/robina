@@ -75,6 +75,7 @@ export async function web3Middleware(req, res, next) {
       );
     }
     if(req.method==='GET'&&req.path==='/me'&&Date.now()-(decoded.iat??0)*1000>=24*60*60*1000)setSessionCookie(res,signSession(req.wallet,decoded.sv,decoded));
+    req.authSession = { jti: decoded.jti ?? null, sv: decoded.sv ?? 0 };
     next();
   } catch {
     res.status(401).json({ error: "invalid_token" });

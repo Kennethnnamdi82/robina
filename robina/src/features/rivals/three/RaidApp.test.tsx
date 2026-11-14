@@ -4,6 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SandboxSession } from './SandboxSession';
 import { preloadRaidAssets } from './RaidAssets';
 import { defaultHubPreferences } from '../hub/model';
+import {createAssignmentOperation} from './Operations';
+import {missionsApi} from '@/services/missions';
+import {MissionAuthorityClient} from '@/services/missionAuthority';
+import {createPlayerEconomy} from '../progression/PlayerEconomy';
 
 const runtime = vi.hoisted(() => ({ created: 0, disposed: 0, session: undefined as SandboxSession | undefined, pov: '' }));
 vi.mock('./RaidAssets', () => ({ preloadRaidAssets: vi.fn() }));
@@ -19,6 +23,25 @@ import RaidApp from './RaidApp';
 
 afterEach(async () => { cleanup(); await act(async () => {}); vi.restoreAllMocks(); runtime.created = runtime.disposed = 0; });
 describe('production 3D entry lifecycle', () => {
+  it('loads the persisted recovery deadline again when reopening the briefing',async()=>{
+    vi.spyOn(missionsApi,'eligibility').mockResolvedValue({eligible:false,recoveryUntil:new Date(Date.now()+7200000).toISOString(),activeSession:null,serverTime:new Date().toISOString()});
+    render(<RaidApp operation={createAssignmentOperation(0,42)} renderWelcome={({enter})=><button onClick={enter}>DEPLOY HEIST</button>}/>);
+    expect(await screen.findByText(/OPERATIVE RECOVERING/)).toBeTruthy();
+    expect(runtime.created).toBe(0);
+  });
+  it('records an assignment outcome only after server verification and never mints browser rewards',async()=>{
+    vi.spyOn(SandboxSession.prototype,'startAudio').mockImplementation(()=>{});
+    const operation=createAssignmentOperation(0,42),economy=createPlayerEconomy(null),onResult=vi.fn();
+    vi.spyOn(missionsApi,'eligibility').mockResolvedValue({eligible:true,recoveryUntil:null,activeSession:null,serverTime:new Date().toISOString()});
+    vi.spyOn(missionsApi,'start').mockResolvedValue({session:{_id:'0123456789abcdef01234567',missionId:operation.mission.id,seed:operation.seed,authority:true,status:'active',integrity:'unverified',reconnectDeadline:new Date(Date.now()+300000).toISOString()}});
+    vi.spyOn(MissionAuthorityClient.prototype,'connect').mockResolvedValue();
+    render(<RaidApp operation={operation} economy={economy} onResult={onResult}/>);
+    await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'ENTER 3D RAID'}));});
+    await act(async()=>{const session=runtime.session!;session.mission.start();session.mission.step(180);for(const objective of session.mission.definition.objectives)session.mission.event(objective.event);session.publishMission();});
+    expect(onResult).not.toHaveBeenCalled();expect(economy.getSnapshot().coins).toBe(0);
+    await act(async()=>{runtime.session!.authority!.result={_id:'verified',outcome:'success',score:9000,durationSeconds:180,firstCompletion:true,rewardEligible:true,verifiedAt:new Date().toISOString()};runtime.session!.publishMission();});
+    expect(onResult).toHaveBeenCalledTimes(1);expect(economy.getSnapshot().coins).toBe(0);
+  });
   it('starts without a development flag and keeps normal route links', () => {
     render(<RaidApp />);
     expect(screen.getByRole('button', { name: 'ENTER 3D RAID' })).toBeTruthy();

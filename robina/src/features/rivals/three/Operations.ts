@@ -51,7 +51,7 @@ export function createOperation(seed=(salt+sequence++)>>>0,ordinal=1):Operation3
   // Heights and facade variants differ by seed, but do not affect routes.
   // Cache only an exact navigation-layout key, not a seed or a venue guess.
   const routeKey=JSON.stringify([walls,level.spawn,level.props,level.objects]);
-  if(!validatedRoutes.has(routeKey)){if(!reachable())throw new Error('Operation generation failed its route validation.');validatedRoutes.add(routeKey);}
+  if(!validatedRoutes.has(routeKey)){if(!reachable())throw new Error('Operation generation failed its route validation.');if(validatedRoutes.size>=32)validatedRoutes.clear();validatedRoutes.add(routeKey);}
   const mission=launchMission();mission.id=level.id;mission.name=`OP ${String(ordinal).padStart(2,'0')} / ${profile.name}`;mission.description=`Infiltrate ${profile.building.toLowerCase()}, recover the ${profile.core} and reach the marked extraction.`;
   mission.objectives=mission.objectives.map(o=>{const object=objects.find(p=>p.id===o.event);return {...o,marker:object?{x:object.x,y:object.y}:o.marker,title:o.id==='infiltrate'?'Enter Riverside Square':o.id==='core'?`Recover the ${profile.core}`:o.id==='vault'?`Breach the ${profile.name} vault`:o.id==='extract'?'Reach the marked extraction and interact':o.title};});
   const fingerprint=walls.map(r=>r.join('')).join('/')+`:${vault.x},${vault.y}:${extract.x}:${city.signature}`;

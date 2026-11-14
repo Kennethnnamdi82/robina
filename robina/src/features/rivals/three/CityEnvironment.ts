@@ -10,6 +10,7 @@ import { CityTrees } from './CityTrees';
 import { CityGrounding } from './CityGrounding';
 import {CityRoadDetail} from './CityRoadDetail';
 import {campaignDistrict,cityParkPatches} from './CampaignDistrict';
+import {applyRealismSurface} from './RealismMaterials';
 
 type Placement={x:number;z:number;y?:number;yaw?:number;width?:number;height?:number;depth?:number;scale?:number};
 /** The outdoor district shares its building plan with operation navigation.
@@ -34,11 +35,15 @@ export class CityEnvironment {
     this.grounding=new CityGrounding(this.plan.buildings);this.root.add(this.grounding.root);
     const profile=campaignDistrict(seed);
     const concrete=this.material(profile.paving),curb=this.material(0xb9b2a0),asphalt=this.material(profile.road),paint=this.material(0xd5cfae),yellow=this.material(profile.accent),soil=this.material(0x4c5b3a),metal=this.material(0x39474b,.55);
-    this.surface(asphalt,assets.texture('premium-asphalt'),62.5);asphalt.roughness=.94;asphalt.bumpMap=asphalt.map;asphalt.bumpScale=.009;
+    const roadMaps=assets.surfaces.get('asphalt'),pavingMaps=assets.surfaces.get('paving');
+    if(roadMaps){applyRealismSurface(asphalt,roadMaps,125,this.textures,.18);asphalt.color.set(0xb3b3b0);asphalt.envMapIntensity=.45;asphalt.customProgramCacheKey=()=>'rivals-dry-asphalt';asphalt.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=max(.78,roughnessFactor);');};}
+    else{this.surface(asphalt,assets.texture('premium-asphalt'),62.5);asphalt.color.set(0xffffff);}
     this.roadDetail=new CityRoadDetail(seed);this.root.add(this.roadDetail.root);
     // A continuous asphalt sheet prevents road seams and overlapping tile strips.
     this.cube({x:44,z:44,y:-.28,width:250,height:.26,depth:250},asphalt);
-    concrete.map=this.pavingTexture();concrete.bumpMap=concrete.map;concrete.bumpScale=.012;paint.color.set(0xbeb9aa);
+    if(pavingMaps)applyRealismSurface(concrete,pavingMaps,11,this.textures,.6);
+    else{concrete.map=this.pavingTexture();concrete.bumpMap=concrete.map;concrete.bumpScale=.012;}
+    paint.color.set(0xc9c5b6);paint.roughness=.9;yellow.color.set(0xc7a658);yellow.roughness=.9;
     for(let row=-2;row<6;row++)for(let col=-2;col<6;col++) {
       const x=20+col*24,z=20+row*24;
       if(x===profile.site.x&&z===profile.site.z)continue;
@@ -48,7 +53,7 @@ export class CityEnvironment {
     this.roadPaint(paint,yellow);
     // One permanent mesh per building. Distance/POV never replaces a facade
     // with a different silhouette; curation keeps these models inexpensive.
-    for(const model of ['residence','commerce','headquarters'] as const)this.batch(model,this.plan.buildings.filter(b=>b.model===model).map(b=>({...buildingPlacement(b),y:.045})),this.root);
+    this.plan.buildings.forEach((b,index)=>this.batch(b.model,[{...buildingPlacement(b),y:.045}],this.root,false,false,assets.facade(index,b.height)));
     // Medium/Low shadows use inset building massing, not every window rim.
     // Colour/depth writes are off in the main pass; shadow depth still writes.
     const shadowMaterial=new T.MeshBasicMaterial({colorWrite:false,depthWrite:false});this.materials.add(shadowMaterial);
@@ -58,6 +63,7 @@ export class CityEnvironment {
     const skyline:Placement[]=[];
     for(let i=-2;i<=5;i++)for(const side of [0,1]){const height=profile.heights[0]+((i+2)%3)*(profile.heights[1]-profile.heights[0])*.45;skyline.push({x:20+i*24,z:side?140:-28,width:15,depth:12,height,yaw:Math.PI});skyline.push({x:side?180:-28,z:20+i*24,width:15,depth:12,height});}
     this.batch(profile.style==='garden'?'residence':profile.style==='financial'||profile.style==='corporate'?'headquarters':'commerce',skyline,this.root,false,true);
+    const distant=assets.showcase.get('showcase-skyline');if(distant){const clone=distant.clone(true);clone.position.set(44,0,44);clone.scale.set(1.65,1.15,1.65);clone.traverse(n=>{if(n instanceof T.Mesh){n.castShadow=false;n.receiveShadow=true;}});this.root.add(clone);}
     const random=cityRandom(seed),trees:Placement[]=[],tallTrees:Placement[]=[],planters:Placement[]=[],lamps:Placement[]=[],bins:Placement[]=[],hydrants:Placement[]=[];
     for(let row=-1;row<4;row++)for(let col=-1;col<4;col++) {
       const x=20+col*24,z=20+row*24;
@@ -67,7 +73,12 @@ export class CityEnvironment {
       }
       lamps.push({x:x-6.7,z:z-6.7,height:5.2,width:1.0,depth:1.0,yaw:Math.PI/2});bins.push({x:x+6.5,z:z+5.2,height:.8,width:.5,depth:.5});hydrants.push({x:x-5.8,z:z+6.6,height:.7,width:.35,depth:.35});
     }
-    this.trees=new CityTrees([...trees,...tallTrees],assets.texture('city-oak')!);this.root.add(this.trees.root);this.batch('planter',planters,this.root);this.batch('streetLamp',lamps,this.root,true);this.batch('bin',bins,this.detail,true);this.batch('hydrant',hydrants,this.detail,true);
+    const oakTrees=[...trees,...tallTrees].filter((_,i)=>i%4!==0||!assets.showcase.has('palm-0'));
+    this.trees=new CityTrees(oakTrees,assets.texture('city-oak')!);this.root.add(this.trees.root);this.batch('planter',planters,this.root);this.batch('streetLamp',lamps,this.root,true);this.batch('bin',bins,this.detail,true);this.batch('hydrant',hydrants,this.detail,true);
+    // Curate palms/seating onto the existing grid; never overlay the pack's
+    // incompatible demonstration roads, bank shell or reference traffic.
+    [...trees,...tallTrees].filter((_,i)=>i%4===0).forEach((p,i)=>this.batch('planter',[{x:p.x,z:p.z,height:7.5,width:4.2,depth:4.2}],this.root,false,false,assets.showcase.get('palm-'+i%10)));
+    cityParkPatches(seed).forEach((p,i)=>this.batch('planter',[{x:p.x-1,z:p.z+1,height:1.35,width:3.6,depth:3.8}],this.detail,false,false,assets.showcase.get('cafe-'+i%4)));
     this.grassPatches(grassAlpha,soil);this.streetFurniture(metal);this.trafficSignals(metal);this.missionProps();this.shopfronts();
     // The old exit barricades are gone: all four east avenues cross the canal
     // into a walkable/drivable waterfront with real hotel and bar facades
@@ -132,11 +143,11 @@ export class CityEnvironment {
   private surfaceNormal(material:T.MeshStandardMaterial,source:T.Texture|undefined,repeat:number){if(!source)return;const t=source.clone();t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(repeat,repeat);t.needsUpdate=true;this.textures.add(t);material.normalMap=t;material.normalScale.set(.45,.45);}
   private pavingTexture(){const canvas=document.createElement('canvas');canvas.width=canvas.height=512;const c=canvas.getContext('2d')!;c.fillStyle='#b9b5aa';c.fillRect(0,0,512,512);const r=cityRandom(41);for(let y=0;y<8;y++)for(let x=0;x<8;x++){const shade=158+Math.floor(r()*25);c.fillStyle=`rgb(${shade+10},${shade+7},${shade})`;c.fillRect(x*64+1,y*64+1,62,62);}const t=new T.CanvasTexture(canvas);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(5,5);this.textures.add(t);return t;}
   private asphaltTexture(){const canvas=document.createElement('canvas');canvas.width=canvas.height=512;const c=canvas.getContext('2d')!,pixels=c.createImageData(512,512),random=cityRandom(849);for(let i=0;i<pixels.data.length;i+=4){const shade=81+random()*25;pixels.data[i]=shade;pixels.data[i+1]=shade+1;pixels.data[i+2]=shade+2;pixels.data[i+3]=255;}c.putImageData(pixels,0,0);for(let i=0;i<9;i++){let x=random()*512,y=random()*512;c.beginPath();c.moveTo(x,y);for(let j=0;j<8;j++){x+=(random()-.45)*35;y+=random()*24;c.lineTo(x,y);}c.strokeStyle='rgba(35,37,36,.6)';c.lineWidth=.7;c.stroke();}const t=new T.CanvasTexture(canvas);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(48,48);t.anisotropy=2;this.textures.add(t);return t;}
-  private batch(id:CityModel|CityDetail,placements:Placement[],parent:T.Group,detail=false,skyline=false){
+  private batch(id:CityModel|CityDetail,placements:Placement[],parent:T.Group,detail=false,skyline=false,override?:T.Group){
     if(!placements.length)return;
     const detailedArchitecture=!skyline&&!detail&&['residence','commerce','headquarters'].includes(id);
-    if(detailedArchitecture&&placements.length>1){for(const placement of placements)this.batch(id,[placement],parent);return;}
-    const prototype=(detail?this.assets.details.get(id as CityDetail):(skyline?this.assets.skyline:this.assets.models).get(id as CityModel))!;prototype.updateMatrixWorld(true);
+    if(detailedArchitecture&&placements.length>1){for(const placement of placements)this.batch(id,[placement],parent,detail,skyline,override);return;}
+    const prototype=override??(detail?this.assets.details.get(id as CityDetail):(skyline?this.assets.skyline:this.assets.models).get(id as CityModel))!;prototype.updateMatrixWorld(true);
     const bounds=new T.Box3().setFromObject(prototype),size=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3()),offset=new T.Matrix4().makeTranslation(-center.x,-bounds.min.y,-center.z),transform=new T.Matrix4();
     prototype.traverse(node=>{if(!(node instanceof T.Mesh))return;const mesh=new T.InstancedMesh(node.geometry,node.material,placements.length);if(['residence','commerce','headquarters'].includes(id))this.architecture.push(mesh);
       placements.forEach((p,i)=>{this.dummy.position.set(p.x,p.y??.045,p.z);this.dummy.rotation.set(0,p.yaw??0,0);this.dummy.scale.set(p.width?p.width/size.x:p.scale??1,p.height?p.height/size.y:p.scale??1,p.depth?p.depth/size.z:p.scale??1);this.dummy.updateMatrix();transform.copy(this.dummy.matrix).multiply(offset).multiply(node.matrixWorld);mesh.setMatrixAt(i,transform);});mesh.computeBoundingSphere();mesh.userData.citySkyline=skyline;mesh.castShadow=['residence','commerce','headquarters'].includes(id)?this.quality==='high'&&!skyline:true;mesh.receiveShadow=true;parent.add(mesh);
@@ -212,17 +223,19 @@ export class CityEnvironment {
     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=64;const c=canvas.getContext('2d')!;c.fillStyle=background;c.fillRect(0,0,512,64);c.fillStyle=color;c.fillRect(8,7,3,50);c.textAlign='center';c.textBaseline='middle';c.font='600 25px sans-serif';c.fillText(text,263,34,470);
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;this.textures.add(texture);const material=new T.MeshStandardMaterial({map:texture,emissiveMap:texture,emissive:0xffffff,emissiveIntensity:.32,roughness:.7});this.materials.add(material);const geometry=new T.PlaneGeometry(w,h);this.geometries.add(geometry);const mesh=new T.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.rotation.y=yaw;this.root.add(mesh);
   }
-  setQuality(quality:QualityId){this.quality=quality;this.trees.setQuality(quality);const mobile=navigator.maxTouchPoints>0;this.architectureShadows.visible=quality!=='high'||mobile;for(const mesh of this.architecture)mesh.castShadow=quality==='high'&&!mobile&&!mesh.userData.citySkyline;this.assets.setQuality(quality);this.crowd.setQuality(quality);this.detail.visible=quality!=='low';this.traffic.active=quality==='low'?18:quality==='balanced'?24:28;this.crowd.active=quality==='low'?24:quality==='balanced'?36:48;if(this.grass)this.grass.count=quality==='low'?135:quality==='balanced'?324:540;}
+  setQuality(quality:QualityId){this.quality=quality;this.trees.setQuality(quality);this.architectureShadows.visible=quality!=='high';for(const mesh of this.architecture)mesh.castShadow=quality==='high'&&!mesh.userData.citySkyline;this.assets.setQuality(quality);this.crowd.setQuality(quality);this.detail.visible=quality!=='low';this.traffic.active=quality==='low'?18:quality==='balanced'?24:28;this.crowd.active=quality==='low'?24:quality==='balanced'?36:48;if(this.grass)this.grass.count=quality==='low'?135:quality==='balanced'?324:540;}
   setLighting(lighting:CityWeather){this.lighting=lighting;const night=lighting==='night';this.night.value=night?1:0;this.nightLights.forEach(l=>l.visible=night);this.lamps.forEach(m=>m.emissiveIntensity=night?3.2:.65);this.windowMaterials.forEach(m=>m.emissiveIntensity=night?.8:.15);}
   threat(point:CityPoint){this.crowd.threat(point,this.lastTime);}
+  serverTraffic=false;
   update(time:number,_pov:POV,reduced:boolean,player=new T.Vector3(7.2,0,7.2),shots=0,actors:readonly CityPoint[]=[],camera?:T.Camera,alpha=1){
+    if(this.serverTraffic)this.traffic.active=28;
     let delta=Math.min(.2,Math.max(0,time-this.lastTime));this.nightClock+=delta;this.lastTime=time;this.wind.value=reduced?0:time;
     if(shots!==this.shots){this.threat(player);this.shots=shots;}
     const obstacles:CityPoint[]=[player,...actors,...this.solids.filter(s=>s.enabled&&s.kind==='cover'&&!s.id.startsWith('city-traffic')).map(s=>({x:(s.box.min.x+s.box.max.x)/2,z:(s.box.min.z+s.box.max.z)/2}))];
     const pedestrianObstacles=this.pedestrianObstacles;
-    while(delta>0){const dt=Math.min(delta,1/30);this.traffic.simulation.step(dt,[...obstacles,...this.crowd.people.slice(0,this.crowd.active)],this.traffic.active);this.crowd.step(dt,this.traffic.simulation.time,this.traffic.simulation.cars.slice(0,this.traffic.active),player,pedestrianObstacles);delta-=dt;}
+    while(delta>0){const dt=Math.min(delta,1/30);if(!this.serverTraffic)this.traffic.simulation.step(dt,[...obstacles,...this.crowd.people.slice(0,this.crowd.active)],this.traffic.active);this.crowd.step(dt,this.traffic.simulation.time,this.traffic.simulation.cars.slice(0,this.traffic.active),player,pedestrianObstacles);delta-=dt;}
     const signal=trafficPhase(this.traffic.simulation.time);this.signalLenses.forEach(l=>{const active=signal[l.axis]===l.color;l.material.emissiveIntensity=active?2.2:.025;l.material.color.setScalar(active?1:.13).multiply(new T.Color(l.color==='red'?0xe83f30:l.color==='amber'?0xf2bb39:0x56d59a));});
-    this.traffic.draw(player,this.lighting==='night',camera,alpha);this.crowd.draw(time,camera);this.trees.update(this.wind.value);this.grounding.update(this.traffic.simulation.cars.slice(0,this.traffic.active),this.crowd.people.slice(0,this.crowd.active));
+    this.traffic.draw(player,this.lighting==='night',camera,alpha);this.crowd.draw(time,camera);this.trees.update(this.wind.value);this.grounding.update(this.traffic.simulation.cars.slice(0,this.traffic.active),[player,...this.crowd.people.slice(0,this.crowd.active)]);
     if(this.lighting==='night'&&this.nightClock>.35){this.nightClock=0;this.lampPositions.sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));this.nightLights.forEach((l,i)=>l.position.set(this.lampPositions[i].x,4.8,this.lampPositions[i].z));}
   }
   private architectureHash(){if(this.architectureFingerprint)return this.architectureFingerprint;let hash=2166136261;for(const mesh of this.architecture){for(const value of mesh.instanceMatrix.array){hash=Math.imul(hash^Math.round(value*10000),16777619);}hash=Math.imul(hash^mesh.geometry.getAttribute('position').count,16777619);}return this.architectureFingerprint=(hash>>>0).toString(16);}

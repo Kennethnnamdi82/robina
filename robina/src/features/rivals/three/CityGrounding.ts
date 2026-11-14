@@ -7,8 +7,8 @@ export class CityGrounding {
  constructor(buildings:readonly {x:number;z:number;width:number;depth:number}[]){
   const canvas=document.createElement('canvas');canvas.width=canvas.height=64;const c=canvas.getContext('2d')!,pixels=c.createImageData(64,64);
   for(let z=0;z<64;z++)for(let x=0;x<64;x++){const i=(z*64+x)*4,d=Math.max(Math.abs(x-31.5),Math.abs(z-31.5))/31.5;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=18;pixels.data[i+3]=Math.round((1-T.MathUtils.smoothstep(d,.45,1))*150);}
-  c.putImageData(pixels,0,0);this.texture=new T.CanvasTexture(canvas);this.material=new T.MeshBasicMaterial({map:this.texture,transparent:true,depthWrite:false,opacity:.63,polygonOffset:true,polygonOffsetFactor:-2});
-  this.buildings=new T.InstancedMesh(this.geometry,this.material,buildings.length);this.cars=new T.InstancedMesh(this.geometry,this.material,28);this.people=new T.InstancedMesh(this.geometry,this.material,48);
+  c.putImageData(pixels,0,0);this.texture=new T.CanvasTexture(canvas);this.material=new T.MeshBasicMaterial({map:this.texture,transparent:true,depthWrite:false,opacity:.32,polygonOffset:true,polygonOffsetFactor:-2});
+  this.buildings=new T.InstancedMesh(this.geometry,this.material,buildings.length);this.cars=new T.InstancedMesh(this.geometry,this.material,28);this.people=new T.InstancedMesh(this.geometry,this.material,50);
   this.root.add(this.buildings,this.cars,this.people);for(const mesh of [this.buildings,this.cars,this.people])mesh.frustumCulled=false;
   buildings.forEach((b,i)=>this.place(this.buildings,i,b.x,b.z,b.width+3,b.depth+3,0,.069));
  }

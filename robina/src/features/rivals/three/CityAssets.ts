@@ -4,22 +4,31 @@ import type {QualityId} from '../core/presentation';
 import {cityArchitecture} from './CityArchitecture';
 import {installCityAtlas} from './CityAtlas';
 import {loadAssetBytes} from './AssetBytes';
+import {loadRealismSurfaces,finishShowcaseMaterial,REALISM_ROOT,type SurfaceFamily,type SurfaceMaps} from './RealismMaterials';
+import {facadeAtHeight} from './ShowcaseArchitecture';
 export const CITY_MODELS=['residence','commerce','headquarters','street','sidewalk','planter','drain','ac','bollard','wall','window','computer','access','vent','rail','barrel','crate','platform'] as const;
 export type CityModel=typeof CITY_MODELS[number];
 export const CITY_DETAILS={sedan:'Car_1_1',coupe:'Car_2_2',taxi:'Taxi',police:'Police',van:'Truck_1',lorry:'Main_Truck_1',tanker:'Gas_Truck',bus:'Bus_1',tree:'Tree_1',treeTall:'Tree_2',busStop:'Bus_Stop',hydrant:'Hydrant',newsstand:'Newspaper_Stand',bin:'Trash_Small',dumpster:'Trash_Big',cone:'Cone',streetLamp:'Light',skylineHome:'Building_3',skylineShop:'Building_8',skylineTower:'Building_9',roadBarrier:'Road_Barrier'} as const;
 export type CityDetail=keyof typeof CITY_DETAILS;
-export const CITY_BINARY_URLS=['/assets/rivals/city/optimized/city-blocks.glb?v=fast-city-1','/assets/rivals/city/living-city.glb','/assets/rivals/city/optimized/street-car.glb?v=full-silhouette-2','/assets/rivals/city/premium/delivery-truck.glb'] as const;
+export const CITY_BINARY_URLS=['/assets/rivals/city/optimized/city-blocks.glb?v=fast-city-1','/assets/rivals/city/living-city.glb','/assets/rivals/city/premium/street-car.glb','/assets/rivals/city/premium/delivery-truck.glb',REALISM_ROOT+'urban-showcase.glb?v=urban-1'] as const;
 /** Offline-batched architecture and vehicles; no geometry merges on entry. */
 export class CityAssets {
  readonly models=new Map<CityModel,T.Group>();readonly details=new Map<CityDetail,T.Group>();readonly skyline=new Map<CityModel,T.Group>();
  humanoid?:{scene:T.Group;animations:T.AnimationClip[]};readonly textures=new Map<string,T.Texture>();
+ readonly showcase=new Map<string,T.Group>();readonly surfaces=new Map<SurfaceFamily,SurfaceMaps>();
  private roots:T.Group[]=[];private materials=new Set<T.MeshStandardMaterial>();private normals=new Map<T.MeshStandardMaterial,T.Texture>();
  private stop=new AbortController();private released=false;
  async load(){
   const loader=new GLTFLoader();
   const parsed=await Promise.all(CITY_BINARY_URLS.map(async url=>{const gltf=await loader.parseAsync(await loadAssetBytes(url,this.stop.signal),'/assets/rivals/city/');if(this.released){this.releaseRoot(gltf.scene);throw new DOMException('City loading cancelled','AbortError');}this.roots.push(gltf.scene);return gltf;}));
   if(this.released)return;
-  const [blocks,details,car,truck]=parsed;installCityAtlas(blocks.scene);
+  const [blocks,details,car,truck,showcase]=parsed;installCityAtlas(blocks.scene);
+  const surfaces=await loadRealismSurfaces(this.stop.signal);surfaces.forEach((maps,name)=>{this.surfaces.set(name,maps);Object.values(maps).forEach(t=>this.textures.set(t.name,t));});
+  showcase.scene.traverse(n=>{
+   if(/^(facade-\d|cafe-\d|palm-\d|showcase-skyline)$/.test(n.name))this.showcase.set(n.name,n as T.Group);
+   if(n instanceof T.Mesh)for(const m of Array.isArray(n.material)?n.material:[n.material])if(m instanceof T.MeshStandardMaterial){for(const value of Object.values(m))if(value instanceof T.Texture)this.textures.set(value.uuid,value);finishShowcaseMaterial(m,this.surfaces);}
+  });
+  if(!this.showcase.has('facade-0'))throw Error('Prepared urban showcase is missing its facade groups');
   for(const id of ['residence','commerce','headquarters','planter','ac','computer','vent','barrel','crate','platform'] as const){const group=blocks.scene.getObjectByName(id);if(!group)throw Error('Prepared city missing '+id);this.models.set(id,group as T.Group);}
   blocks.scene.traverse(n=>{if(n instanceof T.Mesh)for(const m of Array.isArray(n.material)?n.material:[n.material])if(m instanceof T.MeshStandardMaterial){this.materials.add(m);for(const value of Object.values(m))if(value instanceof T.Texture){value.anisotropy=4;this.textures.set(value.uuid,value);}}});
   details.scene.updateMatrixWorld(true);
@@ -38,6 +47,8 @@ export class CityAssets {
  }
  setQuality(quality:QualityId){for(const m of this.materials){if(m.normalMap&&!this.normals.has(m))this.normals.set(m,m.normalMap);const normal=quality==='low'?null:this.normals.get(m)??null;if(m.normalMap!==normal){m.normalMap=normal;m.needsUpdate=true;}}}
  texture(name:string){return this.textures.get(name)??[...this.textures.values()].find(t=>t.name===name);}
+ ownHumanoid(root:T.Group){this.roots.push(root);}
+ facade(index:number,height:number){const key=`facade-${index%6}-${height.toFixed(2)}`;let root=this.showcase.get(key);if(!root){const source=this.showcase.get('facade-'+index%6);if(!source)return undefined;root=facadeAtHeight(source,height);this.roots.push(root);this.showcase.set(key,root);}return root;}
  private releaseRoot(root:T.Object3D){const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();root.traverse(n=>{if(!(n instanceof T.Mesh))return;geometries.add(n.geometry);for(const m of Array.isArray(n.material)?n.material:[n.material]){materials.add(m);for(const value of Object.values(m))if(value instanceof T.Texture)textures.add(value);}});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());}
- dispose(){if(this.released)return;this.released=true;this.stop.abort();const root=new T.Group();this.roots.forEach(r=>root.add(r));this.skyline.forEach(r=>root.add(r));this.releaseRoot(root);this.textures.forEach(t=>t.dispose());this.models.clear();this.details.clear();this.skyline.clear();this.materials.clear();this.normals.clear();this.textures.clear();this.roots=[];}
+ dispose(){if(this.released)return;this.released=true;this.stop.abort();const root=new T.Group();this.roots.forEach(r=>root.add(r));this.skyline.forEach(r=>root.add(r));this.releaseRoot(root);this.textures.forEach(t=>t.dispose());this.models.clear();this.details.clear();this.skyline.clear();this.showcase.clear();this.surfaces.clear();this.materials.clear();this.normals.clear();this.textures.clear();this.roots=[];}
 }

@@ -4,7 +4,7 @@ import {spawnSync} from 'node:child_process';
 import path from 'node:path';
 const config=JSON.parse(await readFile('android/app/src/main/assets/capacitor.config.json','utf8'));
 if(config.appId!=='com.venomee.rivalsheist'||config.server?.url||config.server?.cleartext||config.android?.allowMixedContent)throw Error('Unsafe packaged Capacitor configuration');
-for(const relative of ['index.html','assets/rivals/characters/universal-operative.glb','assets/rivals/combat3d/weapons/rifle.glb','assets/rivals/city/living-city.glb']){
+for(const relative of ['index.html','assets/rivals/characters/universal-operative.glb','assets/rivals/combat3d/weapons/rifle.glb','assets/rivals/city/living-city.glb','assets/rivals/realism/field-operative.glb','assets/rivals/realism/urban-showcase.glb','assets/rivals/realism/asphalt-color.webp','assets/rivals/realism/paving-normal.webp']){
  const source=await readFile('dist/'+relative),packaged=await readFile('android/app/src/main/assets/public/'+relative);
  if(!source.equals(packaged))throw Error('Packaged game asset mismatch: '+relative);
 }

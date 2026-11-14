@@ -37,4 +37,17 @@ public class NativeSessionPolicyTest {
         assertFalse(NativeSessionPolicy.validParameter("short"));
         assertFalse(NativeSessionPolicy.validParameter("abcdefghijklmnopqrstuvwxyz0123456789ABCDEF+"));
     }
+    @Test public void missionsPermitOnlyPlayerLifecycleRequests() {
+        String id="0123456789abcdef01234567";
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/eligibility", "GET"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions/"+id+"/heartbeat", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions/"+id+"/report", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions/"+id+"/connect", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions/"+id, "GET"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/results", "GET"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions/"+id+"/damage", "POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions/"+id+"/complete", "POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions?admin=true", "GET"));
+    }
 }

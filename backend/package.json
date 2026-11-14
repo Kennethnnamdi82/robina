@@ -5,6 +5,11 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
+    "build:missions": "node scripts/build-mission-simulation.mjs",
+    "benchmark:missions": "node scripts/benchmark-missions.mjs",
+    "prestart": "npm run build:missions",
+    "predev": "npm run build:missions",
+    "pretest": "npm run build:missions",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
@@ -25,6 +30,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "esbuild": "^0.27.0",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",
@@ -32,6 +38,8 @@
     "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "siwe": "^2.3.2",
+    "socket.io": "^4.8.1",
+    "three": "^0.186.1",
     "tweetnacl": "^1.0.3",
     "viem": "^2.57.3",
     "zod": "^4.6.7"
@@ -42,6 +50,7 @@
     "got": "^11.8.6"
   },
   "devDependencies": {
-    "mongodb-memory-server": "^10.4.3"
+    "mongodb-memory-server": "^10.4.3",
+    "socket.io-client": "^4.8.1"
   }
 }

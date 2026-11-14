@@ -12,6 +12,7 @@ import adminAuthRoutes from "./routes/adminAuth.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 import { createBountyRoutes } from './bounties/routes.js';
 import { createLegacyBaseVerifier } from './bounties/baseTreasury.js';
+import { createMissionRoutes } from './missions/routes.js';
 
 
 
@@ -100,6 +101,7 @@ app.use("/api/admin", adminAuthRoutes);
 const bountyRoutes = createBountyRoutes(options.bountyChain ?? createLegacyBaseVerifier());
 app.use('/api/bounties', bountyRoutes.player);
 app.use('/api/admin/bounties', bountyRoutes.admin);
+app.use('/api/missions', createMissionRoutes(options.missionAuthority, { allowUnverified: options.allowUnverifiedMissions === true }));
 
 app.use(notFound);
 app.use(errorHandler);

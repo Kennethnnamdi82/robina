@@ -77,6 +77,6 @@ export class OperativeHands {
 export class FingerGrip {
   private joints:{bone:T.Object3D;base:T.Quaternion;side:number;digit:string;joint:number}[]=[];
   private rotation=new T.Quaternion();private axis=new T.Vector3(0,0,1);
-  constructor(body:T.Object3D){for(const side of ['l','r'])for(const digit of ['index','middle','thumb'])for(let joint=1;joint<=3;joint++){const bone=body.getObjectByName(`${digit}_0${joint}_${side}`);if(bone)this.joints.push({bone,base:bone.quaternion.clone(),side:side==='r'?1:-1,digit,joint});}}
+  constructor(body:T.Object3D){for(const side of ['l','r'])for(const digit of ['index','middle','ring','pinky','thumb'])for(let joint=1;joint<=3;joint++){const bone=body.getObjectByName(`${digit}_0${joint}_${side}`);if(bone)this.joints.push({bone,base:bone.quaternion.clone(),side:Math.abs(bone.position.x)>Math.abs(bone.position.y)*2?-1:side==='r'?1:-1,digit,joint});}}
   pose(firing:boolean,reloading:boolean){for(const part of this.joints){const bend=reloading&&part.side<0?.16:part.digit==='thumb'?.42:part.digit==='index'?(firing?.72:.36):.78;part.bone.quaternion.copy(part.base).multiply(this.rotation.setFromAxisAngle(this.axis,part.side*bend*(part.joint===1?.7:1)));}}
 }

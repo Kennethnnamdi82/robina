@@ -36,7 +36,7 @@ export function batchRaidRigid(root:Object3D,clips:AnimationClip[]){
  const replaced=new Set<BufferGeometry>();for(const mesh of meshes)if(mesh.geometry.index){const original=mesh.geometry;mesh.geometry=original.toNonIndexed();replaced.add(original);}replaced.forEach(g=>g.dispose());
  if(compatibleForBatching(root))batchRigidParts(root,clips);
 }
-const modelURL=(id:ModelId,path:string)=>id==='player'?'/assets/rivals/characters/universal-operative.glb?v=field-operative-5':['rifle','smg','pistol'].includes(id)?`/assets/rivals/combat3d/weapons/${id}.glb?v=combat-polish-2`:assetURL(path);
+const modelURL=(id:ModelId,path:string)=>id==='player'?'/assets/rivals/realism/field-operative.glb?v=field-1':['rifle','smg','pistol'].includes(id)?`/assets/rivals/combat3d/weapons/${id}.glb?v=combat-polish-2`:assetURL(path);
 export const preloadRaidAssets=(progress?:(fraction:number)=>void)=>warmAssetBytes([...CITY_BINARY_URLS,...Object.entries(models).map(([id,path])=>modelURL(id as ModelId,path))],progress,Boolean(progress));
 /** Load only compatible actors/weapons needed by this raid, using the existing asset owner. */
 export class RaidAssets extends MissionAssets {
@@ -47,7 +47,7 @@ export class RaidAssets extends MissionAssets {
   override async load(progress: (loaded: number,total: number) => void) {
     const loader = new GLTFLoader(),entries = Object.entries(models) as [ModelId,string][];
     let loaded = 0;
-    const timeout = setTimeout(() => this.stop.abort(),60000);
+    const timeout = setTimeout(() => this.stop.abort(),120000);
     try {
       await Promise.all([this.city.load(),(async()=>{
       await Promise.all(entries.map(async ([id,path]) => {
@@ -61,7 +61,10 @@ export class RaidAssets extends MissionAssets {
         if(id==='player')finishOperative(gltf.scene);
         this.models.set(id,gltf); progress(++loaded,entries.length + 1);
       }));
-      const human=this.models.get('player');if(human)this.city.humanoid={scene:human.scene,animations:human.animations};
+      // Civilian/social actors have their own source, not the armed military body.
+      const human=await loader.parseAsync(await loadAssetBytes('/assets/rivals/characters/universal-operative.glb',this.stop.signal),'/assets/rivals/characters/');
+      if(this.released){disposeObject(human.scene);return;}
+      this.city.humanoid={scene:human.scene,animations:human.animations};this.city.ownHumanoid(human.scene);
       if(human)for(const id of ['kol','rugger','whale','boss'] as const){const model=this.models.get(id);if(model)model.animations.push(...securityGaits(human,model.scene));}
       await Promise.all(['flash','smoke','blast'].map(async name => { const fx = await new TextureLoader().loadAsync(`/assets/rivals/combat3d/fx/${name}.webp`); if (this.released) fx.dispose(); else { fx.colorSpace = SRGBColorSpace; this.textures.set('combat-' + name,fx); } }));
       progress(loaded,entries.length + 1);

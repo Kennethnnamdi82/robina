@@ -1,5 +1,6 @@
 // Shared first-party cookie transport to the existing Express backend.
 import { allowedBountyMethods } from './bountyPolicy.js';
+import { allowedMissionMethods } from './missionPolicy.js';
 const routes=new Map([
   ['/api/auth/me','GET'],['/api/auth/nonce','GET'],['/api/auth/google','POST'],
   ['/api/auth/verify','POST'],['/api/auth/wallet','POST'],['/api/auth/logout','POST'],
@@ -13,7 +14,7 @@ export function firstPartyCookie(value){
 export async function relay(req,res,upstream=process.env.VITE_API_URL,fetcher=fetch){
   res.setHeader('Cache-Control','private, no-store');res.setHeader('Vary','Cookie');
   const path=new URL(req.url,'https://local.invalid'),method=req.method||'GET';
-  const bountyMethods=allowedBountyMethods(path.pathname),allowed=routes.has(path.pathname)?[routes.get(path.pathname)]:bountyMethods;
+  const bountyMethods=allowedBountyMethods(path.pathname),missionMethods=allowedMissionMethods(path.pathname),allowed=routes.has(path.pathname)?[routes.get(path.pathname)]:[...bountyMethods,...missionMethods];
   if(!allowed.length)return res.status(404).json({error:'not_found'});
   if(!allowed.includes(method)){res.setHeader('Allow',allowed.join(', '));return res.status(405).json({error:'method_not_allowed'});}
   // Never proxy an untrusted browser's state-changing request with our cookies

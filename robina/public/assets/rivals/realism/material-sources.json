@@ -1,0 +1,30 @@
+[
+  {
+    "role": "paving",
+    "id": "PavingStones152",
+    "url": "https://ambientcg.com/get?file=PavingStones152_2K-JPG.zip",
+    "license": "CC0-1.0",
+    "sha256": "55d9d4490da2f9744c244c495474978d7d626703b6de099e6a5920f9b88b81d0"
+  },
+  {
+    "role": "brick",
+    "id": "Bricks101",
+    "url": "https://ambientcg.com/get?file=Bricks101_2K-JPG.zip",
+    "license": "CC0-1.0",
+    "sha256": "274f9ffee6b30228717a9957d0db299b52344508a247dce3e62201445d26e2ba"
+  },
+  {
+    "role": "concrete",
+    "id": "Concrete049",
+    "url": "https://ambientcg.com/get?file=Concrete049_2K-JPG.zip",
+    "license": "CC0-1.0",
+    "sha256": "ecffb635133e48f16edf5c5eb173fb8cd18524bef9390e8491e0d11142363422"
+  },
+  {
+    "role": "asphalt",
+    "id": "Asphalt001",
+    "url": "https://ambientcg.com/get?file=Asphalt001_2K-JPG.zip",
+    "license": "CC0-1.0",
+    "sha256": "a3c8d259d62ea8a247149ae95d5e823e0d295873ea04a04de8a2588fcfa89b70"
+  }
+]
