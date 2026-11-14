@@ -1,7 +1,7 @@
 import { describe,expect,it,vi } from 'vitest';
 import { Box3,Group,Texture,Vector3 } from 'three';
 import { Loadout } from './Loadout';
-import { BOMB,FieldItems,meleeStrike } from './FieldItems';
+import { BOMB,HEALTH_BOXES,FieldItems,meleeStrike } from './FieldItems';
 import { Health } from '../combat/Health';
 import { InputBuffer,emptyCommand } from '../input/InputBuffer';
 import { CombatEffects,MuzzleFlash } from './CombatEffects';
@@ -36,6 +36,14 @@ describe('pickups, bombs and shared health',() => {
     const f = new FieldItems(),l = new Loadout(),h = new Health(); f.add('med',new Vector3(),{ kind: 'health',amount: 40 }); const p = f.pickups[0];
     expect(f.take(p,l,h,true)).toBe(false); expect(p.consumed).toBe(false); expect(f.message).toBe('Health Full.'); h.current = 85; expect(f.take(p,l,h,true)).toBe(true); expect(h.current).toBe(100); expect(f.take(p,l,h,true)).toBe(false);
     f.add('med2',new Vector3(),{ kind: 'health',amount: 75 }); h.current = 0; expect(f.take(f.pickups[1],l,h,true)).toBe(false); expect(f.pickups[1].consumed).toBe(false);
+  });
+  it('field first-aid restores exactly 25 HP and cannot be reused',() => {
+    expect(Object.values(HEALTH_BOXES)).toEqual([25,25,25]);
+    const field=new FieldItems(),health=new Health(),loadout=new Loadout();
+    health.current=50;field.add('first-aid',new Vector3(),{kind:'health',amount:HEALTH_BOXES.medium});
+    expect(field.take(field.pickups[0],loadout,health,true)).toBe(true);
+    expect(health.current).toBe(75);
+    expect(field.take(field.pickups[0],loadout,health,true)).toBe(false);
   });
   it('fills an empty slot and requires explicit replacement when full; cancel changes nothing',() => {
     const f = new FieldItems(),h = new Health(),l = new Loadout(['rifle']); f.add('pistol',new Vector3(),{ kind: 'weapon',weapon: 'pistol' }); expect(f.take(f.pickups[0],l,h,true)).toBe(true); expect(l.slots[1]?.id).toBe('pistol');

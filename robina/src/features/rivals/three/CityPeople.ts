@@ -80,7 +80,8 @@ export class CityPeople {
             fabric*=1.+weave*.025*clothAA;
             float collar=step(1.39,vCityRest.y)*(1.-step(1.48,vCityRest.y))*(1.-smoothstep(.08,.13,abs(vCityRest.x)));
             fabric=mix(fabric,vCityTint*.32,collar*shirt);
-            diffuseColor.rgb=mix(diffuseColor.rgb,fabric,max(shirt,pants));
+            float textileDetail=clamp(dot(diffuseColor.rgb,vec3(.2126,.7152,.0722))*2.5,.55,1.18);
+            diffuseColor.rgb=mix(diffuseColor.rgb,fabric*textileDetail,max(shirt,pants));
             diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.025,.032,.039),1.-step(.17,vCityRest.y));`);
       };
       const mesh=new T.InstancedMesh(geometry,material,48);mesh.name='Authored civilian / '+skin.name;

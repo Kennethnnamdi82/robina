@@ -31,3 +31,7 @@
 /src/features/Textures/
 /release/
 /assets/README.md
+
+# Local converters/source artwork; prepared runtime assets live in public.
+/.tools/
+/src/features/RIVALS_Premium_Urban_Showcase_v2/

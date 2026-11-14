@@ -30,10 +30,10 @@ describe('frontend-only game hub',()=>{
     fireEvent.click(screen.getByRole('link',{name:'PLAYER PROFILE'}));expect(screen.getByRole('heading',{name:'OPERATIVE PROFILE'})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'RANK'}));expect(screen.getByRole('heading',{name:'EARN YOUR NAME'})).toBeTruthy();view.unmount();
   });
-  it('labels fictional leaderboard fixtures clearly and keeps them out of personal records',()=>{
-    const network=vi.spyOn(globalThis,'fetch');at('/leaderboards');
-    expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'EXHIBITION STANDINGS'}));expect(screen.getByText(/Exhibition players are fictional/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button',{name:'MY RECORDED RUNS'}));expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeTruthy();expect(screen.queryByText('NIGHTFALL')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();
+  it('keeps local practice separate from the verified server leaderboard',async()=>{
+    const network=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({items:[]}),{status:200,headers:{'content-type':'application/json'}}));at('/leaderboards');
+    expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'VERIFIED STANDINGS'}));expect(await screen.findByText(/Only server-verified successful missions/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button',{name:'MY RECORDED RUNS'}));expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeTruthy();expect(screen.queryByText('NIGHTFALL')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).toHaveBeenCalled();
   });
   it('persists callsign and calling card cosmetics without altering the player model',()=>{
     at('/customization');fireEvent.change(screen.getByLabelText('Callsign'),{target:{value:'night runner'}});fireEvent.click(screen.getByRole('button',{name:'ice calling card'}));fireEvent.click(screen.getByRole('button',{name:'SAVE IDENTITY'}));

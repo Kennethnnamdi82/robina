@@ -4,8 +4,8 @@ import type { POV } from './CameraRig';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import type { QualityId } from '../core/presentation';
 export const CITY_LIGHTING = {
-  golden: { sky:0xb3a89a, sun:0xffd2aa, power:4.1, fill:0xbacddd, ambient:.78, ground:0x687166, exposure:1.1, night:0, elevation:.27 },
-  daylight: { sky:0xa8c8d8, sun:0xfff0d5, power:3.1, fill:0xc9e4ff, ambient:.85, ground:0x596159, exposure:1.03, night:0, elevation:.65 },
+  golden: { sky:0xb6c2c6, sun:0xffdfbb, power:3.25, fill:0xc5d9e4, ambient:1.35, ground:0x77786b, exposure:.98, night:0, elevation:.38 },
+  daylight: { sky:0xa8c8d8, sun:0xfff1df, power:3.1, fill:0xd4e5ef, ambient:1.3, ground:0x757d73, exposure:.96, night:0, elevation:.65 },
   night: { sky:0x263447, sun:0x99b5dc, power:.48, fill:0x879bc2, ambient:.85, ground:0x555c6c, exposure:1.2, night:1, elevation:.35 },
 } as const;
 /** A finite, softly graded sky, rendered behind the city without an 85MB HDR.
@@ -34,15 +34,16 @@ export class CityAtmosphere {
     this.sky=new T.Mesh(new T.SphereGeometry(220,24,16),this.material);this.sky.position.set(42,0,42);this.sky.frustumCulled=false;this.sky.renderOrder=-100;this.root.add(this.sky);
     this.hemi=new T.HemisphereLight();this.fill=new T.DirectionalLight(0x94b6d5,.18);this.fill.position.set(30,18,70);
     this.sun=new T.DirectionalLight();this.sun.castShadow=true;this.sun.shadow.mapSize.set(1024,1024);this.sun.shadow.camera.left=-25;this.sun.shadow.camera.right=25;this.sun.shadow.camera.top=25;this.sun.shadow.camera.bottom=-25;this.sun.shadow.camera.far=130;this.sun.shadow.normalBias=.04;this.sun.shadow.bias=-.00015;this.sun.shadow.radius=2;
+    this.sun.shadow.camera.updateProjectionMatrix();
     this.root.add(this.sun,this.sun.target,this.hemi,this.fill);scene.add(this.root);this.set(preset);
   }
   set(preset:CityWeather) {
     this.preset=preset;const p=CITY_LIGHTING[preset];this.scene.background=new T.Color(p.sky);this.scene.fog=new T.FogExp2(p.sky,preset==='night'?.010:.0055);
-    this.hemi.color.set(p.fill);this.hemi.groundColor.set(p.ground);this.hemi.intensity=p.ambient;this.sun.color.set(p.sun);this.sun.intensity=p.power;this.fill.intensity=preset==='night'?.32:.4;
-    this.renderer.toneMappingExposure=p.exposure;this.material.uniforms.uNight.value=p.night;this.material.uniforms.uDay.value=preset==='daylight'?1:0;this.material.uniforms.uElevation.value=p.elevation;
+    this.hemi.color.set(p.fill);this.hemi.groundColor.set(p.ground);this.hemi.intensity=p.ambient;this.sun.color.set(p.sun);this.sun.intensity=p.power;this.fill.intensity=preset==='night'?.32:.7;
+    this.renderer.toneMappingExposure=p.exposure;this.material.uniforms.uNight.value=p.night;this.material.uniforms.uDay.value=preset==='daylight'?1:preset==='golden'?.65:0;this.material.uniforms.uElevation.value=p.elevation;
     this.scene.environmentIntensity=preset==='night'?.26:preset==='daylight'?.8:1;
   }
-  quality(quality:QualityId){const size=quality==='high'?(navigator.maxTouchPoints>0?1024:2048):quality==='balanced'?768:512;if(this.sun.shadow.mapSize.x!==size){this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.sun.shadow.mapSize.set(size,size);}this.sun.shadow.normalBias=.025;}
+  quality(quality:QualityId){const size=quality==='high'?4096:quality==='balanced'?2048:1024;if(this.sun.shadow.mapSize.x!==size){this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.sun.shadow.mapSize.set(size,size);}this.sun.shadow.normalBias=.018;}
   follow(player:T.Vector3,pov:POV='third') {
     // An orthographic eye is deliberately outside the district. Its distance
     // is not the viewer's distance to the street; using it for exponential fog

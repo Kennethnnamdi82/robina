@@ -28,6 +28,8 @@ export function CampaignOverlays({session,runtime,metrics,guideOpen,onCloseGuide
 
 export function MissionRewardReceipt({session}:{session:SandboxSession}){
   const balance=usePlayerEconomy(session.economy),reward=balance.rewards[session.mission.runId];
+  const verified=session.authority?.result;
+  if(verified)return <div className="r3-earned" role="status"><span>MISSION VERIFIED</span><strong>{verified.score.toLocaleString()} <small>PERFORMANCE SCORE</small></strong><p>{verified.firstCompletion?'First completion recorded.': 'Replay recorded. Your best score can improve; replay rewards are zero.'}</p></div>;
   if(!reward)return null;
   return <div className="r3-earned" role="status"><span>{ASSIGNMENTS[reward.assignment]?.bossHandoff?'THE BOSS PAID YOUR SHARE':'CONTRACT PAYMENT RECEIVED'}</span><strong>{gameMoney(reward.cash)} <small>MISSION CASH</small></strong><strong><Coins size={17}/> +{reward.coins.toLocaleString()} <small>ACHIEVEMENT COINS</small></strong><p>Cash buys food and drinks. Coins fund revives.</p></div>;
 }

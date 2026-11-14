@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
+import {cleanup,fireEvent,render,screen,waitFor,within} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
-import {afterEach,describe,expect,it} from 'vitest';
+import {afterEach,describe,expect,it,vi} from 'vitest';
+const leaderboard = vi.hoisted(() => vi.fn());
+vi.mock('@/services/missions', () => ({ missionsApi: { leaderboard } }));
 import LeaderboardPage from './LeaderboardPage';
 import {emptyDossier,OPERATIONS,type HeistRecord} from './model';
 afterEach(cleanup);
@@ -15,11 +17,14 @@ describe('focused leaderboard',()=>{
     fireEvent.change(screen.getByRole('textbox',{name:'Search leaderboard'}),{target:{value:OPERATIONS[1].name}});expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(1);
     fireEvent.change(screen.getByRole('textbox',{name:'Search leaderboard'}),{target:{value:'not a contract'}});expect(screen.getByText('TRY ANOTHER SEARCH')).toBeInTheDocument();
   });
-  it('keeps exhibition secondary, labelled fictional, searchable and sortable',()=>{
+  it('shows only verified backend results, with no fictional fixtures',async()=>{
+    leaderboard.mockResolvedValue({items:[{missionId:'assignment-reserve',score:9550,durationSeconds:300,verifiedAt:'2026-01-01T00:00:00Z',player:'0x1234…5678'}]});
     render(<MemoryRouter><LeaderboardPage dossier={emptyDossier()}/></MemoryRouter>);expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button',{name:'EXHIBITION STANDINGS'}));expect(screen.getByText(/Exhibition players are fictional/)).toBeInTheDocument();
-    const before=within(screen.getByRole('list')).getAllByRole('listitem').length;expect(before).toBeGreaterThan(3);
-    fireEvent.change(screen.getByRole('combobox',{name:'Rank by'}),{target:{value:'best'}});expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(before);
+    fireEvent.click(screen.getByRole('button',{name:'VERIFIED STANDINGS'}));
+    await waitFor(()=>expect(screen.getByText('0x1234…5678')).toBeInTheDocument());
+    expect(screen.queryByText('NIGHTFALL')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('list',{name:'Verified mission rankings'})).getAllByRole('listitem')).toHaveLength(1);
+    fireEvent.change(screen.getByRole('combobox',{name:'Rank by'}),{target:{value:'best'}});
     fireEvent.click(screen.getByRole('button',{name:'MY RECORDED RUNS'}));expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 });

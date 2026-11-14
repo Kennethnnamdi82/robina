@@ -17,6 +17,11 @@ final class NativeSessionPolicy {
             URI uri = new URI(path);
             if (uri.isAbsolute() || uri.getRawAuthority() != null || uri.getFragment() != null) return false;
             String route = uri.getRawPath(), query = uri.getRawQuery();
+            if (query == null && route != null && route.startsWith("/api/missions/")) {
+                if ("GET".equals(method)) return route.matches("/api/missions/(eligibility|leaderboard|results|sessions|sessions/current)") || route.matches("/api/missions/sessions/[a-fA-F0-9]{24}");
+                return "POST".equals(method) && (route.equals("/api/missions/sessions")
+                    || route.matches("/api/missions/sessions/[a-fA-F0-9]{24}/(heartbeat|abandon|report|connect)"));
+            }
             if (query != null && (!"GET".equals(method) || !route.matches("/api/bounties/(tasks|submissions|ledger|withdrawals|notifications)")
                 || !query.matches("(limit=([1-9]|[1-9][0-9]|100)|before=[a-fA-F0-9]{24})(&(limit=([1-9]|[1-9][0-9]|100)|before=[a-fA-F0-9]{24}))*"))) return false;
             if ("GET".equals(method)) return route.matches("/api/bounties/(tasks|submissions|wallet|ledger|withdrawals|notifications)") || route.matches("/api/bounties/tasks/[a-fA-F0-9]{24}");

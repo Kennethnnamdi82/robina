@@ -7,7 +7,8 @@ import { Loadout, type EquipmentId } from './Loadout';
 
 export type Supply = { kind: 'weapon'; weapon: EquipmentId } | { kind: 'health'; amount: number } | { kind: 'bomb'; amount: number };
 export interface Pickup { id: string; position: Vector3; supply: Supply; consumed: boolean }
-export const HEALTH_BOXES = { small: 20,medium: 40,large: 75 } as const;
+// Phase 2 first-aid rule: every field kit restores 25 HP, capped by Health.
+export const HEALTH_BOXES = { small: 25,medium: 25,large: 25 } as const;
 export const BOMB = { capacity: 6,fuse: 1.5,radius: 7,damage: 110,speed: 11.5,vertical: 4.2,gravity: 12,cooldown: .65 } as const;
 export const ENEMY_DROPS = { guard: 'pistol',enforcer: 'smg',heavy: 'rifle' } as const;
 export interface ThrownBomb { active: boolean; serial: number; position: Vector3; velocity: Vector3; life: number }

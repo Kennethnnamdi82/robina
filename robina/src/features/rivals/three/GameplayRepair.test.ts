@@ -63,8 +63,8 @@ describe('requested playable heist repairs',()=>{
   it('keeps building and vehicle fires persistent but bounded, with two batched draws',()=>{
     const textures={blast:new Texture(),smoke:new Texture()},fires=new WorldFires(textures),wall={id:'building',kind:'wall' as const,enabled:true,box:new Box3(new Vector3(1,0,-2),new Vector3(3,10,2))};fires.blast(new Vector3(),7,[wall]);fires.step(2,[]);expect(fires.snapshot.buildings).toBe(1);expect(fires.snapshot.aftermath).toBe(1);fires.draw(new PerspectiveCamera(),2,new Vector3());expect(fires.root.children).toHaveLength(3);fires.step(30,[]);expect(fires.snapshot.active).toBe(0);fires.dispose();textures.blast.dispose();textures.smoke.dispose();
   });
-  it('renders mobile High in one native scene pass instead of allocating the HDR bloom chain',()=>{
+  it('keeps Medium as an explicit single-pass alternative on touch devices',()=>{
     const previous=Object.getOwnPropertyDescriptor(navigator,'maxTouchPoints');Object.defineProperty(navigator,'maxTouchPoints',{value:5,configurable:true});
-    try{const renderer={render:vi.fn()} as unknown as WebGLRenderer,camera=new PerspectiveCamera(),post=new CityPostProcess(renderer,new Scene(),camera);post.quality('high');post.render(camera,0);expect(renderer.render).toHaveBeenCalledTimes(1);post.dispose();}finally{if(previous)Object.defineProperty(navigator,'maxTouchPoints',previous);else Reflect.deleteProperty(navigator,'maxTouchPoints');}
+    try{const renderer={render:vi.fn()} as unknown as WebGLRenderer,camera=new PerspectiveCamera(),post=new CityPostProcess(renderer,new Scene(),camera);post.quality('balanced');post.render(camera,0);expect(renderer.render).toHaveBeenCalledTimes(1);post.dispose();}finally{if(previous)Object.defineProperty(navigator,'maxTouchPoints',previous);else Reflect.deleteProperty(navigator,'maxTouchPoints');}
   });
 });

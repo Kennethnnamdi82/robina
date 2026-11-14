@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:e2e:missions": "playwright test --config playwright.mission-authority.config.ts",
     "prepare:rivals": "node scripts/prepare-rivals-assets.mjs",
     "prepare:rivals:visuals": "node scripts/prepare-rivals-visuals.mjs",
     "audit:rivals": "node scripts/audit-rivals-assets.mjs",
@@ -99,6 +100,7 @@
     "react-router-dom": "^7.18.4",
     "recharts": "^2.15.4",
     "siwe": "^2.3.2",
+    "socket.io-client": "^4.8.1",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

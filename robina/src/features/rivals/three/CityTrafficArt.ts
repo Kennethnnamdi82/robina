@@ -1,6 +1,6 @@
 import * as T from 'three';
 import type { CityAssets } from './CityAssets';
-import { CitySimulation, carActive, type CityCar, type VehicleKind } from './CitySimulation';
+import { CitySimulation, carActive, vehicleCollisionDimensions, type CityCar, type VehicleKind } from './CitySimulation';
 import { addParkedVehicles,drivenVehiclePose } from './VehicleController';
 import type { Solid3D } from './world3d';
 import { vehicleFinish } from './VehicleFinish';
@@ -14,7 +14,7 @@ export class CityTrafficArt {
   private dimensions=new Map<VehicleKind,{width:number;height:number}>();
   private view=new T.Matrix4();private frustum=new T.Frustum();private sphere=new T.Sphere();private spin=new T.Matrix4();private shift=new T.Matrix4();private wheelRotation=new T.Matrix4();
   private colors=[0x7393a7,0xa62b25,0xe2e2d8,0x1c3653,0x276a58,0xc09b69].map(c=>new T.Color(c));private taxiColor=new T.Color(0xf1be32);private policeColor=new T.Color(0x243444);
-  private lampGeometry=new T.PlaneGeometry(.35,.16);private lightMaterial=new T.MeshBasicMaterial({color:0xffecc7,toneMapped:false});private brakeMaterial=new T.MeshBasicMaterial({color:0xff3020,toneMapped:false});
+  private lampGeometry=new T.PlaneGeometry(.18,.06);private lightMaterial=new T.MeshBasicMaterial({color:0xffecc7,toneMapped:false});private brakeMaterial=new T.MeshBasicMaterial({color:0xe83b28,toneMapped:false});
   private headlights:T.InstancedMesh;private brakes:T.InstancedMesh;
   private doorGeometry=new T.BoxGeometry(.065,.85,1.12);private doorMaterial=new T.MeshStandardMaterial({color:0x47535c,metalness:.5,roughness:.4});private doors:T.InstancedMesh;
   private beaconGeometry=new T.BoxGeometry(.38,.16,.25);private beaconMaterial=new T.MeshBasicMaterial({color:0xffffff,toneMapped:false});private beacons:T.InstancedMesh;
@@ -47,9 +47,9 @@ export class CityTrafficArt {
     let n=0,doors=0,beacons=0;
     for(const car of this.simulation.cars) {
       const collider=this.colliders[car.id];collider.enabled=visible(car);
-      const dimensions=this.dimensions.get(car.kind)!,halfX=Math.abs(car.dx)*car.length/2+Math.abs(car.dz)*dimensions.width/2,halfZ=Math.abs(car.dz)*car.length/2+Math.abs(car.dx)*dimensions.width/2;
-      collider.box.min.set(car.x-halfX,0,car.z-halfZ);collider.box.max.set(car.x+halfX,dimensions.height,car.z+halfZ);
-      collider.oriented!.center.set(car.x,dimensions.height/2,car.z);collider.oriented!.half.set(dimensions.width/2,dimensions.height/2,car.length/2);collider.oriented!.yaw=Math.atan2(car.dx,car.dz);
+      const dimensions=this.dimensions.get(car.kind)!,collision=vehicleCollisionDimensions(car.kind),halfX=Math.abs(car.dx)*car.length/2+Math.abs(car.dz)*collision.width/2,halfZ=Math.abs(car.dz)*car.length/2+Math.abs(car.dx)*collision.width/2;
+      collider.box.min.set(car.x-halfX,0,car.z-halfZ);collider.box.max.set(car.x+halfX,collision.height,car.z+halfZ);
+      collider.oriented!.center.set(car.x,collision.height/2,car.z);collider.oriented!.half.set(collision.width/2,collision.height/2,car.length/2);collider.oriented!.yaw=Math.atan2(car.dx,car.dz);
       const viewX=car.mode==='player'?player.x:car.x,viewZ=car.mode==='player'?player.z:car.z;
       if(visible(car)&&car.kind==='police'&&car.mode==='pursuit')for(const side of [-1,1]){this.dummy.position.set(car.x+car.dz*side*.3,dimensions.height+.1,car.z-car.dx*side*.3);this.dummy.rotation.set(0,Math.atan2(car.dx,car.dz),0);this.dummy.scale.setScalar(1);this.dummy.updateMatrix();this.beacons.setMatrixAt(beacons,this.dummy.matrix);this.beacons.setColorAt(beacons++,new T.Color(side<0?0x469bff:0xff493d).multiplyScalar(Math.floor(this.simulation.time*7+(side>0?1:0))%2?1.8:.15));}
       if(visible(car)&&(car.door??0)>0){const yaw=this.renderYaw.get(car.id)!,open=(car.door??0)*1.15;this.dummy.position.set(viewX-car.dz*(dimensions.width/2+.28),.9,viewZ+car.dx*(dimensions.width/2+.28));this.dummy.rotation.set(0,yaw-open,0);this.dummy.scale.set(1,1,1);this.dummy.updateMatrix();this.doors.setMatrixAt(doors++,this.dummy.matrix);}

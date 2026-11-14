@@ -1,5 +1,6 @@
 import {isNativeAndroid,NativeSession} from '@/native/platform';
 import {allowedBountyMethods} from '../../server/bountyPolicy.js';
+import {allowedMissionMethods} from '../../server/missionPolicy.js';
 export type ApiError = Error & { status?: number; details?: unknown };
 export type RequestOptions = { signal?: AbortSignal; timeoutMs?: number; retries?: number };
 function apiError(message: string, status?: number, details?: unknown): ApiError {
@@ -27,7 +28,8 @@ export async function httpRequest<T>(url: string, init: RequestInit = {}, option
       if(isNativeAndroid()){
         const parsed=new URL(url,'https://localhost');
         const playerBounty=parsed.pathname.startsWith('/api/bounties/')&&allowedBountyMethods(parsed.pathname).includes(method);
-        if(parsed.origin!=='https://localhost'||(!['/api/auth/me','/api/auth/logout'].includes(parsed.pathname)&&!playerBounty))throw apiError('This operation is available through secure browser sign-in',403);
+        const playerMission=allowedMissionMethods(parsed.pathname).includes(method);
+        if(parsed.origin!=='https://localhost'||(!['/api/auth/me','/api/auth/logout'].includes(parsed.pathname)&&!playerBounty&&!playerMission))throw apiError('This operation is available through secure browser sign-in',403);
         const response=await new Promise<{status:number;data:unknown}>((resolve,reject)=>{
           const cancelled=()=>reject(new DOMException('Request cancelled','AbortError'));
           controller.signal.addEventListener('abort',cancelled,{once:true});

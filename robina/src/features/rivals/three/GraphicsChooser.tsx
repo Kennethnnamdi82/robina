@@ -7,8 +7,7 @@ export const GRAPHICS_OPTIONS=[
 ] as const;
 export function readGraphicsQuality():QualityId{
  try{const value=localStorage.getItem(GRAPHICS_KEY);if(value==='low'||value==='balanced'||value==='high')return value;}catch{/* Storage is optional. */}
- const device=navigator as Navigator&{deviceMemory?:number};
- return device.deviceMemory&&device.deviceMemory<=2||device.maxTouchPoints>0&&device.hardwareConcurrency<=4?'low':'balanced';
+ return 'high';
 }
 export function saveGraphicsQuality(value:QualityId){try{localStorage.setItem(GRAPHICS_KEY,value);}catch{/* The session selection still works. */}}
 export function graphicsLabel(value:QualityId){return value==='balanced'?'MEDIUM':value.toUpperCase();}

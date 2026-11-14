@@ -2,6 +2,8 @@ import * as T from 'three';
 import type { WorldState } from '../world/WorldState';
 import type {Assignment} from '../missions/assignments';
 import {siteLayout} from './SiteLayout';
+import type {CityAssets} from './CityAssets';
+import {worldSurface} from './RealismMaterials';
 
 export function addAssignmentWalls(world:WorldState,a:Assignment){
   siteLayout(a).forEach((p,i)=>world.blockers.push({id:'mission-'+p.kind+'-'+i,x:(a.site.x+p.x)*40,y:(a.site.z+p.z)*40,width:p.width*40,height:p.depth*40,enabled:true}));
@@ -12,10 +14,13 @@ export function addAssignmentWalls(world:WorldState,a:Assignment){
 export class AssignmentSite {
   readonly root=new T.Group();private geometry=new T.BoxGeometry(1,1,1);private materials=new Set<T.Material>();private textures:T.Texture[]=[];
   private parts=new Map<T.Material,T.Matrix4[]>();private transform=new T.Object3D();private doors:T.Group[]=[];private vault?:T.Group;private drill?:T.Group;private opening=0;
-  constructor(readonly assignment:Assignment,private world:WorldState){
+  constructor(readonly assignment:Assignment,private world:WorldState,assets?:CityAssets){
     const a=assignment;this.root.name=a.name+' / '+a.type;
     const mat=(color:number,metalness=0,roughness=.65)=>{const m=new T.MeshStandardMaterial({color,metalness,roughness});this.materials.add(m);return m;};
     const stone=mat(a.id==='reserve'?0xe2d8bc:a.id==='reactor'?0xc4d7d6:a.hostage?0xe0c29d:0x737c7c),dark=mat(0x26323a,.35),metal=mat(0x849398,.75,.3),wood=mat(0x78543b),gold=mat(0xd9b76d,.6,.3),tile=mat(0x77796f);
+    const stoneMaps=assets?.surfaces.get('stucco'),woodMaps=assets?.surfaces.get('wood');
+    if(stoneMaps){worldSurface(stone,stoneMaps,2.5);stone.color.set(a.id==='reserve'?0xe0d6c0:0xd3d5d2);worldSurface(tile,stoneMaps,1);tile.color.set(0x656c69);tile.roughness=.25;tile.normalScale.set(.09,.09);}
+    if(woodMaps){worldSurface(wood,woodMaps,1.8);wood.color.set(0x927251);wood.roughness=.5;}
     const accent=mat(a.id==='reactor'?0x62ded0:a.id==='archive'?0x9b81de:a.id==='military'?0x929f68:0xc69560);
     const glow=new T.MeshStandardMaterial({color:0x91dedc,emissive:0x41b6c2,emissiveIntensity:.8,roughness:.3});this.materials.add(glow);
     const glass=new T.MeshStandardMaterial({color:0xafd5db,metalness:.25,roughness:.14,transparent:true,opacity:.24,depthWrite:false});this.materials.add(glass);

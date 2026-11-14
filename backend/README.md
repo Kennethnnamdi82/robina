@@ -13,6 +13,44 @@ The standalone admin page and real player integration are documented in
 The retired BaseDrop mining, BD tasks, payment checkout, treasure-card game, seasonal rewards and management APIs have been removed
 RIVALS gameplay, missions, profile, rankings and store remain frontend features and are unchanged by this cleanup
 
+## Live mission authority
+
+Production assignments now require the live mission authority. The backend
+builds the shared game rules with `npm run build:missions` (automatically before
+start, dev and tests). Three.js renders the game and predicts movement; the
+backend runs the existing movement, guard AI, weapons, projectiles, vehicles,
+police pursuit and mission rules. Players send bounded inputs and interactions,
+not health, hits, checkpoint snapshots or success claims.
+
+Server damage reaching zero records a death and a two-hour recovery deadline
+in one MongoDB transaction. The mission fails, its verified failure is saved,
+and starting another mission remains blocked across devices until recovery.
+Validated extraction records a verified result exactly once. First-completion
+reward eligibility and replay status are recorded; Phase 4 still owns actual
+XP/coin settlement. Browser cash/coins cannot revive a production operative or
+change these server results. Bounty USDC accounting remains separate.
+
+Server checkpoints contain health, ammo/loadout, enemy and pickup state,
+objective progress and the exact simulation state. A reconnect within five
+minutes restores the latest checkpoint; grenade deductions made since that
+checkpoint remain spent. Recorded deaths cannot be restored or abandoned away.
+Checkpoints are written at insertion/objective milestones, not every frame.
+
+Authentication uses existing cookies/native sessions to mint a 30-second,
+single-use Socket.IO connection ticket. Web and Capacitor clients connect
+directly to the Render backend over WSS. Set `MISSION_SOCKET_ORIGIN` to the
+public HTTPS backend origin if Render does not supply `RENDER_EXTERNAL_URL`.
+Use one Render instance: ticket admission and simulation scheduling are local;
+MongoDB ownership leases fence stale writers, but this is not a multi-instance
+socket-routing implementation. An always-on service is required during play.
+
+`MISSION_MAX_ACTIVE_SESSIONS` defaults to 4. Run `npm run benchmark:missions`
+and real pursuit/network/database load tests on the deployment before raising
+it. Inputs are bounded/rate-limited, owner snapshots are sent at 10 Hz, and no
+rendering occurs on the backend. Performance on a development PC is not a
+capacity guarantee for a Render plan. Detailed boundaries and test coverage:
+[Mission authority integration](docs/mission-authority.md).
+
 ## Setup
 
 ```bash

@@ -3,6 +3,8 @@ export type VehicleKind = 'sedan' | 'coupe' | 'taxi' | 'police' | 'van' | 'lorry
 export interface CityCar { id:number; kind:VehicleKind; route:CityPoint[]; lengths:number[]; total:number; distance:number; x:number; z:number; dx:number; dz:number; speed:number; cruise:number; length:number; stopped:boolean; travelled:number; mode?:'traffic'|'parked'|'player'|'pursuit'|'disabled'; health?:number; driver?:boolean; door?:number;fire?:number; fuse?:number; exploded?:boolean }
 export const carActive=(car:CityCar,active:number)=>car.id<active||Boolean(car.mode&&car.mode!=='traffic');
 export const VEHICLE_LENGTH:Record<VehicleKind,number>={sedan:4.1,coupe:4.2,taxi:4.1,police:4.3,van:4.8,lorry:6.8,tanker:7.2,bus:6.8};
+// Collision dimensions are gameplay data, independent of downloaded art bounds.
+export const vehicleCollisionDimensions=(kind:VehicleKind)=>['lorry','tanker','bus'].includes(kind)?{width:2.35,height:2.6}:{width:1.85,height:1.75};
 export function sampleRoute(car: Pick<CityCar,'route'|'lengths'|'total'>, distance:number) {
   let at=((distance%car.total)+car.total)%car.total;
   for(let i=0;i<car.route.length;i++) {

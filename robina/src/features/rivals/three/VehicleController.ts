@@ -24,6 +24,8 @@ export function drivenVehiclePose(car:CityCar,alpha=1){
 /** Exact horizontal SAT, not a point-sized car collision check. */
 export function vehicleOverlap(car:CityCar,x:number,z:number,yaw:number,s:Solid3D){
   if(!s.enabled||s.box.max.y<.12||s.box.min.y>2.8)return false;
+  const bound=(car.length+width(car))/2;
+  if(x+bound<s.box.min.x||x-bound>s.box.max.x||z+bound<s.box.min.z||z-bound>s.box.max.z)return false;
   const c=Math.cos(yaw),n=Math.sin(yaw),o=s.oriented,angle=o?.yaw??0,oc=Math.cos(angle),on=Math.sin(angle);
   const ax={x:c,z:-n},az={x:n,z:c},bx={x:oc,z:-on},bz={x:on,z:oc};
   const cx=o?.center.x??(s.box.min.x+s.box.max.x)/2,cz=o?.center.z??(s.box.min.z+s.box.max.z)/2;

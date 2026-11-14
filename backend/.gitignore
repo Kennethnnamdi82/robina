@@ -8,4 +8,5 @@ coverage
 .npm-cache
 /audit-*.json
 /.cache/
+/generated/
 !.env.example
