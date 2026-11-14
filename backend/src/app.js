@@ -13,6 +13,7 @@ import { notFound, errorHandler } from "./middleware/error.js";
 import { createBountyRoutes } from './bounties/routes.js';
 import { createLegacyBaseVerifier } from './bounties/baseTreasury.js';
 import { createMissionRoutes } from './missions/routes.js';
+import { createBachsWebhookRoutes } from './payments/bachsWebhook.js';
 
 
 
@@ -27,6 +28,17 @@ app.set("trust proxy", 1);
 app.get("/ping", (req, res) => {
   res.status(200).send("pong");
 });
+
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: env.nodeEnv === "production" ? undefined : false,
+  }),
+);
+
+// Provider authentication is its signature, not player cookies/browser CSRF.
+// Mount BEFORE JSON parsing, security scrubbing and request/access logging.
+app.use('/api/payments/bachs', createBachsWebhookRoutes({ isReady, logger: options.bachsWebhookLogger }));
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 app.use((req, res, next) => {
@@ -51,13 +63,6 @@ app.use(
       return cb(Object.assign(new Error('untrusted_origin'), { status: 403, code: 'untrusted_origin' }));
     },
     credentials: true,
-  }),
-);
-
-app.use(
-  helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: env.nodeEnv === "production" ? undefined : false,
   }),
 );
 

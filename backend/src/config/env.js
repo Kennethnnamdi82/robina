@@ -75,6 +75,8 @@ export const env = {
   chainId,
   adminEmail: process.env.ADMIN_EMAIL?.trim().toLowerCase() || null,
   adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || null,
+  // Optional until a Bachs webhook destination is configured; fail closed if absent.
+  bachsWebhookSecret: process.env.BACHS_WEBHOOK_SECRET?.trim() || null,
   siweDomain,
   siweUri,
   privyAppId: process.env.PRIVY_APP_ID || process.env.VITE_PRIVY_APP_ID || null,
