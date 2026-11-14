@@ -35,7 +35,11 @@ import { MissionAuthorityClient } from '@/services/missionAuthority';
 import { MissionLifeStatus } from './MissionLifeStatus';
 
 function newSession(operation?:Operation3D,preferences?:HubPreferences,economy?:PlayerEconomy){const quality=preferences?.quality ?? readGraphicsQuality();return new SandboxSession({quality,settings:preferences ?? {...defaultSettings(),quality,muted:false,mobileControls:'auto'}},operation,economy);}
-function launchMessage(cause:unknown){const message=cause instanceof Error?cause.message:'';return ({mission_server_full:'Operation servers are busy. Please try again shortly.',mission_server_busy:'Operation servers are busy. Please try again shortly.',mission_authority_unavailable:'Operations are temporarily unavailable. Please try again shortly.',mission_connection_in_progress:'Your operation is reconnecting. Please retry in a moment.'} as Record<string,string>)[message]||message||'Could not connect to your operation. Check your connection and retry.';}
+function launchMessage(cause:unknown){
+  const message=cause instanceof Error?cause.message:'',status=(cause as {status?:number}|null)?.status;
+  if(status===404||status===502||status===503||status===504)return 'The operation service is temporarily unavailable. Your mission has not started. Please retry shortly.';
+  return ({mission_server_full:'Operation servers are busy. Please try again shortly.',mission_server_busy:'Operation servers are busy. Please try again shortly.',mission_authority_unavailable:'Operations are temporarily unavailable. Please try again shortly.',mission_connection_in_progress:'Your operation is reconnecting. Please retry in a moment.',request_timeout:'The operation server took too long to respond. Check your connection and retry.', 'websocket error':'Could not establish the live operation connection. Please retry shortly.'} as Record<string,string>)[message]||message||'Could not connect to your operation. Check your connection and retry.';
+}
 interface RaidAppProps {
   development?: boolean; operation?: Operation3D; preferences?: HubPreferences;
   onResult?: (mission: MissionSnapshot,venue: number) => void; onExit?: () => void;
@@ -72,6 +76,7 @@ export default function RaidApp({ development = false, operation, preferences, o
   useEffect(()=>session.subscribe(capture),[session,capture]);
   const quality=useArenaValue(session,s=>s.quality);
   const [preparing,setPreparing] = useState(false),[preparation,setPreparation]=useState(.1),[launchError,setLaunchError] = useState('');
+  const [preparationMessage,setPreparationMessage]=useState('Connecting to the operation server');
   const launch = useRef(0);
   const lifetime = useRef(0);
   useEffect(() => {
@@ -87,7 +92,7 @@ export default function RaidApp({ development = false, operation, preferences, o
     // Keep production transport outside the unchanged runtime's 60s model
     // preparation deadline. The same shared byte cache powers welcome prefetch.
     const ticket = ++launch.current;
-    setPreparing(true); setLaunchError('');
+    setPreparing(true); setPreparation(.1); setPreparationMessage('Connecting to the operation server'); setLaunchError('');
     let active=session;
     try {
       if(session.operation.assignment!==undefined){
@@ -101,6 +106,7 @@ export default function RaidApp({ development = false, operation, preferences, o
         if(record.seed!==session.operation.seed)active=newSession(createAssignmentOperation(session.operation.assignment,record.seed),preferences,economy);
         serverSession.current=record._id;active.authority=new MissionAuthorityClient(record._id);await active.authority.connect();
       }
+      setPreparationMessage('Loading the city and operative');
       await preloadRaidAssets(value=>setPreparation(.1+value*.5));
       if (launch.current === ticket) {if(active!==session)setSession(active);setEntered(true);}
       else if(serverSession.current){const id=serverSession.current;serverSession.current=null;void missionsApi.abandon(id).catch(()=>{});}
@@ -122,7 +128,7 @@ export default function RaidApp({ development = false, operation, preferences, o
     }
     setSession(next);setGeneration(n=>n+1);setEntered(true);
   };
-  if(!entered&&preparing)return <MissionLoading progress={preparation} title={session.operation.mission.name} message="Entering the city" onCancel={()=>{launch.current++;setPreparing(false);onExit?.();}}/>;
+  if(!entered&&preparing)return <MissionLoading progress={preparation} title={session.operation.mission.name} message={preparationMessage} onCancel={()=>{launch.current++;setPreparing(false);onExit?.();}}/>;
   if(!entered && renderWelcome)return <><MissionLifeStatus recoveryUntil={recoveryUntil}/>{renderWelcome({enter,preparing,error:launchError,abandonPrevious:previousSession?()=>{const id=previousSession;void missionsApi.abandon(id).then(()=>{setPreviousSession(null);setLaunchError('Previous operation abandoned. You can deploy now.');}).catch(()=>setLaunchError('Could not abandon the previous operation. Please retry.'));}:undefined})}</>;
   if (!entered) return <main className="r3-welcome"><span>{development ? 'RIVALS / DEVELOPMENT ONLY' : 'RIVALS / RIVAL HEIST'}</span><h1>One heist.<br/><em>Four perspectives.</em></h1><p>Enter an outdoor city with living traffic, pedestrians and four camera perspectives. Campaign cash buys meals and drinks; achievement coins fund revives. Both are fictional, saved on this device, and separate from real-money earnings.</p><GraphicsChooser value={quality} onChange={value=>{saveGraphicsQuality(value);session.setQuality(value);}}/><button disabled={preparing} aria-busy={preparing} onClick={enter}><Play size={18}/>{preparing ? 'PREPARING MISSION…' : 'ENTER 3D RAID'}</button>{preparing && <p role="status">Preparing mission assets. You can return to base while they load.</p>}{launchError && <p role="alert">{launchError}</p>}<a href={development ? "/tests/rivals/index.html" : "/gaming?engine=2d"}>PLAY CLASSIC 2D</a>{!development && <a href="/">RETURN TO BASE</a>}<small>WASD move · mouse aim/fire · 1/2/3 equip · Auto reload · G grenade · E collect · Space dodge · Tap J jump; double-tap for high jump · V cycle view · Z zoom. On mobile: left stick moves, right stick aims/fires. Swipe the playfield to look in FPS/TPS. Double-tap Jump for obstacle traversal. F enters or exits nearby vehicles.</small></main>;
   return <Raid key={generation} development={development} preferences={preferences} renderSettings={renderSettings} session={session} restart={() => restart()} next={() => restart(true)} exit={() => { session.dispose(); capture(); if(onExit){onExit();return;} setEntered(false); setSession(newSession(operation,preferences,economy)); }} />;

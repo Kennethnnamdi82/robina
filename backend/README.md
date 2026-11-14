@@ -53,6 +53,18 @@ capacity guarantee for a Render plan. Detailed boundaries and test coverage:
 
 ## Setup
 
+Render should use Node 24 (pinned in `.node-version`), build command `npm ci`
+and start command `npm start`. An explicit Render `NODE_VERSION` overrides
+the version file: remove an old override or set it to `24.21.0`.
+
+Startup connects to MongoDB first, explicitly creates registered collections
+and required indexes, then initializes bounty accounting before listening.
+Automatic model collection/index creation and database command buffering are
+disabled. This avoids pre-connection initialization failures without weakening
+the unique indexes protecting mission sessions and bounty accounting.
+`test/startup.test.js` cold-starts the actual production entrypoint against an
+isolated replica set, rather than only importing the Express application.
+
 ```bash
 cd backend
 npm ci

@@ -19,7 +19,7 @@
     "readiness:production": "node scripts/production-readiness.mjs"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.12.0 <25"
   },
   "dependencies": {
     "@privy-io/node": "^0.35.0",

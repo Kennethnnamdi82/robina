@@ -23,6 +23,17 @@ import RaidApp from './RaidApp';
 
 afterEach(async () => { cleanup(); await act(async () => {}); vi.restoreAllMocks(); runtime.created = runtime.disposed = 0; });
 describe('production 3D entry lifecycle', () => {
+  it('explains an unavailable mission backend instead of entering the renderer or hanging at 10%',async()=>{
+    vi.spyOn(SandboxSession.prototype,'startAudio').mockImplementation(()=>{});
+    vi.spyOn(missionsApi,'eligibility').mockRejectedValue(Object.assign(new Error('not_found'),{status:404}));
+    vi.spyOn(missionsApi,'start');
+    render(<RaidApp operation={createAssignmentOperation(0,42)}/>);
+    await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'ENTER 3D RAID'}));});
+    expect(screen.getByRole('alert').textContent).toContain('operation service is temporarily unavailable');
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(runtime.created).toBe(0);expect(missionsApi.start).not.toHaveBeenCalled();
+    expect(screen.getByRole('button',{name:'ENTER 3D RAID'}).hasAttribute('disabled')).toBe(false);
+  });
   it('loads the persisted recovery deadline again when reopening the briefing',async()=>{
     vi.spyOn(missionsApi,'eligibility').mockResolvedValue({eligible:false,recoveryUntil:new Date(Date.now()+7200000).toISOString(),activeSession:null,serverTime:new Date().toISOString()});
     render(<RaidApp operation={createAssignmentOperation(0,42)} renderWelcome={({enter})=><button onClick={enter}>DEPLOY HEIST</button>}/>);
