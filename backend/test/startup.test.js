@@ -64,9 +64,17 @@ test('real production entrypoint cold-starts and ensures indexes before acceptin
     const token = jwt.sign({ sub: wallet, sv: 0, started: Math.floor(Date.now() / 1000) },
       'startup-test-only-secret-with-32-characters', { issuer: 'basedrop', audience: 'basedrop-users', jwtid: 'startup-fixture', expiresIn: 60 });
     const headers = { cookie: 'bd_session=' + token, 'content-type': 'application/json' };
-    const started = await fetch(origin + '/api/missions/sessions', { method: 'POST', headers,
-      body: JSON.stringify({ missionId: 'assignment-reserve', seed: 42 }) });
-    const startData = await started.json();
+    // Import/index work can briefly trip the real admission CPU guard on CI.
+    // Honor its busy response; do not disable capacity protection for this test.
+    let started, startData;
+    const admissionDeadline = Date.now() + 10000;
+    do {
+      started = await fetch(origin + '/api/missions/sessions', { method: 'POST', headers,
+        body: JSON.stringify({ missionId: 'assignment-reserve', seed: 42 }) });
+      startData = await started.json();
+      if (started.status !== 503 || startData.error !== 'mission_server_full' || Date.now() >= admissionDeadline) break;
+      await delay(250);
+    } while (true);
     assert.equal(started.status, 201, JSON.stringify(startData));
     const ticketResponse = await fetch(origin + `/api/missions/sessions/${startData.session._id}/connect`, { method: 'POST', headers, body: '{}' });
     const ticket = await ticketResponse.json();
