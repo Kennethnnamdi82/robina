@@ -3,6 +3,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createActor, mountActor, disposeActor, type Actor } from '../../rugfire/actors';
 import { RaidAssets } from './RaidAssets';
 import { CameraRig, type POV } from './CameraRig';
+import { type CameraMotion, type CameraVehicleMotion } from './SmartCameraFollow';
 import { WorldArt } from './WorldArt';
 import { BODY, moveKinematic, traceSolids,horizontalContact, type Body3D } from './physics3d';
 import { convertSolids, METRES, point3, validateConversion, type Solid3D } from './world3d';
@@ -100,6 +101,9 @@ export class RaidRuntime {
   private combatAudio: CombatAudio; private viewScene = new T.Scene(); private viewCamera = new T.PerspectiveCamera(72,1,.025,8);
   private flash?: MuzzleFlash; private viewFlash?: MuzzleFlash; private securityFlashes = new Map<string,MuzzleFlash>(); private cameraFeedback=new CameraFeedback();private resolution=new AdaptiveResolution(1,1);private shadowClock=1;
   private previousPosition=this.body.position.clone();private renderPosition=new T.Vector3();
+  private cameraMotion:CameraMotion={vx:0,vz:0,sprinting:false,combat:false,manual:false,vehicle:null};
+  private cameraVehicle:CameraVehicleMotion={id:0,heading:0,speed:0,length:4.1};
+  private cameraLook={x:0,y:0};
   private playerModels = new Map<EquipmentId,T.Object3D>(); private viewModels = new Map<EquipmentId,T.Object3D>(); private equipped?: EquipmentId;
   private fieldArt?: FieldArt; private touchWasMoving = false; private throwRelease = -1;
   private noticeAge = 0; private notice = '';
@@ -483,14 +487,15 @@ export class RaidRuntime {
     const authority=this.session.authority!;const command=this.session.input.read(this.command);
     const raw={x:command.x,y:command.y};this.updateAim();
     const move=this.rig.movement(command.x,command.y,this.body.grounded);command.x=move.x;command.y=move.y;
+    const drivingYaw=this.rig.drivingYaw(this.drivingInput.stickX,this.drivingInput.stickY);
     const aimDirection=this.direction.subVectors(this.aim,this.body.position).setY(0).normalize();
     if(command.aiming){command.aimX=aimDirection.x;command.aimY=aimDirection.z;}
     authority.submit({...command,aim:this.aim.toArray() as [number,number,number],jump:this.jump,jumpHeld:this.jumpHeld,highJump:this.highJump,
       touchRepeat:this.session.input.touchAiming,throttle:-raw.y||this.drivingInput.throttle,steer:raw.x||this.drivingInput.steer,
-      brake:this.drivingInput.brake||command.dodge,stickX:this.drivingInput.stickX,stickY:this.drivingInput.stickY,cameraYaw:this.rig.yaw});
+      brake:this.drivingInput.brake||command.dodge,stickX:this.drivingInput.stickX,stickY:this.drivingInput.stickY,cameraYaw:drivingYaw});
     if(authority.connection!=='connected'||this.controller.health<=0)return;
     this.previousPosition.copy(this.body.position);const before=this.body.position.clone();
-    if(this.vehicles?.current){this.controller.stepMounted(dt);this.vehicles.step(dt,{...this.drivingInput,throttle:-raw.y||this.drivingInput.throttle,steer:raw.x||this.drivingInput.steer,cameraYaw:this.rig.yaw},this.solids,this.body.position);}
+    if(this.vehicles?.current){this.controller.stepMounted(dt);this.vehicles.step(dt,{...this.drivingInput,throttle:-raw.y||this.drivingInput.throttle,steer:raw.x||this.drivingInput.steer,cameraYaw:drivingYaw},this.solids,this.body.position);}
     else{command.dodge=command.dodge&&this.body.grounded&&!this.loadout.busy;this.controller.step(command,dt);const scale=dodgeMotionScale(this.controller.dodgeRemaining,dt);moveKinematic(this.body,this.controller.vx*METRES*dt*scale,this.controller.vy*METRES*dt*scale,dt,[...this.solids,...this.occupants],this.jump,this.jumpHeld,this.highJump);}
     this.jump=this.highJump=false;this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
     this.humanoidFrame.vx=(this.body.position.x-before.x)/dt;this.humanoidFrame.vz=(this.body.position.z-before.z)/dt;
@@ -551,7 +556,7 @@ export class RaidRuntime {
     const x = this.body.position.x,z = this.body.position.z;
     const solids = [...this.solids,...this.occupants];
     const dodgeScale = dodgeMotionScale(this.controller.dodgeRemaining,dt);
-    if(this.vehicles?.current){this.vehicles.step(dt,{...this.drivingInput,throttle:throttle||this.drivingInput.throttle,steer:steer||this.drivingInput.steer,brake:this.drivingInput.brake||command.dodge,cameraYaw:['third','first'].includes(this.rig.pov)?this.rig.yaw:0},this.solids,this.body.position);this.body.grounded=true;this.body.vertical=0;this.controller.stop();}
+    if(this.vehicles?.current){this.vehicles.step(dt,{...this.drivingInput,throttle:throttle||this.drivingInput.throttle,steer:steer||this.drivingInput.steer,brake:this.drivingInput.brake||command.dodge,cameraYaw:this.rig.drivingYaw(this.drivingInput.stickX,this.drivingInput.stickY)},this.solids,this.body.position);this.body.grounded=true;this.body.vertical=0;this.controller.stop();}
     else{this.vehicles?.step(dt,this.drivingInput,this.solids,this.body.position);moveKinematic(this.body,this.controller.vx * METRES * dt * dodgeScale,this.controller.vy * METRES * dt * dodgeScale,dt,solids,this.jump && this.controller.dodgeRemaining <= 0,this.jumpHeld,this.highJump);}
     this.jump = false;this.highJump=false;
     this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
@@ -664,13 +669,22 @@ export class RaidRuntime {
     if(this.session.revivePending)this.downedAge+=dt;
     const finished = this.session.getSnapshot().status === 'finished'||this.session.revivePending,settling = finished && (this.session.revivePending&&this.downedAge<1.5||this.npcs.some(n => n.presentation?.dead && n.presentation.deathAge < 10) || (this.bossPresentation?.dead && this.bossPresentation.deathAge < 10) || this.campaign?.carrying&&this.recoveryAge<15);
     if(finished&&this.session.mission.state==='FAILED'&&!this.session.authority)this.recoverEvidence(dt);
-    if (!active && !settling && !storyOpen && !this.needsDraw) return;
+    if (!active && !settling && !storyOpen && !this.needsDraw && !this.rig.settling) return;
     if(active){const scale=this.resolution.sample(wallDt);if(scale!==undefined)this.dpr=scale;}
     const presented=this.surface.present(this.host.clientWidth,this.host.clientHeight,this.dpr,()=>{
     const animationDelta = finished||storyOpen ? dt : simulationDelta;
     this.renderPosition.copy(active?this.previousPosition:this.body.position);if(active)this.renderPosition.lerp(this.body.position,T.MathUtils.clamp(this.accumulator/physicsStep,0,1));
-    this.rig.update(this.renderPosition,this.vehicles?.current?this.solids.filter(s=>s.id!=='city-traffic-'+this.vehicles!.current!.id):this.solids,dt,this.session.getSnapshot().reducedMotion,0,this.vehicles?.current?{x:0,y:0}:{x:this.command.x,y:this.command.y});this.updateAim();this.player.root.position.copy(this.renderPosition);
-    this.player.root.visible = this.rig.pov !== 'first'&&!this.vehicles?.current;
+    const cameraCar=this.vehicles?.current;
+    this.cameraMotion.vx=active?(cameraCar?cameraCar.dx*cameraCar.speed:this.controller.vx*METRES):0;
+    this.cameraMotion.vz=active?(cameraCar?cameraCar.dz*cameraCar.speed:this.controller.vy*METRES):0;
+    this.cameraMotion.sprinting=this.controller.sprinting;
+    this.cameraMotion.combat=!cameraCar&&(this.command.fire||this.rig.ads||this.session.input.touchAiming||this.weapon.reloadRemaining>0||this.loadout.busy);
+    this.cameraMotion.manual=this.drag;this.cameraMotion.paused=!active;
+    if(cameraCar){this.cameraVehicle.id=cameraCar.id;this.cameraVehicle.heading=Math.atan2(-cameraCar.dx,-cameraCar.dz);this.cameraVehicle.speed=cameraCar.speed;this.cameraVehicle.length=cameraCar.length;}
+    this.cameraMotion.vehicle=cameraCar?this.cameraVehicle:null;
+    this.cameraLook.x=cameraCar?0:this.command.x;this.cameraLook.y=cameraCar?0:this.command.y;
+    this.rig.update(this.renderPosition,this.solids,dt,this.session.getSnapshot().reducedMotion,0,this.cameraLook,this.cameraMotion);this.updateAim();this.player.root.position.copy(this.renderPosition);
+    this.player.root.visible = this.rig.pov !== 'first'&&this.rig.bodyVisible&&!this.vehicles?.current;
     if(finished){this.humanoidFrame.vx=this.humanoidFrame.vz=0;}this.animatePlayer(animationDelta,this.renderPosition);
     this.viewGun?.update(animationDelta,this.rig.ads,this.weapon.reloadRemaining,this.loadout.definition.reloadSeconds,this.loadout.action,this.loadout.remaining);
     if(this.rig.pov==='first')this.viewGun?.aimAt(this.viewAim.copy(this.aim).applyMatrix4(this.rig.perspective.matrixWorldInverse));
