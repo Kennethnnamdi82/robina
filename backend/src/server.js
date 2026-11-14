@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
 import { env } from './config/env.js';
-import { connectMongo } from './db/mongo.js';
+import { connectMongo, initializeMongoModels } from './db/mongo.js';
 import { createApp } from './app.js';
 import { initializeBounties } from './bounties/models.js';
 import { LiveMissionAuthority } from './missions/liveAuthority.js';
-import { MissionRecoveryEntitlement, MissionCheckpoint, MissionCombatEvent, MissionLife, MissionSession, VerifiedMissionResult } from './missions/models.js';
+import './missions/models.js';
 
 let server;
 let stopping = false;
@@ -37,13 +37,11 @@ process.once('SIGINT', () => void shutdown('SIGINT'));
 
 async function start() {
   await connectMongo();
+  console.log('[startup] preparing collections and indexes');
+  await initializeMongoModels();
+  console.log('[startup] collections and indexes ready');
   await initializeBounties();
-  await MissionSession.init();
-  await MissionLife.init();
-  await MissionCombatEvent.init();
-  await MissionCheckpoint.init();
-  await MissionRecoveryEntitlement.init();
-  await VerifiedMissionResult.init();
+  console.log('[startup] bounty accounting ready');
   server = app.listen(env.port, () => console.log('[backend] port=' + env.port));
   missionAuthority.attach(server);
   // Bound idle/request sockets and leave slow external services to their own deadlines.
