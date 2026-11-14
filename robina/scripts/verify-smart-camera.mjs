@@ -51,9 +51,13 @@ try{
   await expect.poll(async()=>!(await state()).settling).toBe(true);
   expect((await state()).pov).toBe(pov);await sample(pov);
  }
- await page.evaluate(()=>{window.__realismAudit.camera.enterVehicle();window.__realismAudit.camera.drive(.8,.15);});
+ await page.evaluate(()=>{window.__realismAudit.camera.enterVehicle();window.__realismAudit.camera.drive(.4,.1);});
  await expect.poll(async()=>(await state()).driving).toBe(true);
  await page.waitForTimeout(1400);await sample('vehicle-chase');
+ // Stop before waiting on a POV blend: otherwise faster renderers can drive
+ // into traffic and trigger the unrelated engine-fire/death flow during QA.
+ await page.evaluate(()=>window.__realismAudit.camera.drive(0,0,true));
+ await expect.poll(async()=>Math.abs((await state()).speed)).toBeLessThan(.2);
  await page.evaluate(()=>window.__realismAudit.camera.pov('first'));
  await expect.poll(async()=>!(await state()).settling).toBe(true);
  expect((await state()).pov).toBe('first');
