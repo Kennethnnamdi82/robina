@@ -7,7 +7,10 @@ const runtimeModels = [
   '/assets/rivals/city/living-city.glb',
   '/assets/rivals/city/optimized/city-blocks.glb',
   '/assets/rivals/city/optimized/street-car.glb',
+  '/assets/rivals/city/premium/street-car.glb',
   '/assets/rivals/city/premium/delivery-truck.glb',
+  '/assets/rivals/realism/field-operative.glb',
+  '/assets/rivals/realism/urban-showcase.glb',
   '/assets/rivals/combat3d/weapons/pistol.glb',
   '/assets/rivals/combat3d/weapons/rifle.glb',
   '/assets/rivals/combat3d/weapons/smg.glb',
@@ -36,15 +39,17 @@ describe('production model delivery', () => {
     expect(pattern.test('/assets/missing.glb')).toBe(false);
     expect(pattern.test('/api/auth/me')).toBe(false);
     expect(pattern.test('/api/bounties/tasks')).toBe(false);
+    expect(pattern.test('/api/missions/eligibility')).toBe(false);
     expect(pattern.test('/api/admin/bounties/summary')).toBe(false);
     expect(pattern.test('/.well-known/assetlinks.json')).toBe(false);
   });
-  it('routes bounty and existing owner session APIs before the SPA fallback', () => {
+  it('routes bounty, mission and existing owner session APIs before the SPA fallback', () => {
     expect(config.rewrites.slice(0, -1)).toEqual([
       { source: '/api/admin/me', destination: '/api/admin-session?__admin_session_route=/api/admin/me' },
       { source: '/api/admin/login', destination: '/api/admin-session?__admin_session_route=/api/admin/login' },
       { source: '/api/admin/logout', destination: '/api/admin-session?__admin_session_route=/api/admin/logout' },
       { source: '/api/bounties/:path*', destination: '/api/bounty-relay?__bounty_route=/api/bounties/:path*' },
+      { source: '/api/missions/:path*', destination: '/api/mission-relay?__mission_route=/api/missions/:path*' },
       { source: '/api/admin/bounties/:path*', destination: '/api/bounty-relay?__bounty_route=/api/admin/bounties/:path*' },
     ]);
     expect(config.rewrites.at(-1).destination).toBe('/index.html');
