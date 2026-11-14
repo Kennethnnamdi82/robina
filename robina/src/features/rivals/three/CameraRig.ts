@@ -154,7 +154,9 @@ export class CameraRig {
     this.perspective.fov = MathUtils.lerp(baseFov,this.matchProjection ? MathUtils.clamp(matchedFov,3,110) : this.transitionFov,weight);
     this.perspective.updateProjectionMatrix(); this.orthographic.updateProjectionMatrix();
     camera.updateMatrixWorld(); this.transition = Math.max(0,this.transition-dt);
-    this.needsSettlement = camera.position.distanceToSquared(this.desired) > .0001 || Math.abs(this.displayZoom-this.zoom[this.pov]) > .0001;
+    // Draw the exact endpoint after the last blended frame even while paused.
+    // Otherwise an idle renderer can retain the penultimate FOV/orientation.
+    this.needsSettlement = switching && this.transition === 0 || camera.position.distanceToSquared(this.desired) > .0001 || Math.abs(this.displayZoom-this.zoom[this.pov]) > .0001;
     const eyeHeight = camera.position.y-player.y;
     this.bodyVisible = view !== 'first' && (Math.hypot(camera.position.x-player.x,camera.position.z-player.z) > .55 || eyeHeight > 1.9 || eyeHeight < .05);
     this.initialized = true;

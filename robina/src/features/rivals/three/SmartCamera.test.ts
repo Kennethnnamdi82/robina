@@ -144,6 +144,16 @@ describe('vehicle framing and four-POV transitions', () => {
       expect(Number.isFinite(r.perspective.fov)).toBe(true); tick(r,m,2);
     }
   });
+  it('draws the exact transition endpoint before an idle renderer stops drawing', () => {
+    const r=rig(),m=motion();m.paused=true;
+    for(const pov of ['tactical','side','first','third'] as const){
+      r.setPOV(pov);let frames=0;
+      while(r.settling&&frames++<100)r.update(origin,[],.2,false,0,undefined,m);
+      expect(frames).toBeLessThan(100);expect(r.settling).toBe(false);
+      if(pov==='first')expect(r.perspective.fov).toBe(72);
+      if(pov==='third')expect(r.perspective.fov).toBe(57);
+    }
+  });
 });
 
 describe('collision-safe camera damping', () => {

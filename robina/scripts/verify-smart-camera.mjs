@@ -61,7 +61,9 @@ try{
  await expect.poll(async()=>Math.abs((await state()).speed)).toBeLessThan(.2);
  await page.evaluate(()=>window.__realismAudit.camera.drive(-1));
  await expect.poll(async()=>(await state()).speed).toBeLessThan(-.8);
- await page.waitForTimeout(1600);await sample('reverse-chase');
+ // Verify the actual reverse-facing view, not just negative vehicle speed.
+ await expect.poll(async()=>{const s=await state();return Math.abs(Math.atan2(Math.sin(s.yaw-s.motion.vehicle.heading-Math.PI),Math.cos(s.yaw-s.motion.vehicle.heading-Math.PI)));},{timeout:240000}).toBeLessThan(.2);
+ await sample('reverse-chase');
  await page.evaluate(()=>window.__realismAudit.camera.drive(0,0,true));
  await expect.poll(async()=>Math.abs((await state()).speed)).toBeLessThan(.2);
  await page.evaluate(()=>window.__realismAudit.camera.exitVehicle());
