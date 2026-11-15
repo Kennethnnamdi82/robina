@@ -175,6 +175,18 @@ test('sandbox inventory cannot become production ownership or revenue',async()=>
   assert.deepEqual(snapshot.ownedIds,[]);assert.deepEqual(snapshot.purchases,[]);assert.equal(snapshot.grenadeBalance,5);
   await assert.rejects(()=>production.reconcile(user._id,order.id),/payment_environment_changed/);
 });
+test('refund revocation ignores fulfilled purchases in the other payment environment',async()=>{
+  const user=await player(),order=(await checkout(user)).body,payment=provider.paid(order);
+  await webhook(order);await service.equip(user._id,'mp5');
+  await StoreOrder.create({playerId:user._id,key:randomUUID(),sku:'mp5',version:1,name:'MP5',cents:300,kind:'weapon',environment:'production',status:'fulfilled'});
+  await inventory(user._id,undefined,'production');
+  await StoreInventory.updateOne({playerId:user._id,environment:'production'},{$set:{ownedIds:['mp5'],equippedWeapon:'mp5'}});
+  payment.status='refunded';provider.payments.set(payment.payment_id,payment);await service.reconcile(user._id,order.id);
+  const sandbox=await service.snapshot(user._id),production=await createPaymentService({...provider,environment:'production'}).snapshot(user._id);
+  assert.deepEqual(sandbox.ownedIds,[]);assert.deepEqual(sandbox.equippedIds,[]);
+  assert.deepEqual(production.ownedIds,['mp5']);assert.deepEqual(production.equippedIds,['mp5']);assert.equal(production.spendingBlocked,false);
+});
+
 test('unsupported previews, bundles and unconfigured season cannot be paid placeholders',async()=>{
   const user=await player();for(const sku of ['urban','pass','founder','legend','dance'])assert.equal((await checkout(user,sku)).body.error,'product_unavailable');assert.equal(provider.calls,0);
 });
