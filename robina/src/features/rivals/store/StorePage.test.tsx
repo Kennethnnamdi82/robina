@@ -77,11 +77,11 @@ describe('frontend-only premium Exchange', () => {
   it('can display supplied ownership, equipment and receipts without inventing equipment mutations', () => {
     const account = { ...empty, ownedIds: ['cyber'], equippedIds: ['cyber'], equipment: [{ id: 'pistol' as const, ammo: 4, reserve: 22 }], purchases: [{ id: 'receipt-from-service', product: 'CYBER PHANTOM', price: 5.99, date: '2026-11-05', status: 'verified' as const }] };
     const view = at('/inventory', account); fireEvent.click(screen.getByRole('button', { name: 'Details for CYBER PHANTOM' }));
-    expect(screen.getByRole('button', { name: 'UNEQUIP' }).hasAttribute('disabled')).toBe(true); view.unmount();
+    expect(screen.getByRole('button', { name: 'UNEQUIP' }).hasAttribute('disabled')).toBe(false); view.unmount();
     at('/purchase-history', account); expect(screen.getByText('VERIFIED')).toBeTruthy(); expect(screen.getByText(/receipt-from-service/)).toBeTruthy();
   });
   it('shows inspectable seasonal collection rewards without inventing claims or an active season', () => {
-    at('/store/season'); expect(screen.getByText('THE REWARD SHOWCASE')).toBeTruthy(); expect(document.querySelectorAll('.rs-reward-tracks button')).toHaveLength(10); expect(screen.queryByText('COMING SOON')).toBeNull();
+    at('/store/season'); expect(screen.getByText('NO ACTIVE SEASON')).toBeTruthy(); expect(document.querySelectorAll('.rs-reward-tracks button')).toHaveLength(0); expect(screen.queryByText('COMING SOON')).toBeNull();
     expect(screen.queryByRole('button', { name: /CLAIM/ })).toBeNull();
   });
   it('supports every purchase state manually without payment calls, receipts or entitlement persistence', () => {

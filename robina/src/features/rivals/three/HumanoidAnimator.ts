@@ -36,6 +36,7 @@ export class HumanoidAnimator {
   private pelvis: Object3D; private chest: Object3D;
   private pelvisSample = new Quaternion(); private chestSample = new Quaternion(); private corrected = false;
   private weaponPose: { bone: Object3D; source: Quaternion }[] = [];
+  private handRest:{bone:Object3D;source:Quaternion}[]=[];
   private socialArms?:{left:ArmIK;right:ArmIK};private socialPoint=new Vector3();private socialPole=new Vector3();
   get clipName() { return this.base?.getClip().name.split(':')[1] ?? ''; }
   /** The layered pose that keeps the equipped item readable during locomotion. */
@@ -47,6 +48,7 @@ export class HumanoidAnimator {
     }
     const bone = (name: string) => { const node = body.getObjectByName(name); if (!node) throw new Error('Incompatible humanoid rig: missing ' + name); return node; };
     this.pelvis = bone('pelvis'); this.chest = bone('spine_01');
+    body.traverse(node=>{if(/^(thumb|index|middle|ring|pinky)_0[123]_[rl]$/.test(node.name))this.handRest.push({bone:node,source:node.quaternion.clone()});});
     for (const name of ['upperarm_r','lowerarm_r','hand_r','upperarm_l','lowerarm_l','hand_l']) {
       const arm = body.getObjectByName(name); if (arm) this.weaponPose.push({ bone: arm, source: arm.quaternion.clone() });
     }
@@ -227,13 +229,24 @@ export class HumanoidAnimator {
     }
   }
   socketPosition(target: Vector3) { this.actor.root.updateMatrixWorld(true); return this.sockets.rightHand.getWorldPosition(target); }
-  dispose() {
+  poseVictory(id:string,time:number){
+    for(const rest of this.handRest)rest.bone.quaternion.copy(rest.source);
+    const body=this.actor.body;if(!body)return;
+    const right=body.getObjectByName('upperarm_r'),left=body.getObjectByName('upperarm_l'),forearm=body.getObjectByName('lowerarm_r');
+    if(!right||!left)return;
+    if(id==='salute'){right.rotateZ(-1.25);right.rotateX(-.8);forearm?.rotateY(-1.2);}
+    else if(id==='pose'){right.rotateZ(-.7);left.rotateZ(.7);}
+    else if(id==='taunt'){right.rotateZ(-1.15);right.rotateY(Math.sin(time*5)*.25);}
+    else{const wave=Math.sin(time*(id==='dance'?6:3));right.rotateZ(-1.7-wave*.3);left.rotateZ(1.7-wave*.3);this.chest.rotateY(wave*.16);}
+    body.updateMatrixWorld(true);
+  }
+  dispose(releaseMuzzle=true) {
     if (this.disposed) return; this.disposed = true;
     this.mixer.stopAllAction(); this.mixer.uncacheRoot(this.actor.body!); this.actions.clear(); this.fading.length = 0;
     // Instance skeleton textures belong to the clone; shared geometry/materials
     // remain owned by RaidAssets and must not be disposed per actor.
     this.actor.body?.traverse(node => { if ('isSkinnedMesh' in node && node.isSkinnedMesh) (node as import('three').SkinnedMesh).skeleton.dispose(); });
-    this.actor.muzzle.geometry.dispose(); (this.actor.muzzle.material as import('three').Material).dispose();
+    if(releaseMuzzle){this.actor.muzzle.geometry.dispose(); (this.actor.muzzle.material as import('three').Material).dispose();}
   }
 }
 

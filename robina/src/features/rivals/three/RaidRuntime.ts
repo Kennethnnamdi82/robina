@@ -56,6 +56,8 @@ import { SocialScene } from './SocialScene';
 import { addSocialWalls, nearbyVenue, venueAt, type VenueId } from './SocialVenues';
 import { type SocialItem } from '../progression/PlayerEconomy';
 import type { AuthoritySnapshot } from '../authority/MissionSimulation';
+import {WeaponFinish} from './CollectionAppearance';
+import {CollectionEffects} from './CollectionEffects';
 
 interface CombatDiagnostics {
   inventory: ReturnType<Loadout['snapshot']>; field: ReturnType<FieldItems['snapshot']>; flashError: number;
@@ -94,6 +96,9 @@ export class RaidRuntime {
   readonly body: Body3D = { position: point3(288,288),vertical: 0,grounded: true };
   readonly solids: Solid3D[]; readonly navigation: NavigationGrid; readonly boss: BossController;
   private art: WorldArt; private player = createActor('player'); private bossActor = createActor('boss'); private npcs: NPC[] = [];
+  private outfitId:string|null=null;private cosmeticGeneration=0;private cosmeticEffects=new CollectionEffects();private weaponFinish=new WeaponFinish();
+  private trailEffects=new CollectionEffects();private entranceEffects=new CollectionEffects();
+  private cosmeticClock=0;private victoryAge=0;
   private atmosphere:CityAtmosphere;
   private post:CityPostProcess;private surface:FrameSurface;private firstFrameReady?:()=>void;
   private humanoid?: HumanoidAnimator;
@@ -223,8 +228,11 @@ export class RaidRuntime {
       const studio = new RoomEnvironment(),generator = new T.PMREMGenerator(this.renderer);
       try { this.weaponEnvironment = generator.fromScene(studio,.04,.1,100,{ size: 64 }); } finally { studio.dispose(); generator.dispose(); }
       for (const id of ['rifle','smg','pistol'] as const) this.assets.models.get(id)!.scene.traverse(node => { if (node instanceof T.Mesh) for (const material of Array.isArray(node.material) ? node.material : [node.material]) if (material instanceof T.MeshStandardMaterial) { material.envMap = this.weaponEnvironment!.texture; material.envMapIntensity = 1.5; } });
-      const operative = this.assets.instance('player');
+      this.outfitId=this.session.authority?.latest?.appearance?.outfit??null;
+      const operative = this.outfitId?await this.assets.outfit(this.outfitId):this.assets.instance('player');
       this.humanoid = new HumanoidAnimator(this.player,operative.root,operative.clips);
+      this.scene.add(this.cosmeticEffects.root);
+      this.scene.add(this.trailEffects.root,this.entranceEffects.root);
       for (const id of Object.keys(EQUIPMENT) as EquipmentId[]) { this.playerModels.set(id,this.assets.equipment(id)); this.viewModels.set(id,this.assets.equipment(id)); }
       for(const slot of this.session.authority?.latest?.loadout.slots??[]){if(slot?.collectionId){await this.assets.loadCollection(slot.collectionId);this.playerModels.set(slot.collectionId,this.assets.collectionInstance(slot.collectionId)!);this.viewModels.set(slot.collectionId,this.assets.collectionInstance(slot.collectionId)!);}}
       this.equip();
@@ -450,6 +458,8 @@ export class RaidRuntime {
     const state=authority.latest;if(!state||state===this.authorityLast)return;
     const restored=Boolean(this.authorityLast&&state.inputSequence<this.authorityLast.inputSequence);
     this.authorityLast=state;
+    void this.updateOutfit(state.appearance?.outfit??null);
+    for(const [id,model]of [...this.playerModels,...this.viewModels])if(id!=='knife'&&id!=='pistol')this.weaponFinish.apply(model,state.appearance?.finish??null);
     const previousHealth=this.controller.health,position=new T.Vector3().fromArray(state.position);
     const vehicleChanged=(state.vehicle.driving?state.vehicle.id:null)!==(this.vehicles?.current?.id??null);
     if(restored||vehicleChanged||this.body.position.distanceTo(position)>(state.vehicle.driving?2.5:1.5)){this.body.position.copy(position);this.previousPosition.copy(position);}
@@ -619,12 +629,27 @@ export class RaidRuntime {
     if (mission.state !== 'ACTIVE') { this.pool.clear(); this.session.clearInput(); this.publish(); }
   }
   private animatePlayer(dt: number,position=this.body.position) {
+    this.cosmeticClock+=dt;
     this.player.root.position.copy(position);
     if(this.vehicles?.current){this.humanoidFrame.vx=this.humanoidFrame.vz=0;return;}
     Object.assign(this.humanoidFrame,{ vertical: this.body.vertical,grounded: this.body.grounded,sprinting: this.controller.sprinting,aiming: this.controller.aiming,angle: this.controller.aimAngle,pov: this.rig.pov,dodgeRemaining: this.controller.dodgeRemaining,dodgeSerial: this.controller.dodgeSerial,health: this.controller.health,hitSerial: this.session.getSnapshot().damage.serial,shots: this.loadout.shots,reload: this.weapon.reloadRemaining,reloadDuration: this.loadout.definition.reloadSeconds,equipment: this.loadout.current.id,action: this.loadout.action,actionRemaining: this.loadout.remaining });
     this.humanoidFrame.independentAim=this.independentAim;
     if(this.socialRemaining>0){this.humanoidFrame.action=this.socialGesture;this.humanoidFrame.actionRemaining=this.socialRemaining;}
     this.humanoid?.update(dt,this.humanoidFrame);if(this.socialRemaining>0)this.humanoid?.poseSocial(this.socialGesture,3.2-this.socialRemaining); this.gun?.decay(dt); this.gun?.pose(this.aim,this.humanoidFrame);this.player.weapon.visible=this.socialRemaining<=0;
+    const appearance=this.session.authority?.latest?.appearance,won=this.session.authority?.latest?.mission.state==='SUCCESS';
+    this.cosmeticEffects.step(dt,position,appearance?.effect??null,won,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz)>.3);
+    this.trailEffects.step(dt,position,appearance?.trail??null,false,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz)>.3);
+    this.entranceEffects.step(dt,position,appearance?.entrance??null,false,false);
+    if(won&&appearance?.emote){this.player.weapon.visible=false;this.humanoid?.poseVictory(appearance.emote,this.cosmeticClock);}
+  }
+  private async updateOutfit(id:string|null){
+    if(id===this.outfitId)return;this.outfitId=id;const generation=++this.cosmeticGeneration;
+    try{
+      const next=id?await this.assets.outfit(id):this.assets.instance('player');
+      if(this.disposed||generation!==this.cosmeticGeneration){next.root.traverse(n=>{if(n instanceof T.SkinnedMesh)n.skeleton.dispose();});return;}
+      const previous=this.player.body;this.gun?.model.removeFromParent();this.gun=undefined;this.humanoid?.dispose(false);previous?.removeFromParent();
+      this.humanoid=new HumanoidAnimator(this.player,next.root,next.clips);this.equipped=undefined;this.equip();
+    }catch{this.outfitId=null;this.session.fail('Your equipped outfit could not load. Reconnect before deploying.');}
   }
   private setBox(box: T.Box3,p: T.Vector3,radius: number,height: number) { box.min.set(p.x - radius,p.y,p.z - radius); box.max.set(p.x + radius,p.y + height,p.z + radius); }
   private firingMuzzle(out: T.Vector3) {
@@ -668,7 +693,8 @@ export class RaidRuntime {
     const storyOpen=Boolean(this.socialMenu)||this.campaign?.handoff==='waiting';
     if(active||storyOpen)this.socialClock+=dt;
     if(this.session.revivePending)this.downedAge+=dt;
-    const finished = this.session.getSnapshot().status === 'finished'||this.session.revivePending,settling = finished && (this.session.revivePending&&this.downedAge<1.5||this.npcs.some(n => n.presentation?.dead && n.presentation.deathAge < 10) || (this.bossPresentation?.dead && this.bossPresentation.deathAge < 10) || this.campaign?.carrying&&this.recoveryAge<15);
+    if(this.session.authority?.latest?.mission.state==='SUCCESS')this.victoryAge+=dt;
+    const finished = this.session.getSnapshot().status === 'finished'||this.session.revivePending,settling = finished && (this.session.authority?.latest?.mission.state==='SUCCESS'&&this.victoryAge<4.5||this.session.revivePending&&this.downedAge<1.5||this.npcs.some(n => n.presentation?.dead && n.presentation.deathAge < 10) || (this.bossPresentation?.dead && this.bossPresentation.deathAge < 10) || this.campaign?.carrying&&this.recoveryAge<15);
     if(finished&&this.session.mission.state==='FAILED'&&!this.session.authority)this.recoverEvidence(dt);
     if (!active && !settling && !storyOpen && !this.needsDraw && !this.rig.settling) return;
     if(active){const scale=this.resolution.sample(wallDt);if(scale!==undefined)this.dpr=scale;}
@@ -788,6 +814,7 @@ export class RaidRuntime {
     this.diagnostics({ navigation:this.gps?{route:this.gps.route,distance:this.gps.distance,goal:this.gps.goal,bearing:next?routeBearing(this.body.position,next,this.rig.camera):0,roadArrows:this.roadGuide.count}:undefined,vehicle:this.vehicles?.snapshot,pursuit:this.pursuit?.snapshot,campaign:this.campaign?.snapshot,environment: this.art.city?.stats,combat: this.combatSnapshot(),pov: this.rig.pov,zoom: this.rig.zoom[this.rig.pov],fps: this.fps,frameMs: this.p95,calls: this.renderer.info.render.calls,triangles: this.renderer.info.render.triangles,geometries: this.renderer.info.memory.geometries,textures: this.renderer.info.memory.textures,dpr: this.dpr,quality: this.quality,x: this.body.position.x,y: this.body.position.y,z: this.body.position.z,grounded: this.body.grounded,enemies: this.npcs.length,runId: this.session.mission.runId,targets: projected,character: h ? { motion: h.motion,clip: h.clipName,history: [...h.history],transition: h.transition,speed: h.speed,time: h.actionTime,yaw: h.yaw,actions: h.activeActions,leg: this.player.body!.getObjectByName('thigh_l')!.quaternion.toArray(),socket: h.socketPosition(this.socketPoint).toArray(),visible: this.player.root.visible,mixerTime: h.mixer.time } : undefined });
   }
   dispose() {
+    this.cosmeticGeneration++;this.cosmeticEffects.dispose();this.trailEffects.dispose();this.entranceEffects.dispose();this.weaponFinish.dispose();
     if (this.disposed) return; this.disposed = true;this.authorityUnsubscribe?.();this.firstFrameReady?.();this.firstFrameReady=undefined;this.cameraFeedback.restore();cancelAnimationFrame(this.raf); this.resizeObserver?.disconnect(); this.unsubscribe?.(); this.input?.dispose(); this.removers.forEach(remove => remove()); this.audio?.dispose(); this.pool.clear();
     this.flash?.dispose(); this.viewFlash?.dispose(); this.securityFlashes.forEach(f => f.dispose()); this.fieldArt?.dispose(); this.combatAudio?.dispose(); this.effects?.dispose(); this.bossPresentation?.dispose(); this.npcs.forEach(n => n.presentation?.dispose());
     this.humanoid?.dispose(); this.viewGun?.dispose(); disposeActor(this.bossActor); this.npcs.forEach(n => disposeActor(n.actor));

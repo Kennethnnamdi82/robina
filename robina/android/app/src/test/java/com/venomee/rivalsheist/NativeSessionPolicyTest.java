@@ -4,6 +4,12 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class NativeSessionPolicyTest {
+    @org.junit.Test public void seasonClaimsArePlayerOnly() {
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/payments/season/claim", "POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/payments/season/claim", "GET"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/admin/payments/seasons", "POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/payments/season/claim?player=other", "POST"));
+    }
     @Test public void onlyPublicAuthOperationsAreExposed() {
         assertTrue(NativeSessionPolicy.allowedClientRequest("/api/auth/me", "GET"));
         assertTrue(NativeSessionPolicy.allowedClientRequest("/api/auth/logout", "POST"));

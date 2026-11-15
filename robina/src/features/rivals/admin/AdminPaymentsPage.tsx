@@ -4,6 +4,7 @@ import {paymentRequest,paymentError,type PaymentOrder} from '@/services/payments
 import {money} from '../store/catalog';
 import './admin-bounties.css';
 import '../store/store.css';
+import SeasonManagement from './SeasonManagement';
 interface AdminOrder extends PaymentOrder{player?:{wallet:string;email?:string};checkoutId?:string;chargeId?:string}
 interface Page{items:AdminOrder[];nextBefore:string|null;totals:{_id:{environment:string;status:string};orders:number;cents:number}[]}
 export default function AdminPaymentsPage(){
@@ -12,6 +13,7 @@ export default function AdminPaymentsPage(){
   const load=useCallback(async()=>{setBusy(true);try{const query=new URLSearchParams({...status?{status}:{},...before?{before}:{}});setData(await paymentRequest<Page>('/api/admin/payments/orders?'+query));setError('');}catch(e){setError(paymentError(e));}finally{setBusy(false);}},[status,before]);
   useEffect(()=>{void load();},[load]);
   return <main className="rs-store"><header className="rs-masthead"><div><span className="rs-kicker">RIVALS / OWNER OPERATIONS</span><h1>PAYMENTS & REVENUE</h1></div><Link to="/admin/bounties">BOUNTY ADMIN</Link></header><p>Only independently verified Bachs payments deliver items. Sandbox totals are separate from live revenue. Refunds and disputes require reconciliation in Bachs; no manual Paid action exists here.</p>
+    <SeasonManagement/>
     <div className="rs-product-grid">{data?.totals.map(t=><section className="rs-spec-note" key={t._id.environment+t._id.status}><strong>{t._id.environment.toUpperCase()} / {t._id.status.replaceAll('_',' ').toUpperCase()}</strong><p>{t.orders} orders · {money(t.cents/100)} USD reference</p></section>)}</div>
     <div className="rs-toolbar"><label>STATUS <select value={status} onChange={e=>{setBefore(undefined);setStatus(e.target.value);}}><option value="">All orders</option>{['initializing','pending','verification_pending','paid','fulfilled','failed','expired','cancelled','review','refund_review','refunded','disputed'].map(s=><option key={s}>{s}</option>)}</select></label><button className="rs-secondary" disabled={busy} onClick={()=>void load()}>REFRESH</button></div>
     {error&&<p role="alert">{error}</p>}{busy&&<p role="status">Checking payment records…</p>}{data&&!data.items.length&&<p>No payment orders yet.</p>}

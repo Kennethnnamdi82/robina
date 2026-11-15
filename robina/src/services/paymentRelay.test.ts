@@ -3,6 +3,12 @@ import {bountyRelay} from '../../server/bountyRelay.js';
 import {allowedPaymentMethods} from '../../server/paymentPolicy.js';
 const response=()=>({code:0,data:null as unknown,headers:{} as Record<string,unknown>,setHeader(n:string,v:unknown){this.headers[n]=v;},status(n:number){this.code=n;return this;},json(v:unknown){this.data=v;return this;}});
 describe('secure web/Android payment transport',()=>{
+  it('forwards only the supported collection capability on first-party requests',async()=>{
+    const res=response(),fetcher=vi.fn().mockResolvedValue(new Response('{}'));
+    await bountyRelay({url:'/api/payments/store',method:'GET',headers:{host:'rivals-heist.vercel.app','x-rivals-store-version':'2',cookie:'bd_session=test'}},res,'https://render.invalid',fetcher);
+    expect(fetcher.mock.calls[0][1].headers['x-rivals-store-version']).toBe('2');
+    expect(allowedPaymentMethods('/api/payments/season/claim')).toEqual(['POST']);expect(allowedPaymentMethods('/api/admin/payments/seasons')).toEqual(['GET','POST']);
+  });
   it('only allows the explicit store/order/equipment routes, never arbitrary provider calls',()=>{
     expect(allowedPaymentMethods('/api/payments/checkout')).toEqual(['POST']);expect(allowedPaymentMethods('/api/payments/store')).toEqual(['GET']);
     for(const path of ['/api/payments/verify','/api/payments/bachs/webhook','/api/payments/charge','/api/payments/orders/not-an-id/check','/api/admin/payments/paid'])expect(allowedPaymentMethods(path)).toEqual([]);

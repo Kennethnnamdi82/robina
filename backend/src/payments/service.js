@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
-import {StoreOrder,StoreInventory,StoreLedger,StorePurchaseLock,StoreProduct} from './storeModels.js';
+import {StoreOrder,StoreInventory,StoreLedger,StorePurchaseLock,StoreProduct,StoreSeasonClaim,StoreSeason} from './storeModels.js';
 import {MissionLife,MissionSession,MissionRecoveryEntitlement} from '../missions/models.js';
 import {getProduct,CATALOG_VERSION,exactDecimal,usd,paymentCatalog} from './catalog.js';
 import {safeCheckoutUrl,logProviderFailure} from './provider.js';
 import {env} from '../config/env.js';
+import {entitlementIds,selectionSlot,selectionFields,appearance} from './entitlements.js';
+import {currentSeason,seasonSnapshot} from './seasons.js';
 export const storeEnvironment=()=>env.bachsApiKey?.startsWith('sk_sandbox_')?'sandbox':'production';
 
 export const fail=(code,status=409)=>{throw Object.assign(new Error(code),{code,status});};
@@ -17,32 +19,35 @@ export async function inventory(playerId,session,environment=storeEnvironment())
   try{return await StoreInventory.findOneAndUpdate({playerId,environment},{$setOnInsert:{playerId,environment,grenades:5,starterGrantedAt:new Date()}},{upsert:true,new:true,session});}
   catch(e){if(e.code===11000&&!session)return StoreInventory.findOne({playerId,environment});throw e;}
 }
-const lockKey=(order)=>`${order.environment}:${order.playerId}:${order.kind==='recovery'?'recovery-'+order.recoveryDeaths:order.sku}`;
+const lockKey=(order)=>`${order.environment}:${order.playerId}:${order.kind==='recovery'?'recovery-'+order.recoveryDeaths:order.kind==='season'?'season-'+order.seasonId:order.sku}`;
 const locked=order=>['weapon','character','finish','effect','bundle','season','founder','recovery'].includes(order.kind);
 const terminal=['fulfilled','review','refund_review','refunded','disputed'];
 export function publicOrder(order) {
   return {id:String(order._id),sku:order.sku,name:order.name,cents:order.cents,currency:order.currency,environment:order.environment,
     status:order.status,checkoutUrl:['pending','verification_pending','failed'].includes(order.status)?order.checkoutUrl:null,
-    createdAt:order.createdAt,fulfilledAt:order.fulfilledAt,issue:order.issue,chargedAmount:order.chargedAmount,chargedCurrency:order.chargedCurrency};
+    createdAt:order.createdAt,fulfilledAt:order.fulfilledAt,issue:order.issue,chargedAmount:order.chargedAmount,chargedCurrency:order.chargedCurrency,includes:order.includes,seasonId:order.seasonId};
 }
 export function createPaymentService(provider) {
   const configured=()=>{if(!provider)fail('payments_not_configured',503);};
   async function ownedOrder(playerId,id){const order=await StoreOrder.findOne({_id:id,playerId});if(!order)fail('order_not_found',404);return order;}
   async function checkout(playerId,sku,key) {
-    configured();const product=getProduct(sku);if(!product?.enabled)fail('product_unavailable');
+    configured();const product=getProduct(sku);if(!product||(!product.enabled&&product.kind!=='season'))fail('product_unavailable');
     let order=await StoreOrder.findOne({playerId,key});
     if(order&&order.sku!==sku)fail('idempotency_key_conflict');
     if(!order) {
       try {order=await transaction(async session=>{
         const account=await inventory(playerId,session,provider.environment);if(account.spendingBlocked)fail('payment_account_under_review');
-        if(account.ownedIds.includes(sku)&&product.kind!=='grenades')fail('already_owned');
+        if(account.ownedIds.includes(sku)&&!['grenades','season'].includes(product.kind))fail('already_owned');
+        const season=product.kind==='season'?await currentSeason():null;
+        if(product.kind==='season'&&!season)fail('season_not_active');
+        if(season&&await StoreOrder.exists({playerId,environment:provider.environment,seasonId:season._id,status:'fulfilled'}).session(session))fail('already_owned');
         let life;
         if(product.kind==='recovery'){
           life=await MissionLife.findOne({playerId,recoveryUntil:{$gt:new Date()}}).session(session);
           if(!life)fail('recovery_not_active');
         }
         const [created]=await StoreOrder.create([{playerId,sku,key,name:product.name,cents:product.cents,kind:product.kind,quantity:product.quantity||1,
-          includes:product.includes||[],version:CATALOG_VERSION,environment:provider.environment,recoveryDeaths:life?.deaths,recoveryUntil:life?.recoveryUntil}],{session});
+          includes:product.includes||[],version:CATALOG_VERSION,environment:provider.environment,seasonId:season?._id,recoveryDeaths:life?.deaths,recoveryUntil:life?.recoveryUntil}],{session});
         if(locked(created))await StorePurchaseLock.create([{_id:lockKey(created),orderId:created._id}],{session});
         return created;
       });}catch(e){if(e.code!==11000)throw e;order=await StoreOrder.findOne({playerId,key});if(!order)fail('purchase_already_pending');}
@@ -89,9 +94,15 @@ export function createPaymentService(provider) {
       // Consumables/recovery cannot safely be undone. Freeze further spending for
       // reconciliation, never subtract spent grenades or resurrect another death.
       account.spendingBlocked=true;
-      if(current.kind==='weapon'&&status==='refunded'){
-        const other=await StoreOrder.exists({playerId:current.playerId,environment:current.environment,sku:current.sku,status:'fulfilled',_id:{$ne:current._id}}).session(session);
-        if(!other){account.ownedIds=account.ownedIds.filter(id=>id!==current.sku);if(account.equippedWeapon===current.sku)account.equippedWeapon=null;}
+      if(['weapon','character','finish','effect','bundle','founder','season'].includes(current.kind)&&status==='refunded'){
+        const revoked=new Set(entitlementIds(current));
+        for(const claim of await StoreSeasonClaim.find({sourceOrderId:current._id}).session(session))revoked.add(claim.sku);
+        const other=await StoreOrder.find({playerId:current.playerId,environment:current.environment,status:'fulfilled',_id:{$ne:current._id}}).session(session);
+        for(const kept of other)for(const id of entitlementIds(kept))revoked.delete(id);
+        const preserved=await StoreSeasonClaim.find({playerId:current.playerId,environment:current.environment,$or:[{sourceOrderId:null},{sourceOrderId:{$in:other.map(o=>o._id)}}]}).session(session);
+        for(const claim of preserved)revoked.delete(claim.sku);
+        account.ownedIds=account.ownedIds.filter(id=>!revoked.has(id));
+        for(const field of Object.values(selectionFields))if(revoked.has(account[field]))account[field]=null;
       }
       account.version++;await account.save({session});
       if(!already)await StoreLedger.create([{key:`reversal:${current._id}:${status}:${issue}`,playerId:current.playerId,orderId:current._id,kind:'reversal',sku:current.sku,detail:issue}],{session});
@@ -114,8 +125,12 @@ export function createPaymentService(provider) {
       }else if(current.kind==='grenades'){
         if(account.grenades+current.quantity>1000000){current.status='review';current.issue='inventory_limit_refund_required';await current.save({session});return;}
         account.grenades+=current.quantity;
-      }else if(current.kind==='weapon'){
-        if(!account.ownedIds.includes(current.sku))account.ownedIds.push(current.sku);
+      }else if(current.kind==='season'){
+        const season=await StoreSeason.findOne({_id:current.seasonId,status:'published',endsAt:{$gt:new Date()}}).session(session);
+        if(!season){current.status='review';current.issue='season_ended_refund_required';await current.save({session});return;}
+        if(!account.ownedIds.includes('pass'))account.ownedIds.push('pass');
+      }else if(['weapon','character','finish','effect','bundle','founder'].includes(current.kind)){
+        for(const id of entitlementIds(current))if(!account.ownedIds.includes(id))account.ownedIds.push(id);
       }else fail('fulfillment_not_implemented'); // Disabled SKUs cannot be sold by accident.
       account.version++;await account.save({session});
       await StoreLedger.create([{key:`grant:${current._id}`,playerId:current.playerId,orderId:current._id,kind:'grant',sku:current.sku,quantity:current.quantity,cents:current.cents}],{session});
@@ -199,13 +214,24 @@ export function createPaymentService(provider) {
     }
     await reconcile(order.playerId,order._id);return {linked:true};
   }
-  async function equip(playerId,sku) {
+  async function equip(playerId,sku,slot) {
     return transaction(async session=>{
       if(await MissionSession.exists({playerId,status:'active'}).session(session))fail('finish_mission_before_equipping');
       const account=await inventory(playerId,session,provider?.environment??storeEnvironment());
-      if(sku!==null&&(!account.ownedIds.includes(sku)||getProduct(sku)?.kind!=='weapon'))fail('item_not_owned');
+      if(sku!==null&&!account.ownedIds.includes(sku))fail('item_not_owned');
       if(account.spendingBlocked)fail('payment_account_under_review');
-      account.equippedWeapon=sku;account.version++;await account.save({session});return {equippedWeapon:sku};
+      const kind=getProduct(sku)?.kind;
+      if(sku&&['bundle','founder'].includes(kind)){
+        const order=await StoreOrder.findOne({playerId,environment:account.environment,sku,status:'fulfilled'}).session(session);
+        if(!order)fail('item_not_owned');
+        for(const id of entitlementIds(order)){const target=selectionSlot(id);if(target&&account.ownedIds.includes(id))account[selectionFields[target]]=id;}
+        if(kind==='founder')account.equippedIdentity='founder';
+      }else{
+        const target=slot??(sku===null?'weapon':selectionSlot(sku));
+        if(!selectionFields[target]||(sku!==null&&selectionSlot(sku)!==target&&!(target==='identity'&&sku==='founder')))fail('invalid_equipment_slot');
+        account[selectionFields[target]]=sku;
+      }
+      account.version++;await account.save({session});return {equippedWeapon:account.equippedWeapon,appearance:appearance(account)};
     });
   }
   async function attachCheckout(playerId,id,checkoutId){
@@ -223,9 +249,10 @@ export function createPaymentService(provider) {
     const environment=provider?.environment??storeEnvironment();
     const account=await inventory(playerId,undefined,environment),life=await MissionLife.findOne({playerId}).lean();
     const orders=await StoreOrder.find({playerId,environment}).sort({_id:-1}).limit(100).lean();
-    return {ownedIds:account.ownedIds,equippedIds:account.equippedWeapon?[account.equippedWeapon]:[],grenadeBalance:account.grenades,
+    const season=await seasonSnapshot(playerId,environment);
+    return {ownedIds:account.ownedIds.filter(id=>id!=='pass'||season?.hasPass),equippedIds:[...new Set(Object.values(selectionFields).map(field=>account[field]).filter(Boolean))],appearance:appearance(account),grenadeBalance:account.grenades,
       recoveryUntil:life?.recoveryUntil??null,serverTime:new Date(),spendingBlocked:account.spendingBlocked,
-      purchases:orders.map(publicOrder),catalog:paymentCatalog,configured:Boolean(provider),environment:provider?.environment??null};
+      purchases:orders.map(publicOrder),season,catalog:paymentCatalog.map(p=>p.kind==='season'?{...p,enabled:Boolean(season),reason:season?undefined:'No active season has been published by the owner.'}:p),configured:Boolean(provider),environment:provider?.environment??null};
   }
   return {checkout,reconcile,event,equip,snapshot,ownedOrder,reverse,attachCheckout};
 }

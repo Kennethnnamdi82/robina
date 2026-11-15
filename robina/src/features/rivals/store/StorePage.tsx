@@ -13,8 +13,9 @@ import './store.css';
 import './exchange.css';
 import './command-store.css';
 import {useStoreAccount} from './useStoreAccount';
-import {payments,paymentError,refreshStore} from '@/services/payments';
+import {payments,paymentError,refreshStore,equipmentSlot} from '@/services/payments';
 import PaymentReturn from './PaymentReturn';
+import SeasonRewards from './SeasonRewards';
 
 const ICONS = [Sparkles, Target, Bomb, Cross, Shield, SlidersHorizontal, Sparkles, Layers3, Badge, Crown, PackageOpen, History];
 const routeFor = (id: Category) => id === 'inventory' ? '/inventory' : id === 'history' ? '/purchase-history' : '/store/' + id;
@@ -34,7 +35,7 @@ const COPY: Partial<Record<Category,[string,string]>> = {
 
 export default function StorePage({ reduced = false, account:suppliedAccount,review=false }: { reduced?: boolean; account?: StoreAccount;review?:boolean }) {
   const store=useStoreAccount(!review&&!suppliedAccount),[equipError,setEquipError]=useState('');
-  const account:StoreAccount|undefined=suppliedAccount??(store.data?{ownedIds:store.data.ownedIds,equippedIds:store.data.equippedIds,grenadeBalance:store.data.grenadeBalance,equipment:[],purchases:store.data.purchases.map(p=>({id:p.id,product:p.name,price:p.cents/100,date:new Date(p.createdAt).toLocaleDateString(),status:p.status}))}:undefined);
+  const account:StoreAccount|undefined=suppliedAccount??(store.data?{ownedIds:store.data.ownedIds,equippedIds:store.data.equippedIds,appearance:store.data.appearance,grenadeBalance:store.data.grenadeBalance,equipment:[],purchases:store.data.purchases.map(p=>({id:p.id,product:p.name,price:p.cents/100,date:new Date(p.createdAt).toLocaleDateString(),status:p.status}))}:undefined);
   const { pathname } = useLocation();
   const requested = pathname === '/inventory' ? 'inventory' : pathname === '/purchase-history' ? 'history' : pathname.split('/')[2] || 'featured';
   const category = CATEGORIES.some(([id]) => id === requested) ? requested as Category : 'featured';
@@ -83,11 +84,11 @@ export default function StorePage({ reduced = false, account:suppliedAccount,rev
             {category === 'health' && <RecoveryPanel review={review}/>}
           </>}
         </>}
-        <footer className="rs-store-footer"><Shield size={16}/><p>THE EXCHANGE / RIVALS<small>Collection showroom — checkout is not enabled and no payment is taken</small></p><Link to="/settings">ACCESSIBILITY & SETTINGS <ArrowUpRight size={13}/></Link></footer>
+        <footer className="rs-store-footer"><Shield size={16}/><p>THE EXCHANGE / RIVALS<small>{store.data?.configured?'Secure Bachs checkout / verified delivery to your account':'Checkout requires a verified account and configured payment provider'}</small></p><Link to="/settings">ACCESSIBILITY & SETTINGS <ArrowUpRight size={13}/></Link></footer>
       </div>
     </div>
-    {selected && <ProductDialog key={selected.id} product={selectedRemote?{...selected,price:selectedRemote.cents/100,available:selectedRemote.enabled,unavailableReason:selectedRemote.reason}:selected} onClose={closeDetails} onSelect={setSelected} onPurchase={openPurchase} account={account} reduced={reduced} onEquip={async sku=>{try{await payments.equip(sku);refreshStore();closeDetails();}catch(e){setEquipError(paymentError(e));closeDetails();}}}/>}
-    {purchase && <PurchaseDialog key={purchase.id} product={purchase} onClose={closePurchase} review={review} environment={store.data?.environment??undefined}/>}
+    {selected && <ProductDialog key={selected.id} product={selectedRemote?{...selected,price:selectedRemote.cents/100,available:selectedRemote.enabled,unavailableReason:selectedRemote.reason}:selected} onClose={closeDetails} onSelect={setSelected} onPurchase={openPurchase} account={account} reduced={reduced} onEquip={async sku=>{try{await payments.equip(sku,equipmentSlot(selected.category,selected.id));refreshStore();closeDetails();}catch(e){setEquipError(paymentError(e));closeDetails();}}}/>}
+    {purchase && <PurchaseDialog key={purchase.id} product={purchase} onClose={closePurchase} review={review} environment={store.data?.environment??undefined} seasonId={store.data?.season?._id}/>}
   </div>;
 }
 function HeartStatus() { return <div className="rs-hp-mark"><Cross size={37} strokeWidth={1}/><span>100<small>HP / REFERENCE</small></span></div>; }
@@ -120,11 +121,5 @@ function Inventory({ account, onOpen }: { account?: StoreAccount; onOpen: (p: Pr
   </>;
 }
 function PurchaseHistory({ account }: { account?: StoreAccount }) { return account?.purchases.length ? <div className="rs-receipts">{account.purchases.map(p => <article key={p.id}><History size={20}/><div><h3>{p.product}</h3><small>{p.date} · {p.id}</small><Link to={'/store/payment-return?order='+p.id}>VIEW / CHECK PAYMENT</Link></div><span>{p.status.replaceAll('_',' ').toUpperCase()}</span><strong>{money(p.price)}</strong></article>)}</div> : <div className="rs-empty"><History size={40} strokeWidth={1}/><span className="rs-kicker">PURCHASE HISTORY</span><h3>NO PURCHASES YET</h3><p>Your saved orders and verified purchases appear here.</p><Link className="rs-secondary" to="/store">BACK TO THE COLLECTION <ArrowRight size={16}/></Link></div>; }
-function Season({onOpen}:{onOpen:(p:Product)=>void}) {
-  const tracks=[{name:'FREE TRACK',items:['first-aid','grenades-10','desert','salute','urban']},{name:'PREMIUM TRACK',items:['cyber','frost','midnight','protocol','golden']}];
-  return <><section className="rs-season-hero"><div><span className="rs-kicker">SEASON COLLECTION / REWARD SHOWCASE</span><h2>EVERY JOB<br/>A NEW CHAPTER</h2><p>Explore the identities and hardware in the collection</p><button className="rs-primary" onClick={()=>onOpen(findProduct('pass')!)}>INSPECT PREMIUM PASS <ArrowRight size={17}/></button><small>$6.99 / SEASON COLLECTION</small></div><ProductArt product={findProduct('golden')!} large/></section>
-    <div className="rs-section-title"><div><span className="rs-kicker">THE COLLECTION / SELECT TO INSPECT</span><h2>THE REWARD SHOWCASE</h2></div></div>
-    <div className="rs-reward-tracks">{tracks.map(track=><section key={track.name}><header><Badge size={17}/><h3>{track.name}</h3><small>COLLECTION SHOWCASE</small></header><div>{track.items.map((id,i)=>{const p=findProduct(id)!;return <button key={id} onClick={()=>onOpen(p)}><span>TIER / {String(i+1).padStart(2,'0')}</span><ProductArt product={p}/><strong>{p.name}</strong><small>INSPECT REWARD <ArrowUpRight size={12}/></small></button>;})}</div></section>)}</div>
-    <p className="rs-fineprint">Reward showcase only — no season is activated, no payment is taken and browsing never grants rewards</p></>;
-}
+function Season({onOpen}:{onOpen:(p:Product)=>void}) {return <SeasonRewards onOpen={onOpen}/>;}
 function Founder({ onOpen }: { onOpen: (p: Product) => void }) { const p = findProduct('founder')!; return <><section className="rs-founder"><div><span className="rs-kicker">FOUNDER COLLECTION / FIELD EDITION</span><Crown size={45} strokeWidth={1}/><h2>MAKE YOUR<br/><em>FIRST MARK</em></h2><p>For those who see the city before the rest<br/>A visual identity built around the beginning</p><strong>{money(p.price)} <small>USD / COLLECTION</small></strong><button className="rs-primary" onClick={() => onOpen(p)}>EXPLORE FOUNDER PACK <ArrowRight size={18}/></button><small>COLLECTION SHOWROOM / NO PAYMENT TAKEN</small></div><ProductArt product={p} large/></section><div className="rs-founder-rewards">{[[Shield, 'FOUNDER COSTUME'], [Badge, 'PROFILE BADGE'], [Crown, 'FOUNDER TITLE'], [Box, 'PROFILE BORDER'], [Sparkles, 'VICTORY ANIMATION']].map(([Icon, name]) => { const Mark = Icon as typeof Shield; return <article key={String(name)}><Mark size={29} strokeWidth={1}/><h3>{String(name)}</h3><small>FOUNDER SIGNATURE</small></article>; })}</div></>; }

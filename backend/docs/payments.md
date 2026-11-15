@@ -14,6 +14,11 @@ The website and Android use the existing authenticated first-party transport.
 Vercel's existing `VITE_API_URL` must still point to the Render backend. The
 payment allowlist does not proxy webhooks or arbitrary charge/fulfillment APIs.
 Android requires a newly built APK for the native payment allowlist change.
+Collection client capability `X-Rivals-Store-Version: 2` is forwarded by the
+first-party web relay and the new native bridge. Older builds may still buy
+their supported weapons/grenades/recovery, but cannot start a new outfit/pack/
+season payment they cannot equip or use. This is compatibility gating, not a
+replacement for payment verification or server-owned entitlements.
 
 Register `POST https://robina-1.onrender.com/api/payments/bachs/webhook` and the
 events documented in [bachs-webhook.md](bachs-webhook.md).
@@ -21,13 +26,44 @@ events documented in [bachs-webhook.md](bachs-webhook.md).
 ## What is enabled
 
 Six permanent weapons (MP5 $3, AK-47 $5, M4A1 $7, SCAR-H $10, M249 $15,
-Elite Tactical Rifle $20), grenade packs (10/$3, 20/$5, 100/$10), and $2 instant
-death recovery. All requested character/finish/emote/effect/bundle/founder/pass
-prices are in the server catalog but those products are explicitly **unavailable**:
-they are still studio previews or lack a released season/claim system. No money
-can be taken for them. Enabling a catalog flag without implementing its
-fulfillment deliberately fails closed. This is not a claim that those gameplay
-features have been implemented.
+Elite Tactical Rifle $20), grenade packs (10/$3, 20/$5, 100/$10), $2 instant
+death recovery, eight soldier uniforms, seven firearm finishes, twelve emotes/
+effects, all four soldier bundles and the founder pack have implemented delivery.
+Bundle ownership includes every promised item in the immutable order snapshot;
+one transaction delivers the entire pack, or none of it. Duplicate deliveries
+cannot grant another pack. Buying a pack containing an already-owned item is
+allowed at the displayed full pack price; no unadvertised discount/refund is inferred.
+
+The server stores independently selectable weapon, outfit, finish, emote,
+movement trail, entrance effect, victory effect and founder identity slots.
+Only owned items can be selected, and selections cannot change mid-mission.
+Equipping a bundle selects all its included slots. Purchased uniforms use the
+actual supplied collection geometry/materials, calibrated military skeleton and
+existing field animation/weapon-grip system. Armor follows body joints. No
+movement, collision, health, police or city rule changes are introduced.
+Finishes tint the primary firearm in world/first-person views. Victory emotes
+and effects play after server-reported mission success; trails and entrances
+are cosmetic-only geometry, not attacks or changes to combat visibility.
+Founder identity adds its persistent profile insignia/title/border, uniform,
+victory pose and golden extraction presentation.
+
+The owner publishes season dates and immutable free/premium reward milestones
+from standalone `/admin/payments` (Season management). The $6.99 pass cannot
+be sold before an active season is published. Progress counts only authoritative,
+integrity-verified mission wins whose server end times fall inside that season.
+Authenticated `POST /api/payments/season/claim` accepts only season/track/reward
+IDs, never client wins or balances. Each reward has a durable, immutable,
+environment/player/season/track/tier claim and one transactional ledger grant.
+Premium rewards require that season's independently verified paid pass. A new
+season requires a new pass; old receipts and earned inventory remain visible.
+Payment after the season closes is flagged for refund review, never consumed
+as a useless pass. Closing an active season stops further purchases and claims;
+the owner must communicate early closure/refund policy before accepting payment.
+No sample season is automatically published into production.
+
+Refunds revoke the refunded pack's items and selections, but preserve items
+also owned through another fulfilled purchase or a valid season reward. Test
+and production ownership never preserve one another's refunded items.
 
 Weapons equip into the primary existing slot for the next mission. Pistol,
 knife, free rifle, pickups, input, AI, city and cameras remain available.
@@ -109,6 +145,14 @@ summaries), `POST /api/admin/payments/orders/:id/reconcile` and
 only looks up the original checkout: independent Bachs verification still applies.
 Reconciliation attempts and all grants/reversals have immutable ledger records.
 There is no manual-paid or client-grant endpoint.
+
+Season administration uses owner-only `GET/POST /api/admin/payments/seasons`
+and `POST /api/admin/payments/seasons/:id/close`. Publishing requires real dates,
+known reward SKUs, unique tier IDs and integer verified-win milestones. Only
+one published season can exist at once. Dates/rewards cannot be edited after
+publication, including by ordinary Mongoose update operations. Operations are
+audited separately from financial grants. Publish a genuine campaign yourself;
+deployment does not manufacture an active season or simulate reward progress.
 
 The existing store, inventory, recovery and purchase-history screens use real
 account records. Confirmation uses Bachs only. Orders and opaque retry keys—not

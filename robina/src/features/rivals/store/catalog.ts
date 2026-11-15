@@ -34,13 +34,13 @@ export const CATALOG: readonly Product[] = [
     ['frost', 'CYBER FROST', 3.99, '#95d5e5'], ['protocol', 'GOLD PROTOCOL', 4.99, '#d8b86c'],
     ['diamond', 'DIAMOND TACTICAL', 7.99, '#c7d1e5'],
   ] as const).map(([id, name, price, accent]) => product(id, name, 'cosmetics', price, 'ARMORY / WEAPON FINISH', 'A dedicated studio finish on the supplied rifle — inspect the same finish shown in its photograph', 'weapon', accent, { model: id, finish: accent, compatibility: 'Rifle collection · cosmetic finish · unchanged field statistics' })),
-  ...([['salute','VICTORY SALUTE',2],['celebration','TACTICAL CELEBRATION',2],['dance','SOLDIER DANCE',2],['taunt','CHAMPION TAUNT',2.49],['pose','LEGENDARY VICTORY POSE',3.99]] as const).map(([id,name,price]) => product(id,name,'effects',price,'EXPRESSION / MOTION STUDY','An expression study for the collection — preview the presentation without changing your mission animations','effect','#b7c9b4')),
-  ...([['trail','NEON MOVEMENT TRAIL',2],['thunder','VICTORY THUNDER',2.49],['entrance','PHANTOM ENTRANCE',2.99],['neon-celebrate','NEON CELEBRATION',2.99],['dissolve','SHADOW DISSOLVE',3.49],['extraction','GOLDEN EXTRACTION',3.99],['explosion','LEGENDARY VICTORY EXPLOSION',5.99]] as const).map(([id,name,price]) => product(id,name,'effects',price,'SIGNATURE / EFFECT STUDY','Light, motion and a personal signature — this collection study does not alter combat visibility or damage','effect',id==='extraction'?'#d8b86c':'#91c5cc')),
+  ...([['salute','VICTORY SALUTE',2],['celebration','TACTICAL CELEBRATION',2],['dance','SOLDIER DANCE',2],['taunt','CHAMPION TAUNT',2.49],['pose','LEGENDARY VICTORY POSE',3.99]] as const).map(([id,name,price]) => product(id,name,'effects',price,'VICTORY / EQUIPPABLE EXPRESSION','Equip this expression to play on your soldier after a server-verified mission victory. No changes to combat or movement.','effect','#b7c9b4')),
+  ...([['trail','NEON MOVEMENT TRAIL',2],['thunder','VICTORY THUNDER',2.49],['entrance','PHANTOM ENTRANCE',2.99],['neon-celebrate','NEON CELEBRATION',2.99],['dissolve','SHADOW DISSOLVE',3.49],['extraction','GOLDEN EXTRACTION',3.99],['explosion','LEGENDARY VICTORY EXPLOSION',5.99]] as const).map(([id,name,price]) => product(id,name,'effects',price,'SIGNATURE / EQUIPPABLE EFFECT','An equipped cosmetic presentation: movement trails while moving, entrance on deployment, and victory effects after verified success. No damage or gameplay advantage.','effect',id==='extraction'?'#d8b86c':'#91c5cc')),
   product('starter','STARTER SOLDIER PACK','bundles',5.99,'FIELD / THREE-PIECE COLLECTION','An actual camouflage uniform, desert weapon finish and victory expression','bundle','#b8ae91',{model:'urban',includes:['urban','desert','salute']}),
   product('raider','TACTICAL RAIDER BUNDLE','bundles',9.99,'STEALTH / THREE-PIECE COLLECTION','Ballistic headgear, black response armor and a shadow-steel weapon finish','bundle','#9aadb5',{model:'shadow',includes:['shadow','steel','celebration']}),
   product('warrior','CYBER WARRIOR BUNDLE','bundles',14.99,'EXOSUIT / FOUR-PIECE COLLECTION','A sealed cyan-trimmed suit, frost weapon finish and a luminous signature','bundle','#7ccee0',{model:'cyber',includes:['cyber','frost','trail','neon-celebrate']}),
   product('legend','LEGENDARY COMMANDER PACK','bundles',19.99,'COMMAND / FOUR-PIECE COLLECTION','Command armor, gold hardware and a signature victory presentation','bundle','#d8b86c',{model:'commander',includes:['commander','protocol','pose','explosion']}),
-  product('pass','PREMIUM SEASON PASS','season',6.99,'SEASON COLLECTION / REWARD SHOWCASE','Explore curated free and premium reward tracks — season activation and claims are separate from this showcase','season','#99b9c1',{model:'golden'}),
+  product('pass','PREMIUM SEASON PASS','season',6.99,'ACTIVE SEASON / VERIFIED REWARD TRACK','Unlock the published premium reward track for this season. Rewards require the shown server-verified mission wins and must be claimed before the season ends.','season','#99b9c1',{model:'golden'}),
   product('founder','FOUNDER SUPPORTER PACK','founder',9.99,'FOUNDER / SIGNATURE COLLECTION','A dedicated field uniform with a dark carrier, founder insignia and a matching profile identity','founder','#d8b86c',{model:'founder'}),
 ];
 export const money = (value: number) => '$' + value.toFixed(2);
@@ -48,6 +48,7 @@ export const findProduct = (id: string) => CATALOG.find(p => p.id === id);
 // Read-only integration boundary. No default entitlements, payment requests,
 // local purchase ledger or health/recovery authority are created here.
 export interface StoreAccount {
+  appearance?:{outfit?:string|null;identity?:string|null};
   ownedIds: readonly string[]; equippedIds: readonly string[]; grenadeBalance: number | null;
   equipment: readonly { id: EquipmentId; ammo: number; reserve: number }[];
   purchases: readonly { id: string; product: string; price: number; date: string; status: string }[];
