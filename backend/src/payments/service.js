@@ -90,7 +90,7 @@ export function createPaymentService(provider) {
       // reconciliation, never subtract spent grenades or resurrect another death.
       account.spendingBlocked=true;
       if(current.kind==='weapon'&&status==='refunded'){
-        const other=await StoreOrder.exists({playerId:current.playerId,sku:current.sku,status:'fulfilled',_id:{$ne:current._id}}).session(session);
+        const other=await StoreOrder.exists({playerId:current.playerId,environment:current.environment,sku:current.sku,status:'fulfilled',_id:{$ne:current._id}}).session(session);
         if(!other){account.ownedIds=account.ownedIds.filter(id=>id!==current.sku);if(account.equippedWeapon===current.sku)account.equippedWeapon=null;}
       }
       account.version++;await account.save({session});
