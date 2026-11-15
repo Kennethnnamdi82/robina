@@ -10,6 +10,7 @@ import { RevokedToken } from '../models/RevokedToken.js';
 import { applyVerifiedCombatEvent } from './trustedCombat.js';
 import { saveVerifiedCheckpoint } from './trustedCheckpoints.js';
 import { settleVerifiedResult } from './trustedResults.js';
+import {inventory,reserveMissionGrenade,creditMissionGrenades} from '../payments/service.js';
 
 const unit = z.number().finite().min(-1).max(1), flag = z.boolean();
 export const liveInput = z.object({ seq: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), x: unit, y: unit,
@@ -80,6 +81,24 @@ export class LiveMissionAuthority {
         const parsed = liveAction.safeParse(input);
         if (!parsed.success) { if (typeof ack === 'function') ack({ ok: false }); return; }
         if (entry.paused && !['handoff', 'cancelHandoff', 'pickup', 'cancelPickup'].includes(parsed.data.type)) return;
+        if(parsed.data.type==='grenade'){
+          if(entry.inventoryBusy)return;
+          const sim=entry.sim;
+          if(sim.vehicles.current||!sim.controller.canAttack||sim.loadout.busy||sim.loadout.current.controller.reloadRemaining>0)return;
+          entry.inventoryBusy=true;
+          entry.work=entry.work.then(async()=>{
+            if(entry.terminal||entry.paused||entry.socket!==socket)return;
+            const supply=await reserveMissionGrenade(entry.playerId,entry.id,this.owner);
+            sim.field.quantity=supply.balance+1;
+            if(!sim.action({type:'grenade'}))throw new Error('grenade_reservation_interrupted');
+            if(typeof ack==='function')ack({ok:true});
+            entry.socket?.emit('mission:state',sim.snapshot());
+          }).catch(error=>{
+            if(error.code==='no_grenades_remaining'){sim.field.quantity=0;if(typeof ack==='function')ack({ok:false});entry.socket?.emit('mission:state',sim.snapshot());}
+            else this.fault(entry,error);
+          }).finally(()=>{entry.inventoryBusy=false;});
+          return;
+        }
         const ok = entry.sim.action(parsed.data); if (typeof ack === 'function') ack({ ok });
         this.flush(entry); entry.socket?.emit('mission:state', entry.sim.snapshot());
       });
@@ -118,6 +137,11 @@ export class LiveMissionAuthority {
       const restored = await MissionSession.updateOne({ _id: mission._id, status: 'active', authorityOwner: this.owner }, { $set: { health: checkpoint.health } });
       if (!restored.modifiedCount && mission.health !== checkpoint.health) throw new Error('mission_not_active');
     }
+    const supply=await inventory(mission.playerId);
+    sim.field.quantity=supply.spendingBlocked?0:supply.grenades;
+    if(!checkpoint&&supply.equippedWeapon)sim.loadout.equipCollection(supply.equippedWeapon,supply.ownedIds,0);
+    // Refund reconciliation revokes paid tuning even in a restored checkpoint.
+    sim.loadout.slots.forEach((slot,index)=>{if(slot?.collectionId&&!supply.ownedIds.includes(slot.collectionId))sim.loadout.collect(slot.id,index);});
     const entry = { id: String(mission._id), playerId: String(mission.playerId), sessionVersion: user.sessionVersion ?? 0,jti:ticket.jti??null,
       sim, socket: null, ready: false, paused: false, terminal: false, work: Promise.resolve(), epoch: crypto.randomUUID(),
       checkpointOrdinal: checkpoint?.ordinal ?? 0, started:Boolean(mission.startedAt), lastInputAt: Date.now(), lastPersist: Date.now(), lastAuth: Date.now(), rateCount: 0, rateAt: 0 };
@@ -136,7 +160,7 @@ export class LiveMissionAuthority {
       if (entry.terminal) { if(entry.faulted&&entry.disconnectAt&&Date.now()-entry.disconnectAt>FIVE_MINUTES)this.entries.delete(entry.id);continue; }
       if(mongoose.connection.readyState!==1){this.fault(entry,new Error('database_unavailable'));continue;}
       if (!entry.socket) { if (entry.disconnectAt && Date.now() - entry.disconnectAt > FIVE_MINUTES) { this.entries.delete(entry.id); void MissionSession.updateOne({ _id: entry.id, status: 'active' }, { $set: { status: 'expired', endedAt: new Date() } }); } continue; }
-      if (entry.ready && !entry.paused) {
+      if (entry.ready && !entry.paused && !entry.inventoryBusy) {
         if (Date.now() - entry.lastInputAt > 300) entry.sim.neutral();
         entry.accumulator = (entry.accumulator ?? 0) + delta;
         let steps = 0; while (entry.accumulator >= SIMULATION_STEP && steps++ < 6) { entry.sim.step(); entry.accumulator -= SIMULATION_STEP; if (entry.sim.mission.state !== 'ACTIVE') break; }
@@ -149,6 +173,9 @@ export class LiveMissionAuthority {
             $set: { authorityLeaseUntil: new Date(Date.now() + AUTHORITY_LEASE_MS), reconnectDeadline: new Date(Date.now() + FIVE_MINUTES) },
           });
           if (!result.matchedCount && !entry.terminal) throw new Error('mission_ownership_lost');
+          const supply=await inventory(entry.playerId);
+          if(entry.sim.loadout.action!=='throw')entry.sim.field.quantity=supply.spendingBlocked?0:supply.grenades;
+          entry.sim.loadout.slots.forEach((slot,index)=>{if(slot?.collectionId&&!supply.ownedIds.includes(slot.collectionId))entry.sim.loadout.collect(slot.id,index);});
           if (Date.now() - entry.lastAuth > 60000) {
             entry.lastAuth = Date.now(); const user = await User.findById(entry.playerId).select('accountStatus sessionVersion').lean();
             if (!user || user.accountStatus === 'suspended' || (user.sessionVersion ?? 0) !== entry.sessionVersion) throw new Error('session_revoked');
@@ -168,7 +195,8 @@ export class LiveMissionAuthority {
         if (event.type === 'health') {
           await applyVerifiedCombatEvent(entry.id, { id: `${entry.epoch}:${event.id}`, kind: event.kind, amount: event.kind === 'firstAid' ? 25 : event.amount },this.owner);
           entry.socket?.emit('mission:health', { health: entry.sim.controller.health });
-        } else if (event.type === 'grenade') await MissionSession.updateOne({ _id: entry.id, status: 'active' }, { $inc: { grenadesSpent: 1 } });
+        } else if (event.type === 'grenadePickup') await creditMissionGrenades(entry.playerId,entry.id,event.id,event.amount);
+        // Grenade actions were debited durably before the throw animation began.
         else if (event.type === 'shot') entry.socket?.emit('mission:shot', event);
       }
       if (state) await this.checkpoint(entry, milestone.id, state);

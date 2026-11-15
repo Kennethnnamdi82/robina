@@ -45,6 +45,8 @@ describe('production model delivery', () => {
   });
   it('routes bounty, mission and existing owner session APIs before the SPA fallback', () => {
     expect(config.rewrites.slice(0, -1)).toEqual([
+      { source: '/api/payments/:path*', destination: '/api/bounty-relay?__bounty_route=/api/payments/:path*' },
+      { source: '/api/admin/payments/:path*', destination: '/api/bounty-relay?__bounty_route=/api/admin/payments/:path*' },
       { source: '/api/admin/me', destination: '/api/admin-session?__admin_session_route=/api/admin/me' },
       { source: '/api/admin/login', destination: '/api/admin-session?__admin_session_route=/api/admin/login' },
       { source: '/api/admin/logout', destination: '/api/admin-session?__admin_session_route=/api/admin/logout' },

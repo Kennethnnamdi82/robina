@@ -9,6 +9,8 @@ vi.mock("@/pages/GamingRoute", () => ({ default: () => <h1>RIVALS game menu</h1>
 vi.mock("@/features/rivals/hub/GameHub", () => ({ default: () => <h1>RIVALS game menu</h1> }));
 vi.mock("@/pages/AdminLoginPage", () => ({ default: () => <h1>Owner sign in</h1> }));
 vi.mock('@/features/rivals/admin/AdminBountyPage', () => ({ default: () => <h1>Standalone bounty operations</h1> }));
+vi.mock('@/features/rivals/admin/AdminPaymentsPage',()=>({default:()=> <h1>Payments and revenue</h1>}));
+vi.mock('@/features/rivals/store/PaymentReturnNotice',()=>({default:()=> <h1>Check saved payment in your app or sign in</h1>}));
 import AppRoutes from "./AppRoutes";
 
 function Location() {
@@ -79,11 +81,19 @@ describe("game-only public entry", () => {
     render(<AppAt path="/ref/player123" />);
     expect(await screen.findByRole("heading", { name: "Sign in to RIVALS" })).toBeTruthy();
   });
-  it.each(["/admin/users", "/admin/tasks", "/admin/seasons", "/admin/payments", "/admin/ranking", "/admin/analytics", "/admin/activity"])("retires %s without exposing an old dashboard", async path => {
+  it.each(["/admin/users", "/admin/tasks", "/admin/seasons", "/admin/ranking", "/admin/analytics", "/admin/activity"])("retires %s without exposing an old dashboard", async path => {
     auth.isLoggedIn = true;
     render(<AppAt path={path} />);
     expect(await screen.findByRole("heading", { name: "RIVALS game menu" })).toBeTruthy();
     expect(screen.getByTestId("location").textContent).toBe("/");
+  });
+  it('protects new Bachs payment operations with existing owner authentication',async()=>{
+    const view=render(<AppAt path="/admin/payments"/>);expect(await screen.findByRole('heading',{name:'Owner sign in'})).toBeTruthy();view.unmount();
+    auth.isLoggedIn=auth.isAdmin=true;render(<AppAt path="/admin/payments"/>);expect(await screen.findByRole('heading',{name:'Payments and revenue'})).toBeTruthy();
+  });
+  it('keeps a public non-authoritative return notice for Android browser checkouts',async()=>{
+    render(<AppAt path="/store/payment-return?order=0123456789abcdef01234567&paid=true"/>);
+    expect(await screen.findByRole('heading',{name:'Check saved payment in your app or sign in'})).toBeTruthy();expect(screen.queryByText('RIVALS game menu')).toBeNull();
   });
   it("keeps retired dashboard links behind normal game login", async () => {
     render(<AppAt path="/admin/users" />);

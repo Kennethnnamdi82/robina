@@ -32,7 +32,7 @@ export type AuthorityAction = { type: 'vehicle' | 'grenade' | 'handoff' | 'cance
   | { type: 'weapon' | 'pickup'; slot: number };
 export type SimulationEvent = { type: 'health'; id: string; amount: number; kind: 'damage' | 'firstAid' }
   | { type: 'shot'; owner: string; origin: number[]; direction: number[]; damage: number; speed: number; range: number; life: number }
-  | { type: 'grenade' } | { type: 'checkpoint'; id: string };
+  | { type: 'grenade' } | { type: 'grenadePickup'; id: string; amount: number } | { type: 'checkpoint'; id: string };
 
 // State is serialized only by the server. These helpers preserve the existing
 // controllers' Maps, Sets and vectors without copying rendering objects.
@@ -152,10 +152,11 @@ export class MissionSimulation {
     return false;
   }
   private collect(item: FieldItems['pickups'][number], slot?: number) {
-    const health = this.controller.health;
+    const health = this.controller.health, grenades=this.field.quantity;
     const taken = this.field.take(item, this.loadout, this.controller.vitality, this.controller.health > 0, slot);
     if (taken) this.loadout.start('pickup', .35);
     if (this.controller.health > health) this.events.push({ type: 'health', id: `kit:${++this.healthSerial}`, amount: this.controller.health - health, kind: 'firstAid' });
+    if(this.field.quantity>grenades)this.events.push({type:'grenadePickup',id:item.id,amount:this.field.quantity-grenades});
     return taken;
   }
   private damage(event: DamageEvent) {
@@ -284,7 +285,7 @@ export class MissionSimulation {
   checkpoint() {
     return { version: SIMULATION_VERSION, missionId: this.missionId, seed: this.seed,
       controller: pack(this.controller, ['animations']), body: pack(this.body), mission: pack(this.mission, ['definition']),
-      loadout: pack(this.loadout, ['slots']), slots: this.loadout.slots.map(s => s ? { id: s.id, state: pack(s.controller, ['definition']) } : null),
+      loadout: pack(this.loadout, ['slots']), slots: this.loadout.slots.map(s => s ? { id: s.id, collectionId:s.collectionId, state: pack(s.controller, ['definition']) } : null),
       field: pack(this.field), enemies: this.enemies.map(e => ({ spawn: e.spawn, state: pack(e, ['config', 'home', 'spawn', 'navigation', 'grid']) })),
       cars: this.traffic.cars.map(c => pack(c, ['route', 'lengths', 'total'])), trafficTime: this.traffic.time,
       vehicle: pack(this.vehicles, ['cars', 'current', 'nearby', 'events']), currentCar: this.vehicles.current?.id ?? null,
@@ -298,6 +299,7 @@ export class MissionSimulation {
     hydrate(this.controller, state.controller); hydrate(this.body, state.body); hydrate(this.mission, state.mission);
     hydrate(this.loadout, state.loadout);
     const slots = new Loadout(state.slots.map((s: State) => s?.id));
+    state.slots.forEach((s:State,i:number)=>{if(s?.collectionId)slots.equipCollection(s.collectionId,[s.collectionId],i);});
     slots.slots.forEach((s, i) => { if (s) hydrate(s.controller, state.slots[i].state); this.loadout.slots[i] = s; });
     hydrate(this.field, state.field);
     for (const row of state.enemies) { let enemy = this.enemies.find(e => e.spawn.id === row.spawn.id); if (!enemy) { this.addEnemy(row.spawn, 0); enemy = this.enemies.at(-1)!; } hydrate(enemy, row.state); }

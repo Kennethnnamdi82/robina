@@ -27,7 +27,7 @@ function signatureHeaders(req) {
   return headers;
 }
 
-export function createBachsWebhookRoutes({ isReady, logger = defaultLogger }) {
+export function createBachsWebhookRoutes({ isReady, logger = defaultLogger, processEvent }) {
   const router = Router();
   router.post('/webhook', (req, res, next) => {
     const started = Date.now();
@@ -71,8 +71,9 @@ export function createBachsWebhookRoutes({ isReady, logger = defaultLogger }) {
     try {
       await BachsWebhookEvent.create({ _id: event.id, type: event.type,
         organizationId: event.organization_id, outcome, payloadSha256: hash(req.body) });
-      res.locals.bachsDelivery.outcome = outcome;
-      return res.status(200).json({ received: true, ignored: outcome === 'ignored' });
+      const processing = processEvent ? await processEvent(event) : null;
+      res.locals.bachsDelivery.outcome = processing?.linked ? 'order_reconciled' : outcome;
+      return res.status(200).json({ received: true, ignored: outcome === 'ignored' && !processing?.linked });
     } catch (error) {
       if (error?.code === 11000) {
         try {
@@ -85,7 +86,9 @@ export function createBachsWebhookRoutes({ isReady, logger = defaultLogger }) {
               res.locals.bachsDelivery.outcome = 'event_conflict';
               return res.status(409).json({ error: 'webhook_event_conflict' });
             }
-            // A redelivery never changes the first receipt or executes effects.
+            // The receipt is not a fulfillment marker. Retry an interrupted grant;
+            // the transactional order ledger independently enforces exactly once.
+            if (processEvent) await processEvent(event);
             res.locals.bachsDelivery.outcome = 'duplicate';
             return res.status(200).json({ received: true, duplicate: true });
           }

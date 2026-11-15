@@ -28,7 +28,8 @@ describe('standalone bounty administration', () => {
     vi.spyOn(adminBounties, 'summary').mockResolvedValue(summary);
     at(); await screen.findByText('ACTIVE BOUNTIES');
     expect(screen.getByRole('heading', { name: /BOUNTY COMMAND/ })).toBeInTheDocument();
-    expect(screen.getByRole('navigation', {name:'Standalone bounty administration'}).querySelectorAll('a')).toHaveLength(6);
+    expect(screen.getByRole('navigation', {name:'Standalone bounty administration'}).querySelectorAll('a')).toHaveLength(7);
+    expect(screen.getByRole('link',{name:'PAYMENTS & REVENUE'}).getAttribute('href')).toBe('/admin/payments');
     expect(screen.queryByRole('link', {name:/dashboard/i})).not.toBeInTheDocument();
     expect(screen.getByText(/Manual payments only/)).toBeInTheDocument();
     expect(adminBounties.summary).toHaveBeenCalled();

@@ -15,6 +15,7 @@ import './cinematic.css';
 import '../three/social.css';
 import { createPlayerEconomy, gameMoney } from '../progression/PlayerEconomy';
 import { usePlayerEconomy } from '../progression/usePlayerEconomy';
+import {StoreIdentity} from '../store/StoreIdentity';
 
 const PlayPage = lazy(() => import('./PlayPage'));
 const StorePage = lazy(() => import('../store/StorePage'));
@@ -35,7 +36,7 @@ export default function GameHub() {
   const identity = baseUser?.wallet || 'local-device';
   // Keying by identity prevents one signed-in player's browser dossier leaking
     // into another account. Bounty earnings use their own authenticated backend gateway.
-  return <Hub key={identity} identity={identity}/>;
+  return <StoreIdentity.Provider value={baseUser?.wallet??null}><Hub key={identity} identity={identity}/></StoreIdentity.Provider>;
 }
 function Hub({ identity }: { identity: string }) {
   const economy=useMemo(()=>createPlayerEconomy(identity),[identity]);

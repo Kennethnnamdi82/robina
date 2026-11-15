@@ -1,6 +1,7 @@
 import {App} from '@capacitor/app';
 import {Browser} from '@capacitor/browser';
 import {NativeSession} from './platform';
+import {handlePaymentReturn} from './paymentReturn';
 let flight:{resolve:()=>void;reject:(error:Error)=>void;timer:ReturnType<typeof setTimeout>}|undefined;
 let finishing=false;
 export const NATIVE_AUTH_EVENT='rivals:native-authenticated';
@@ -25,7 +26,8 @@ export async function startNativeLogin(){
   return result;
 }
 export async function listenForNativeLogin(){
-  const listener=await App.addListener('appUrlOpen',event=>void completeNativeLogin(event.url));
-  const initial=await App.getLaunchUrl();if(initial?.url)void completeNativeLogin(initial.url);
+  const receive=async(url:string)=>{if(!await handlePaymentReturn(url))await completeNativeLogin(url);};
+  const listener=await App.addListener('appUrlOpen',event=>void receive(event.url));
+  const initial=await App.getLaunchUrl();if(initial?.url)void receive(initial.url);
   return()=>listener.remove();
 }

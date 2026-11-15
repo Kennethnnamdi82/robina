@@ -1,5 +1,5 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { Mesh, SkinnedMesh, TextureLoader, SRGBColorSpace, Box3, Vector3, type Object3D, type AnimationClip, type BufferGeometry } from 'three';
+import { Mesh, SkinnedMesh, TextureLoader, SRGBColorSpace, Box3, Vector3, Group, type Object3D, type AnimationClip, type BufferGeometry } from 'three';
 import { MissionAssets, batchRigidParts, disposeObject, assetURL, type ModelId } from '../../rugfire/assets';
 import { createFieldKnife } from './EquipmentArt';
 import type { EquipmentId } from './Loadout';
@@ -7,6 +7,9 @@ import { CityAssets, CITY_BINARY_URLS } from './CityAssets';
 import {loadAssetBytes,warmAssetBytes} from './AssetBytes';
 import { securityGaits } from './SecurityLocomotion';
 import { finishOperative } from './OperativeFinish';
+import {collectionWeaponDefinition} from './Loadout';
+import {MODEL_URLS} from '../store/modelAssets';
+import type {ModelAsset} from '../store/catalog';
 
 /** The older batching helper removes original meshes even when a merge fails.
  * Keep mixed UV/normal layouts intact instead of losing supplied body parts. */
@@ -41,6 +44,27 @@ export const preloadRaidAssets=(progress?:(fraction:number)=>void)=>warmAssetByt
 /** Load only compatible actors/weapons needed by this raid, using the existing asset owner. */
 export class RaidAssets extends MissionAssets {
   readonly city = new CityAssets();
+  readonly collection=new Map<string,Object3D>();
+  async loadCollection(id:string){
+    if(this.collection.has(id)||!collectionWeaponDefinition(id))return;
+    const definition=collectionWeaponDefinition(id)!;
+    const source=await new GLTFLoader().parseAsync(await loadAssetBytes(MODEL_URLS[id as ModelAsset],this.stop.signal),'/assets/rivals/store/models/');
+    if(this.released){disposeObject(source.scene);return;}
+    // Retain the calibrated grip/muzzle/sight sockets and replace only geometry.
+    // Player skeleton, IK, hitboxes and animation controller are unchanged.
+    const shell=this.equipment(definition.model),targetBox=new Box3().setFromObject(shell),shape=new Group();shape.add(source.scene);
+    const initial=new Box3().setFromObject(shape).getSize(new Vector3());
+    if(initial.x>initial.z&&initial.x>initial.y)shape.rotation.y=Math.PI/2;
+    else if(initial.y>initial.z)shape.rotation.x=Math.PI/2;
+    shape.updateMatrixWorld(true);
+    const bounds=new Box3().setFromObject(shape),size=bounds.getSize(new Vector3());
+    const scale=targetBox.getSize(new Vector3()).z/Math.max(.001,size.z);
+    shape.scale.setScalar(scale);shape.position.copy(bounds.getCenter(new Vector3())).multiplyScalar(-scale).add(targetBox.getCenter(new Vector3()));
+    shell.traverse(node=>{if(node instanceof Mesh)node.visible=false;});
+    shape.traverse(node=>{if(node instanceof Mesh){node.castShadow=true;node.receiveShadow=true;}});
+    shell.add(shape);this.collection.set(id,shell);
+  }
+  collectionInstance(id:string){return this.collection.get(id)?.clone(true);}
   private knife = createFieldKnife();
   equipment(id: EquipmentId) { return id === 'knife' ? this.knife.clone(true) : this.instance(id).root; }
   private stop = new AbortController(); private released = false;
@@ -76,5 +100,5 @@ export class RaidAssets extends MissionAssets {
     } catch (error) { this.stop.abort();this.city.dispose();throw error; }
     finally { clearTimeout(timeout); }
   }
-  override dispose() { if (this.released) return; this.released = true; this.stop.abort(); this.city.dispose(); disposeObject(this.knife); super.dispose(); }
+  override dispose() { if (this.released) return; this.released = true; this.stop.abort(); this.city.dispose(); this.collection.forEach(root=>disposeObject(root));this.collection.clear();disposeObject(this.knife); super.dispose(); }
 }

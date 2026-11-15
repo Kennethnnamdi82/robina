@@ -28,6 +28,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="rivals-heist.vercel.app" android:path="/android/auth/callback" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="rivals-heist.vercel.app" android:path="/store/payment-return" />
+            </intent-filter>
         </activity>
 
         <provider

@@ -58,11 +58,10 @@ describe('frontend-only premium Exchange', () => {
   });
   it('shows the supplied M4A1 model and inspection without enabling payments', () => {
     at('/store/weapons'); fireEvent.click(screen.getByRole('button', { name: 'Details for M4A1' }));
-    const dialog = screen.getByRole('dialog'); expect(within(dialog).queryByText(/unavailable|NOT AVAILABLE/i)).toBeNull();
+    const dialog = screen.getByRole('dialog'); expect(within(dialog).getByText('NOT AVAILABLE FOR PURCHASE')).toBeTruthy();
     expect(within(dialog).getByRole('button', { name: 'INSPECT IN 3D' })).toBeTruthy();
-    expect(within(dialog).getByText('COLLECTION SHOWROOM')).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'REVIEW SELECTION' }));
-    expect(screen.getByText('PAYMENT PREVIEW / NO CHARGES')).toBeTruthy();
+    expect(within(dialog).getByText('Checking server availability.')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'UNAVAILABLE' }).hasAttribute('disabled')).toBe(true);
   });
   it('shows grenade exhaustion without inventing a free allocation', () => {
     const storage = vi.spyOn(Storage.prototype, 'setItem'); at('/store/grenades', empty);
@@ -78,7 +77,7 @@ describe('frontend-only premium Exchange', () => {
   it('can display supplied ownership, equipment and receipts without inventing equipment mutations', () => {
     const account = { ...empty, ownedIds: ['cyber'], equippedIds: ['cyber'], equipment: [{ id: 'pistol' as const, ammo: 4, reserve: 22 }], purchases: [{ id: 'receipt-from-service', product: 'CYBER PHANTOM', price: 5.99, date: '2026-11-05', status: 'verified' as const }] };
     const view = at('/inventory', account); fireEvent.click(screen.getByRole('button', { name: 'Details for CYBER PHANTOM' }));
-    expect(screen.getByRole('button', { name: 'UNEQUIP · COLLECTION-MANAGED' }).hasAttribute('disabled')).toBe(true); view.unmount();
+    expect(screen.getByRole('button', { name: 'UNEQUIP' }).hasAttribute('disabled')).toBe(true); view.unmount();
     at('/purchase-history', account); expect(screen.getByText('VERIFIED')).toBeTruthy(); expect(screen.getByText(/receipt-from-service/)).toBeTruthy();
   });
   it('shows inspectable seasonal collection rewards without inventing claims or an active season', () => {
@@ -88,7 +87,7 @@ describe('frontend-only premium Exchange', () => {
   it('supports every purchase state manually without payment calls, receipts or entitlement persistence', () => {
     const network = vi.spyOn(globalThis, 'fetch'), storage = vi.spyOn(Storage.prototype, 'setItem');
     render(<PurchaseDialog review product={findProduct('ak47')!} onClose={() => {}}/>);
-    fireEvent.click(screen.getByRole('button', { name: /Base USDC/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Bachs/ }));
     fireEvent.click(screen.getByRole('button', { name: 'PREVIEW CONFIRMATION' })); expect(screen.getByText('PAYMENT PROCESSING')).toBeTruthy();
     const select = screen.getByRole('combobox');
     for (const state of PURCHASE_STATES) fireEvent.change(select, { target: { value: state } });

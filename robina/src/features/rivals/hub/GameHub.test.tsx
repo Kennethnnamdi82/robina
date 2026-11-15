@@ -7,6 +7,9 @@ import { launchMission } from '../missions/definitions';
 const auth=vi.hoisted(()=>({baseUser:{wallet:'local-test-player'},signOut:vi.fn()}));
 vi.mock('@/context/AuthContext',()=>({useAuth:()=>auth}));
 vi.mock('./PlayPage',()=>({default:()=> <h1>3D deployment</h1>}));
+vi.mock('@/services/payments',async importOriginal=>{
+  const actual=await importOriginal<typeof import('@/services/payments')>();return {...actual,payments:{...actual.payments,store:vi.fn().mockResolvedValue({ownedIds:[],equippedIds:[],grenadeBalance:5,recoveryUntil:null,serverTime:new Date().toISOString(),spendingBlocked:false,purchases:[],catalog:[],configured:false,environment:null})}};
+});
 import GameHub from './GameHub';
 function at(path='/'){return render(<MemoryRouter initialEntries={[path]}><GameHub/></MemoryRouter>);}
 beforeEach(()=>{localStorage.clear();auth.baseUser.wallet='local-test-player';vi.spyOn(window,'scrollTo').mockImplementation(()=>{});});
@@ -53,7 +56,7 @@ describe('frontend-only game hub',()=>{
     fireEvent.click(screen.getByRole('link',{name:'STORE'}));
     expect(await screen.findByRole('heading',{name:'THE EXCHANGE'}, {timeout:10000})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'My inventory'}));
-    expect(screen.getByText('YOUR COLLECTION IS EMPTY')).toBeTruthy();
+    expect(await screen.findByText('YOUR COLLECTION IS EMPTY')).toBeTruthy();
     expect(screen.queryByText('3D deployment')).toBeNull();expect(readDossier('local-test-player').records).toEqual([]);expect(network).not.toHaveBeenCalled();
   },15000);
   it('opens live Bounty & Earn through existing navigation using only authenticated bounty reads',async()=>{

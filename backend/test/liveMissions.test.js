@@ -16,6 +16,8 @@ const { User } = await import('../src/models/User.js');
 const { RevokedToken } = await import('../src/models/RevokedToken.js');
 const { signSession } = await import('../src/middleware/auth.js');
 const models = await import('../src/missions/models.js');
+const storeModels=await import('../src/payments/storeModels.js');
+const {reserveMissionGrenade}=await import('../src/payments/service.js');
 const {consumeVerifiedLifeRecovery}=await import('../src/missions/recoveryEntitlement.js');
 let mongo, authority, server, origin, counter = 0; const sockets = [];
 before(async () => {
@@ -35,6 +37,7 @@ beforeEach(async () => {
   authority.utilisation=0;
   await mongoose.connection.dropDatabase();
   await Promise.all([User.createIndexes(), RevokedToken.createIndexes(), ...Object.values(models).map(model => model.createIndexes())]);
+  for(const model of Object.values(storeModels)){await model.createCollection();await model.createIndexes();}
 });
 async function player() { const id = ++counter; return User.create({ wallet: '0x' + id.toString(16).padStart(40, '0'), referralCode: `live-${id}` }); }
 async function api(user, path, body) {
@@ -108,18 +111,20 @@ test('reconnect restores trusted checkpoint health, ammo, enemies and pickups bu
   const user = await player(), mission = await start(user), { socket, entry } = await connect(user, mission._id);
   const sim = entry.sim;
   sim.controller.vitality.current = 70; sim.loadout.slots[0].controller.ammo = 6; sim.enemies[0].health.current = 0;
-  sim.field.quantity = 2; sim.grenadesSpent = 1;
-  await models.MissionSession.updateOne({ _id: mission._id }, { $set: { health: 70, grenadesSpent: 1 } });
+  await reserveMissionGrenade(user._id,mission._id,authority.owner);
+  sim.field.quantity = 4; sim.grenadesSpent = 1;
+  await models.MissionSession.updateOne({ _id: mission._id }, { $set: { health: 70 } });
   await authority.checkpoint(entry, 'locate');
   sim.controller.vitality.current = 30; sim.loadout.slots[0].controller.ammo = 2; sim.enemies[1].health.current = 0;
   sim.field.pickups[0].consumed = true;
-  await models.MissionSession.updateOne({ _id: mission._id }, { $set: { health: 30, grenadesSpent: 2 } });
+  await reserveMissionGrenade(user._id,mission._id,authority.owner);
+  await models.MissionSession.updateOne({ _id: mission._id }, { $set: { health: 30 } });
   const disconnected = once(socket, 'disconnect'); socket.disconnect(); await disconnected;
   await new Promise(resolve => setTimeout(resolve, 30)); await entry.work;
   const resumed = await connect(user, mission._id);
   assert.equal(resumed.entry.sim.controller.health, 70); assert.equal(resumed.entry.sim.loadout.slots[0].controller.ammo, 6);
   assert.equal(resumed.entry.sim.enemies[0].alive, false); assert.equal(resumed.entry.sim.enemies[1].alive, true);
-  assert.equal(resumed.entry.sim.field.pickups[0].consumed, false); assert.equal(resumed.entry.sim.field.quantity, 1);
+  assert.equal(resumed.entry.sim.field.pickups[0].consumed, false); assert.equal(resumed.entry.sim.field.quantity, 3);
 });
 
 test('socket tickets enforce ownership and single use; input cannot carry health, damage, position or success', async () => {

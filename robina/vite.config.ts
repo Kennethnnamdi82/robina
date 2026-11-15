@@ -16,7 +16,7 @@ export default defineConfig(({ mode, command }) => {
     }
     const api = new URL(publicEnv.VITE_API_URL);
     if (api.protocol !== 'https:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(api.hostname)) throw new Error('VITE_API_URL must point to the HTTPS production backend');
-    const forbidden = Object.keys(publicEnv).filter(key => /SECRET|PRIVATE_KEY|PASSWORD|MONGODB|JWT_SECRET/.test(key));
+    const forbidden = Object.keys(publicEnv).filter(key => /SECRET|PRIVATE_KEY|PASSWORD|MONGODB|JWT_SECRET|BACHS_API_KEY/.test(key));
     if (forbidden.length) throw new Error('Server secrets must not use the VITE_ prefix: ' + forbidden.join(', '));
   }
   return {
