@@ -134,7 +134,12 @@ export class HumanoidAnimator {
       const horizontal = frame.aiming ? Math.cos(frame.angle) : frame.vx;
       desired = (Math.abs(horizontal) > .05 ? horizontal : Math.sin(this.yaw) || 1) >= 0 ? Math.PI / 2 : -Math.PI / 2;
     }
-    if(frame.independentAim)desired=this.speed>.08?Math.atan2(frame.vx,frame.vz):this.initialized?this.yaw:desired;
+    if(frame.independentAim){
+      const aimYaw=desired;desired=this.speed>.08?Math.atan2(frame.vx,frame.vz):this.initialized?this.yaw:desired;
+      // Turn the visual stance when a requested aim exceeds the chest's safe
+      // twist. A locked pelvis otherwise made IK pull the arms backwards.
+      if(frame.aiming&&frame.pov!=='side'){const offset=Math.atan2(Math.sin(aimYaw-desired),Math.cos(aimYaw-desired));if(Math.abs(offset)>.9)desired=aimYaw-Math.sign(offset)*.9;}
+    }
     const turn = Math.atan2(Math.sin(desired - this.yaw), Math.cos(desired - this.yaw));
     if (!this.initialized) { this.yaw = desired; this.initialized = true; }
     else this.yaw += turn * (1 - Math.exp(-dt * 18));

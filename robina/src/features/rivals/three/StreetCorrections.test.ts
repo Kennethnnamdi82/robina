@@ -57,7 +57,7 @@ describe('street guidance, collision and rolling pursuit corrections',()=>{
   });
   it('a trapped occupant is killed by the actual vehicle explosion, not a camera effect',()=>{
     const car=new CitySimulation(1,1).cars[0],vehicles=new VehicleController([car]);vehicles.current=car;vehicles.damage(car,500);
-    const damage=vi.fn(),runtime={vehicles,body:{position:new Vector3(car.x,.55,car.z)},controller:{vitality:{invulnerable:1}},spatial:()=>({distance:0,pan:0}),effects:{blast:vi.fn()},fires:{blast:vi.fn()},combatAudio:{blast:vi.fn()},art:{},solids:[],damage,vehicleEventSerial:0,vehicleBurnAge:0};
+    const damage=vi.fn(),runtime={vehicles,body:{position:new Vector3(car.x,.55,car.z)},controller:{vitality:{invulnerable:1}},spatial:()=>({distance:0,pan:0}),effects:{blast:vi.fn()},fires:{blast:vi.fn()},combatAudio:{blast:vi.fn()},cameraFeedback:{blast:vi.fn()},art:{},solids:[],damage,vehicleEventSerial:0,vehicleBurnAge:0};
     (RaidRuntime.prototype as unknown as {vehicleFeedback(this:unknown,dt:number):void}).vehicleFeedback.call(runtime,.1);expect(damage).toHaveBeenCalledWith(expect.objectContaining({amount:200}));expect(runtime.controller.vitality.invulnerable).toBe(0);expect(runtime.fires.blast).toHaveBeenCalled();
   });
   it('pursues stolen valuables beyond the former timeout and fires from the car while moving',()=>{

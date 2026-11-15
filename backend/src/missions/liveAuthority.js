@@ -197,10 +197,11 @@ export class LiveMissionAuthority {
       for (const event of events) {
         if (event.type === 'health') {
           await applyVerifiedCombatEvent(entry.id, { id: `${entry.epoch}:${event.id}`, kind: event.kind, amount: event.kind === 'firstAid' ? 25 : event.amount },this.owner);
-          entry.socket?.emit('mission:health', { health: entry.sim.controller.health });
+          entry.socket?.emit('mission:health', { health: entry.sim.controller.health,kind:event.kind,amount:event.amount,angle:event.angle??0 });
         } else if (event.type === 'grenadePickup') await creditMissionGrenades(entry.playerId,entry.id,event.id,event.amount);
         // Grenade actions were debited durably before the throw animation began.
         else if (event.type === 'shot') entry.socket?.emit('mission:shot', event);
+        else if(event.type==='impact'||event.type==='blast')entry.socket?.emit('mission:effect',event);
       }
       if (state) await this.checkpoint(entry, milestone.id, state);
       if (terminal) {

@@ -15,7 +15,20 @@ export class OperativeHands {
     const glove=this.material(0x303331,.01,.88),palm=this.material(0x202423,.01,.98),panel=this.material(0x555c50,.05,.72),stitch=this.material(0x858577,0,.95),sleeve=this.material(0x343b34,0,.95),cuff=this.material(0x151a18,.02,.8);
     const capsule=this.own(new T.CapsuleGeometry(1,1,5,9)),sphere=this.own(new T.SphereGeometry(1,10,7));
     const rounded=(parent:T.Group,position:T.Vector3,scale:T.Vector3,material:T.Material)=>{const mesh=new T.Mesh(capsule,material);mesh.position.copy(position);mesh.scale.copy(scale);mesh.frustumCulled=false;parent.add(mesh);return mesh;};
-    const arm=(parent:T.Group,from:T.Vector3,to:T.Vector3)=>{const direction=new T.Vector3().subVectors(to,from),length=direction.length();const mesh=new T.Mesh(this.own(new T.CylinderGeometry(.047,.061,length,12)),sleeve);mesh.position.copy(from).add(to).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),direction.normalize());mesh.frustumCulled=false;parent.add(mesh);const band=new T.Mesh(this.own(new T.CylinderGeometry(.049,.049,.037,12)),cuff);band.position.copy(from);band.quaternion.copy(mesh.quaternion);parent.add(band);};
+    const arm=(parent:T.Group,from:T.Vector3,to:T.Vector3)=>{
+      const direction=new T.Vector3().subVectors(to,from),length=direction.length(),rotation=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),direction.normalize());
+      // Oval wrist -> muscular forearm -> elbow, not a uniform pipe. Soft
+      // fabric folds belong to the silhouette and do not need extra textures.
+      const vertices:number[]=[],indices:number[]=[],rings=16,sides=20;
+      for(let ring=0;ring<=rings;ring++){
+        const t=ring/rings,radius=.033+.029*Math.sin(t*Math.PI*.78),fold=1+Math.sin(t*38)*.025;
+        for(let side=0;side<=sides;side++){const a=side/sides*Math.PI*2;vertices.push(Math.cos(a)*radius*fold,t*length,Math.sin(a)*radius*.76*fold);if(ring<rings&&side<sides){const n=ring*(sides+1)+side;indices.push(n,n+sides+1,n+1,n+1,n+sides+1,n+sides+2);}}
+      }
+      const geometry=this.own(new T.BufferGeometry());geometry.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+      const mesh=new T.Mesh(geometry,sleeve);mesh.position.copy(from);mesh.quaternion.copy(rotation);parent.add(mesh);
+      const band=new T.Mesh(this.own(new T.CylinderGeometry(.037,.04,.036,20)),cuff);band.position.copy(from);band.quaternion.copy(rotation);parent.add(band);
+      const strap=new T.Mesh(this.own(new T.BoxGeometry(.026,.012,.008)),panel);strap.position.copy(from).add(new T.Vector3(.028,.003,.018));parent.add(strap);
+    };
     const finger=(parent:T.Group,name:string,points:T.Vector3[],radius:number,trigger=false)=>{
       const group=trigger?this.index:new T.Group();group.name=name;group.position.copy(points[0]);parent.add(group);
       const curve=new T.CatmullRomCurve3(points.map(point=>point.clone().sub(points[0]))),tube=new T.Mesh(this.own(new T.TubeGeometry(curve,14,radius,8,false)),glove);tube.frustumCulled=false;group.add(tube);

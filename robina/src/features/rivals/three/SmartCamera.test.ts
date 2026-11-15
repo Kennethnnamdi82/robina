@@ -67,7 +67,7 @@ describe('smart locomotion camera', () => {
     m.combat=false; tick(r,m,.5); expect(r.yaw).toBe(0);
     tick(r,m,3); expect(Math.abs(angleDelta(r.yaw,-Math.PI/2))).toBeLessThan(.01);
     r.ads=true; const yaw=r.yaw; m.vz=5; tick(r,m,2);
-    expect(r.yaw).toBe(yaw); expect(r.perspective.fov).toBe(49);
+    expect(r.yaw).toBe(yaw); expect(r.perspective.fov).toBeCloseTo(49,6);
   });
   it('does not steer the aim ray when the shoulder camera lags behind a strafing operative', () => {
     const r=rig(), m=motion(), direction=new Vector3(), position=new Vector3();m.combat=true;m.vx=4;

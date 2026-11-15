@@ -28,6 +28,7 @@ import './sandbox.css';
 import './command-hud.css';
 import './gameplay-clarity.css';
 import './cinematic-hud.css';
+import './cinematic-gameplay.css';
 import { CampaignOverlays, MissionRewardReceipt } from './CampaignOverlays';
 import { type PlayerEconomy } from '../progression/PlayerEconomy';
 import { missionsApi } from '@/services/missions';

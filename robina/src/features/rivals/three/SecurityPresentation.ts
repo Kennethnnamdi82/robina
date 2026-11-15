@@ -109,5 +109,5 @@ export class SecurityPresentation {
       this.fall.visible = this.deathAge < 10;
     }
   }
-  dispose() { this.owned.forEach(material => material.dispose()); this.owned.clear(); }
+  dispose() { this.weapon.dispose();this.owned.forEach(material => material.dispose()); this.owned.clear(); }
 }

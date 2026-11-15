@@ -58,6 +58,15 @@ async function start(user) {
 }
 const action = (socket, input) => new Promise(resolve => socket.emit('mission:action', input, resolve));
 
+test('confirmed impacts are delivered through the authenticated mission socket, not inferred from client projectiles',async()=>{
+  const user=await player(),mission=await start(user),{socket,entry}=await connect(user,mission._id),p=entry.sim.crowd.people[0];
+  const origin=entry.sim.body.position.clone().set(p.x,.9,p.z+.7),direction=origin.clone().set(0,0,-1);
+  entry.sim.pool.fire(origin,direction,240,1,20,20,'operative','operative');entry.sim.step();
+  const effect=once(socket,'mission:effect');authority.flush(entry);await entry.work;const [message]=await effect;
+  assert.equal(message.type,'impact');assert.equal(message.body,true);assert.equal(message.damage,20);assert.equal(p.health,40);
+  assert.equal(message.point.length,3);assert.equal(message.direction.length,3);
+});
+
 test('trusted inventory appearance reaches gameplay and refunded items are removed on refresh',async()=>{
   const user=await player();
   await storeModels.StoreInventory.create({playerId:user._id,environment:'production',ownedIds:['commander','protocol','pose'],equippedOutfit:'commander',equippedFinish:'protocol',equippedEmote:'pose'});

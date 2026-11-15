@@ -21,6 +21,8 @@ import { VehicleController, addParkedVehicles, vehicleOverlap } from '../three/V
 import { PolicePursuit } from '../three/PolicePursuit';
 import { CampaignGameplay } from '../three/CampaignGameplay';
 import { dodgeMotionScale } from '../three/dodgeMotion';
+import {PedestrianSimulation} from '../three/PedestrianSimulation';
+import {authoritativeMuzzle} from '../three/WeaponGeometry';
 
 export const SIMULATION_VERSION = 3;
 export const SIMULATION_STEP = 1 / 60;
@@ -30,7 +32,9 @@ export interface AuthorityInput extends PlayerCommand {
 }
 export type AuthorityAction = { type: 'vehicle' | 'grenade' | 'handoff' | 'cancelHandoff' | 'cancelPickup' }
   | { type: 'weapon' | 'pickup'; slot: number };
-export type SimulationEvent = { type: 'health'; id: string; amount: number; kind: 'damage' | 'firstAid' }
+export type PresentationEvent = {type:'impact';point:number[];direction:number[];body:boolean;damage:number;owner:string}
+  | {type:'blast';point:number[];radius:number;vehicle:boolean};
+export type SimulationEvent = PresentationEvent | { type: 'health'; id: string; amount: number; kind: 'damage' | 'firstAid'; angle?:number }
   | { type: 'shot'; owner: string; origin: number[]; direction: number[]; damage: number; speed: number; range: number; life: number }
   | { type: 'grenade' } | { type: 'grenadePickup'; id: string; amount: number } | { type: 'checkpoint'; id: string };
 
@@ -73,6 +77,7 @@ export class MissionSimulation {
   readonly loadout = new Loadout(); readonly field = new FieldItems(); readonly pool = new Projectile3D();
   readonly body = { position: new Vector3(), vertical: 0, grounded: true, jumpTime: 0 };
   readonly traffic; readonly vehicles; readonly police; readonly campaign; readonly navigation; readonly solids;
+  readonly crowd:PedestrianSimulation;private crowdAge=0;
   readonly enemies: TacticalEnemy[] = []; readonly targets: Target3D[] = []; readonly occupants: Solid3D[] = [];
   readonly events: SimulationEvent[] = [];
   hits = 0; firearmShots = 0; firearmHits = 0; grenadesSpent = 0; lastSequence = -1;
@@ -97,6 +102,8 @@ export class MissionSimulation {
     this.world.level.enemies.forEach((spawn, i) => this.addEnemy(spawn, i * .05));
     this.traffic = new CitySimulation(this.operation.seed); addParkedVehicles(this.traffic.cars);
     this.vehicles = new VehicleController(this.traffic.cars);
+    this.crowd=new PedestrianSimulation(this.operation.seed);this.targets.push(...this.crowd.combat.targets);
+    this.crowd.combat.onCrime=()=>{this.police.alert();this.crowd.threat(this.body.position,this.mission.elapsed);};
     this.traffic.blocked = car => this.solids.some(s => !s.id.startsWith('city-traffic-') && vehicleOverlap(car, car.x, car.z, Math.atan2(car.dx, car.dz), s));
     for (const car of this.traffic.cars) {
       const solid: Solid3D = { id: `city-traffic-${car.id}`, kind: 'cover', enabled: true, box: new Box3(),
@@ -148,7 +155,7 @@ export class MissionSimulation {
       this.controller.stop();
       if (this.vehicles.current) return this.vehicles.exit(this.body.position, this.solids);
       this.vehicles.scan(this.body.position, 28);
-      return !!this.vehicles.nearby && this.vehicles.enter(this.vehicles.nearby, this.body.position, this.solids);
+      return !!this.vehicles.nearby && this.vehicles.enter(this.vehicles.nearby, this.body.position, this.solids,car=>{this.crowd.ejectDriver(car);this.crowd.combat.sync(this.crowd.active);});
     }
     return false;
   }
@@ -162,7 +169,7 @@ export class MissionSimulation {
   }
   private damage(event: DamageEvent) {
     const amount = this.controller.receiveDamage(event);
-    if (amount) { this.mission.damage(amount); this.events.push({ type: 'health', id: `hit:${++this.healthSerial}`, amount, kind: 'damage' }); }
+    if (amount) { this.mission.damage(amount); this.events.push({ type: 'health', id: `hit:${++this.healthSerial}`, amount, kind: 'damage',angle:event.angle }); }
     if (this.controller.health <= 0) { this.mission.fail('Operative defeated before extraction.'); this.pool.clear(); this.neutral(); }
     return amount;
   }
@@ -181,6 +188,7 @@ export class MissionSimulation {
   }
   private shoot(origin: Vector3, direction: Vector3, speed: number, life: number, range: number, damage: number, owner: string, team: 'security' | 'operative') {
     if (!this.pool.fire(origin, direction, speed, life, range, damage, owner, team)) return;
+    this.crowd.threat(origin,this.mission.elapsed);
     this.events.push({ type: 'shot', origin: origin.toArray(), direction: direction.toArray(), speed, life, range, damage, owner });
   }
   private syncGeometry() {
@@ -232,6 +240,9 @@ export class MissionSimulation {
         dt, nearby, command.jump, command.jumpHeld, command.highJump);
     }
     this.legacy.x = this.body.position.x / METRES; this.legacy.y = this.body.position.z / METRES;
+    // Sidewalk AI runs at 15Hz, combat sweeps remain at 60Hz. No rendering or
+    // per-pedestrian database writes are introduced on the server.
+    this.crowd.combat.step(dt);this.crowdAge+=dt;if(this.crowdAge>=1/15){this.crowd.step(this.crowdAge,this.traffic.time,this.traffic.cars,this.body.position,this.solids.filter(s=>!s.id.startsWith('city-traffic-')),false);this.crowdAge=0;}
     this.traffic.step(dt, [{ x: this.body.position.x, z: this.body.position.z }, ...this.enemies.filter(e => e.alive).map(e => ({ x: e.x * METRES, z: e.y * METRES }))]);
     this.vehicles.scan(this.body.position, 28);
     this.police.step(dt, this.legacy, this.enemies.filter(e => e.spawn.id.startsWith('police-')).map(e => ({ x: e.x, y: e.y, alive: e.alive })));
@@ -250,18 +261,25 @@ export class MissionSimulation {
     }
     if (this.throwRelease >= 0) { this.throwRelease -= dt; if (this.throwRelease <= 0) { if (this.field.throw(this.body.position, this.aim, this.controller.health > 0)) { this.grenadesSpent++; this.events.push({ type: 'grenade' }); } this.throwRelease = -1; } }
     this.syncGeometry();
-    this.field.step(dt, this.solids, this.targets.filter(t => !t.id.startsWith('vehicle-')), (p, radius) => { this.vehicles.blast(p, radius); this.police.alert(); });
+    this.field.step(dt, this.solids, this.targets.filter(t => !t.id.startsWith('vehicle-')), (p, radius) => { this.vehicles.blast(p, radius,150,this.solids); this.police.alert();this.crowd.threat(p,this.mission.elapsed);this.events.push({type:'blast',point:p.toArray(),radius,vehicle:false}); });
     const fired = this.loadout.step(dt, command.fire && !this.vehicles.current, command.reload, this.controller.canAttack, command.touchRepeat);
     if (fired) {
-      const origin = this.body.position.clone().add(new Vector3(0, 1.23, 0)), direction = this.aim.clone().sub(origin).normalize(), w = this.loadout.definition;
-      if (w.kind === 'melee') { this.hits += meleeStrike(origin, direction, this.targets, this.solids, w.damage, w.range * METRES, this.loadout.shots); }
+      const origin = this.body.position.clone().add(new Vector3(0, 1.23, 0)),w=this.loadout.definition;
+      if(w.kind==='firearm')authoritativeMuzzle(this.body.position,this.aim,w.model as 'rifle'|'smg'|'pistol',this.solids,origin);
+      const direction=this.aim.clone().sub(origin).normalize();
+      if (w.kind === 'melee') { this.hits += meleeStrike(origin, direction, this.targets, this.solids, w.damage, w.range * METRES, this.loadout.shots,p=>this.events.push({type:'impact',point:p.toArray(),direction:direction.toArray(),body:true,damage:w.damage,owner:'operative'})); }
       else { this.firearmShots++; if (w.spread) direction.applyAxisAngle(new Vector3(0, 1, 0), this.loadout.current.controller.shotAngle(0)); this.shoot(origin, direction, this.loadout.current.id === 'pistol' ? 130 : 240, w.lifetime, w.range * METRES, w.damage, 'operative', 'operative'); }
       this.controller.attacked(); this.police.alert(); this.enemies.forEach(e => { e.hear(this.legacy); e.threat(this.legacy, { x: direction.x, y: direction.z }); });
     }
-    this.pool.step(dt, this.solids, this.targets, (_p, damage, owner) => { if (damage > 0 && owner === 'operative') { this.hits++; this.firearmHits++; } });
+    this.pool.step(dt, this.solids, this.targets, (p, damage, owner,target,direction) => {
+      if (damage > 0 && owner === 'operative') { this.hits++; this.firearmHits++; }
+      this.events.push({type:'impact',point:p.toArray(),direction:direction?.toArray()??[0,0,0],body:damage>0&&Boolean(target)&&!target!.id.startsWith('vehicle-'),damage,owner});
+    });
     for (const event of this.vehicles.drainEvents()) {
       this.police.alert(); if (event.kind !== 'explosion') continue;
-      const point = new Vector3(event.car.x, .65, event.car.z); this.vehicles.blast(point, 4.5, 75);
+      const point = new Vector3(event.car.x, .65, event.car.z); this.vehicles.blast(point, 4.5, 75,this.solids);
+      this.events.push({type:'blast',point:point.toArray(),radius:4.5,vehicle:true});
+      this.crowd.threat(point,this.mission.elapsed);
       const trapped = this.vehicles.current === event.car, distance = Math.hypot(point.x - this.body.position.x, point.z - this.body.position.z);
       if (trapped || distance < 5 && traceSolids(point, this.body.position.clone().sub(point).normalize(), this.solids.filter(s => s.id !== `city-traffic-${event.car.id}`), distance) >= distance - .1) {
         if (trapped) this.controller.vitality.invulnerable = 0;
@@ -274,7 +292,7 @@ export class MissionSimulation {
   }
   drainEvents() { return this.events.splice(0); }
   snapshot() {
-    return { version: SIMULATION_VERSION, appearance:this.appearance, inputSequence: this.lastSequence, position: this.body.position.toArray(), vertical: this.body.vertical,
+    return { version: SIMULATION_VERSION, appearance:this.appearance,civilians:this.crowd.people.slice(0,this.crowd.active).map(p=>({x:p.x,z:p.z,yaw:p.yaw,motion:p.motion,moving:p.moving,distance:p.distance,panicUntil:p.panicUntil,health:p.health??60,hitRemaining:p.hitRemaining??0,deathAge:p.deathAge??0})), inputSequence: this.lastSequence, position: this.body.position.toArray(), vertical: this.body.vertical,
       grounded: this.body.grounded, health: this.controller.health, maxHealth: this.controller.maxHealth, mission: this.mission.snapshot(),
       loadout: this.loadout.snapshot(), field: this.field.snapshot(), campaign: this.campaign.snapshot, pursuit: this.police.snapshot,
       vehicle: this.vehicles.snapshot, activeFlags: [...this.world.active],
@@ -289,6 +307,7 @@ export class MissionSimulation {
       loadout: pack(this.loadout, ['slots']), slots: this.loadout.slots.map(s => s ? { id: s.id, collectionId:s.collectionId, state: pack(s.controller, ['definition']) } : null),
       field: pack(this.field), enemies: this.enemies.map(e => ({ spawn: e.spawn, state: pack(e, ['config', 'home', 'spawn', 'navigation', 'grid']) })),
       cars: this.traffic.cars.map(c => pack(c, ['route', 'lengths', 'total'])), trafficTime: this.traffic.time,
+      pedestrians:{people:pack(this.crowd.people),combat:this.crowd.combat.checkpoint(),age:this.crowdAge},
       vehicle: pack(this.vehicles, ['cars', 'current', 'nearby', 'events']), currentCar: this.vehicles.current?.id ?? null,
       police: pack(this.police, ['cars', 'grid', 'solids', 'units']), policeUnits: (this.police as State).units.map((u: State) => ({ ...pack(u, ['car']), carId: u.car.id })),
       campaign: pack(this.campaign, ['assignment', 'mission', 'world', 'vehicles', 'police', 'navigation']),
@@ -305,6 +324,7 @@ export class MissionSimulation {
     hydrate(this.field, state.field);
     for (const row of state.enemies) { let enemy = this.enemies.find(e => e.spawn.id === row.spawn.id); if (!enemy) { this.addEnemy(row.spawn, 0); enemy = this.enemies.at(-1)!; } hydrate(enemy, row.state); }
     state.cars.forEach((row: State, i: number) => hydrate(this.traffic.cars[i], row)); this.traffic.time = state.trafficTime;
+    if(state.pedestrians){state.pedestrians.people.forEach((p:State,i:number)=>Object.assign(this.crowd.people[i],unpack(p)));this.crowd.combat.restore(state.pedestrians.combat);this.crowdAge=state.pedestrians.age;this.crowd.combat.sync(this.crowd.active);}
     hydrate(this.vehicles, state.vehicle); this.vehicles.current = state.currentCar === null ? null : this.traffic.cars[state.currentCar];
     hydrate(this.police, state.police); (this.police as State).units = state.policeUnits.map((u: State) => ({ ...unpack(u), car: this.traffic.cars[u.carId] }));
     hydrate(this.campaign, state.campaign); this.world.active.clear(); state.world.active.forEach((id: string) => this.world.active.add(id));

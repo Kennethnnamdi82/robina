@@ -43,7 +43,8 @@ export class WeaponFinish {
   private materials=new Set<Material>();
   apply(root:Object3D,id:string|null){
     root.traverse(node=>{
-      if(!(node instanceof Mesh))return;
+      if(!(node instanceof Mesh)||node.userData.rivalsNoFinish)return;
+      if(!(Array.isArray(node.material)?node.material:[node.material]).some(m=>m instanceof MeshStandardMaterial))return;
       let saved=this.meshes.get(node);if(!saved){saved={original:node.material,finish:null};this.meshes.set(node,saved);}
       if(saved.finish===id)return;
       for(const m of Array.isArray(node.material)?node.material:[node.material])if(this.materials.delete(m))m.dispose();
