@@ -11,8 +11,8 @@ export const EQUIPMENT: Record<EquipmentId,EquipmentDefinition> = {
   pistol: firearm('pistol'),smg: firearm('smg'),
   knife: { id: 'field-knife',name: 'VEX / FIELD KNIFE',model: 'knife',kind: 'melee',damage: 45,interval: .55,automatic: true,magazine: 0,reloadSeconds: 0,range: 1.8 / .025,speed: 0,lifetime: 0,spread: 0,recoil: 0,impact: 'melee',reserve: 0,maxReserve: 0 },
 };
-/** One source for collection inspection and runtime controllers. None of these
- * definitions grants ownership; checkout is intentionally still disabled. */
+/** Shared inspection/runtime tuning. Definitions never grant ownership;
+ * authoritative inventory is checked before equipping a paid platform. */
 const collectionWeapon=(id:string,name:string,model:'rifle'|'smg',damage:number,interval:number,magazine:number,range:number,reloadSeconds:number):Readonly<EquipmentDefinition>=>Object.freeze({
   ...EQUIPMENT[model],id:'collection-'+id,name,damage,interval,magazine,range:range/.025,reloadSeconds,
   automatic:true,spread:0,lifetime:1,reserve:magazine*6,maxReserve:magazine*12,

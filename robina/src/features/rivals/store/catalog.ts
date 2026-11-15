@@ -14,6 +14,7 @@ export interface Product {
   accent: string; art: 'weapon' | 'character' | 'grenade' | 'medical' | 'effect' | 'bundle' | 'season' | 'founder';
   model?: ModelAsset; reference?: EquipmentId; quantity?: number; includes?: string[];
   proposed?: { magazine: number; ammo: string }; compatibility?: string; finish?: string;
+  available?:boolean;unavailableReason?:string;
 }
 const product = (id: string, name: string, category: Category, price: number, subtitle: string, description: string, art: Product['art'], accent = '#c8b58a', extra: Partial<Product> = {}): Product => ({ id, name, category, price, subtitle, description, art, accent, ...extra });
 export const CATALOG: readonly Product[] = [
@@ -23,7 +24,7 @@ export const CATALOG: readonly Product[] = [
   product('scar', 'SCAR-H', 'weapons', 10, 'HEAVY / BATTLE RIFLE', 'A desert battle-rifle presentation built from the supplied assault platform — a distinct heavy receiver and tactical furniture', 'weapon', '#c8aa7f', { model: 'scar', reference: 'rifle', proposed: { magazine: 20, ammo: '7.62mm NATO' } }),
   product('m249', 'M249', 'weapons', 15, 'SUPPORT / HEAVY PLATFORM', 'The armory’s heavy support presentation — a supplied support-rifle silhouette with dark field hardware', 'weapon', '#a5ae90', { model: 'm249', reference: 'rifle', proposed: { magazine: 100, ammo: '5.56mm' } }),
   product('elite', 'ELITE TACTICAL RIFLE', 'weapons', 20, 'SIGNATURE / SPECIALIST', 'A specialist silhouette with machined steel furniture — a statement piece in the collection', 'weapon', '#b6aad0', { model: 'elite', reference: 'rifle', proposed: { magazine: 40, ammo: '5.56mm' } }),
-  ...([[10, 3, 'TACTICAL'], [20, 5, 'COMBAT'], [100, 10, 'ULTIMATE']] as const).map(([quantity, price, name]) => product('grenades-' + quantity, name + ' GRENADE PACK', 'grenades', price, quantity + ' GRENADES', 'Inspect the textured fragmentation grenade — package quantities do not alter your current mission stock', 'grenade', '#c6b995', { model:'grenade', quantity })),
+  ...([[10, 3, 'TACTICAL'], [20, 5, 'COMBAT'], [100, 10, 'ULTIMATE']] as const).map(([quantity, price, name]) => product('grenades-' + quantity, name + ' GRENADE PACK', 'grenades', price, quantity + ' GRENADES', 'Verified purchases refill your persistent account stock. Each throw is deducted by the server.', 'grenade', '#c6b995', { model:'grenade', quantity })),
   product('revive', 'INSTANT RECOVERY', 'health', 2, 'RECOVERY / SERVICE', 'Review the recovery selection — paid recovery never changes health without verified confirmation', 'medical', '#c89990', {model:'health'}),
   product('first-aid', 'FIRST-AID KIT', 'health', 0, 'FIELD MEDICINE / PICKUP', 'Collect medical supplies in the city to restore health using the existing field controls', 'medical', '#96b5a5', { model: 'health' }),
   ...([["urban","URBAN SOLDIER",2.99,"#b8ae91"],["neon","NEON ASSASSIN",3.99,"#a5d788"],["shadow","SHADOW RAIDER",4.99,"#9aadb5"],["cyber","CYBER PHANTOM",5.99,"#7ccee0"],["crimson","CRIMSON ROGUE",6.99,"#d18680"],["golden","GOLDEN HEIST SOLDIER",7.99,"#d4b36a"],["midnight","MIDNIGHT OPERATOR",9.99,"#809fcf"],["commander","LEGENDARY PHANTOM COMMANDER",14.99,"#b5a0d3"]] as const).map(([id,name,price,accent]) => product(id,name,'characters',price,id==='commander'?'LEGENDARY / COMMAND ARMOR':'SIGNATURE / FIELD OUTFIT',OUTFITS[id].label + ' — inspect the complete uniform, not a color swatch on the base player','character',accent,{model:id})),
@@ -49,7 +50,7 @@ export const findProduct = (id: string) => CATALOG.find(p => p.id === id);
 export interface StoreAccount {
   ownedIds: readonly string[]; equippedIds: readonly string[]; grenadeBalance: number | null;
   equipment: readonly { id: EquipmentId; ammo: number; reserve: number }[];
-  purchases: readonly { id: string; product: string; price: number; date: string; status: 'pending' | 'verified' | 'failed' | 'cancelled' }[];
+  purchases: readonly { id: string; product: string; price: number; date: string; status: string }[];
 }
 export function referenceStats(id: EquipmentId) {
   return equipmentStats(EQUIPMENT[id]);

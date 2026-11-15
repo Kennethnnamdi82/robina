@@ -77,6 +77,8 @@ export const env = {
   adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || null,
   // Optional until a Bachs webhook destination is configured; fail closed if absent.
   bachsWebhookSecret: process.env.BACHS_WEBHOOK_SECRET?.trim() || null,
+  // Compatibility for the existing sandbox setting; never accept unrelated API keys.
+  bachsApiKey: process.env.BACHS_API_KEY?.trim() || (/^sk_(sandbox|live)_/.test(process.env.API_KEY || '') ? process.env.API_KEY.trim() : null),
   siweDomain,
   siweUri,
   privyAppId: process.env.PRIVY_APP_ID || process.env.VITE_PRIVY_APP_ID || null,

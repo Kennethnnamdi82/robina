@@ -14,11 +14,15 @@ import { createBountyRoutes } from './bounties/routes.js';
 import { createLegacyBaseVerifier } from './bounties/baseTreasury.js';
 import { createMissionRoutes } from './missions/routes.js';
 import { createBachsWebhookRoutes } from './payments/bachsWebhook.js';
+import {createBachsProvider} from './payments/provider.js';
+import {createPaymentService} from './payments/service.js';
+import {createPaymentRoutes} from './payments/routes.js';
 
 
 
 export function createApp(isReady = () => mongoose.connection.readyState === 1, options = {}) {
 const app = express();
+const payments=createPaymentService(options.paymentProvider===undefined?createBachsProvider():options.paymentProvider);
 
 app.disable("x-powered-by");
 
@@ -38,7 +42,7 @@ app.use(
 
 // Provider authentication is its signature, not player cookies/browser CSRF.
 // Mount BEFORE JSON parsing, security scrubbing and request/access logging.
-app.use('/api/payments/bachs', createBachsWebhookRoutes({ isReady, logger: options.bachsWebhookLogger }));
+app.use('/api/payments/bachs', createBachsWebhookRoutes({ isReady, logger: options.bachsWebhookLogger, processEvent: payments.event }));
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 app.use((req, res, next) => {
@@ -107,6 +111,9 @@ const bountyRoutes = createBountyRoutes(options.bountyChain ?? createLegacyBaseV
 app.use('/api/bounties', bountyRoutes.player);
 app.use('/api/admin/bounties', bountyRoutes.admin);
 app.use('/api/missions', createMissionRoutes(options.missionAuthority, { allowUnverified: options.allowUnverifiedMissions === true }));
+const paymentRoutes=createPaymentRoutes(payments);
+app.use('/api/payments',paymentRoutes.player);
+app.use('/api/admin/payments',paymentRoutes.admin);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -1,4 +1,4 @@
-# Bachs webhook: receipt-only foundation
+# Bachs webhook and verified payment fulfillment
 
 Route: `POST /api/payments/bachs/webhook`.
 
@@ -8,10 +8,12 @@ After deploying the backend, register this destination in Bachs:
 https://robina-1.onrender.com/api/payments/bachs/webhook
 ```
 
-Subscribe to `collection.succeeded`, `collection.failed` and `checkout.expired`.
+Subscribe to `collection.succeeded`, `collection.failed`, `checkout.completed`,
+`checkout.expired`, `refund.created`, `refund.paid`, `refund.failed`,
+`dispute.created` and `dispute.updated`.
 Set `BACHS_WEBHOOK_SECRET` in the backend/Render environment to this endpoint's
-signing secret, not an API key. Never put it in the frontend. No Bachs API key
-is needed for this webhook-only implementation. Without the signing secret,
+signing secret, not an API key. Set `BACHS_API_KEY` for checkout and provider-side
+verification. Neither belongs in the frontend. Without the signing secret,
 the webhook fails closed with 503; existing authentication/gameplay still boot.
 
 The official `@bachs/sdk` verifies untouched raw bytes and the delivery timestamp
@@ -24,7 +26,7 @@ not signature verification; other API security gates remain unchanged.
 Verified events are acknowledged only after a majority/journaled MongoDB insert
 into `bachswebhookevents`. The event ID is the unique `_id`; concurrent requests,
 other instances and restarts cannot create a second receipt. A matching retry
-gets 200 without changing the original row. Reuse of the same ID with a
+retries independent, idempotent order processing without changing the original receipt. Reuse of the same ID with a
 different event type/organization gets 409. Duplicate lookup uses a majority
 read so a still-uncommitted/uncertain first insert is not acknowledged. Storage outages return 503 so
 Bachs can retry; an uncertain write is safely resolved by the same unique ID.
@@ -36,11 +38,17 @@ details, banking data, secrets or signature headers are persisted. Delivery logs
 contain a generated reference, hashed event reference, allowlisted event type,
 result, HTTP status and duration; they never print payloads or exception text.
 Retain receipt IDs when operating this endpoint; deleting them loses durable
-deduplication. Future payment handling needs its own fulfillment/settlement state.
+deduplication. Fulfillment is tracked independently in store orders and the immutable
+store ledger. Historical receipt-only events do not grant arbitrary products.
 
-**This endpoint does not create orders, grant products, credit any balance,
-change gameplay or call payment/withdrawal APIs. An acknowledged receipt is not
-proof of application fulfillment and is not queued for future fulfillment.**
+**An acknowledged receipt is not proof of fulfillment.** For a linked order the
+handler independently fetches the checkout and payment using the official SDK,
+checks ownership/reference/environment/base price/billing currency and actual
+payment status, then fulfills transactionally. `checkout.completed` alone never
+grants anything. The provider is paid only through its hosted checkout; this
+handler never charges a card, sends bounty USDC or executes a withdrawal.
+
+See [payment integration and release checklist](payments.md).
 
 Tests (isolated MongoDB; locally generated test signatures; no real payments):
 

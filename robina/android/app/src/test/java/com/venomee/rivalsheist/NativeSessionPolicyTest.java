@@ -37,6 +37,17 @@ public class NativeSessionPolicyTest {
         assertFalse(NativeSessionPolicy.validParameter("short"));
         assertFalse(NativeSessionPolicy.validParameter("abcdefghijklmnopqrstuvwxyz0123456789ABCDEF+"));
     }
+    @Test public void paymentsPermitOnlyPlayerStoreAndOrderRequests() {
+        String id="0123456789abcdef01234567";
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/payments/store","GET"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/payments/checkout","POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/payments/equipment","PUT"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/payments/orders/"+id+"/check","POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/payments/bachs/webhook","POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/admin/payments/orders","GET"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/payments/verify","POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/payments/checkout?price=1","POST"));
+    }
     @Test public void missionsPermitOnlyPlayerLifecycleRequests() {
         String id="0123456789abcdef01234567";
         assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/eligibility", "GET"));

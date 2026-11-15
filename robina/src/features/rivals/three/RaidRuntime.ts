@@ -104,7 +104,7 @@ export class RaidRuntime {
   private cameraMotion:CameraMotion={vx:0,vz:0,sprinting:false,combat:false,manual:false,vehicle:null};
   private cameraVehicle:CameraVehicleMotion={id:0,heading:0,speed:0,length:4.1};
   private cameraLook={x:0,y:0};
-  private playerModels = new Map<EquipmentId,T.Object3D>(); private viewModels = new Map<EquipmentId,T.Object3D>(); private equipped?: EquipmentId;
+  private playerModels = new Map<string,T.Object3D>(); private viewModels = new Map<string,T.Object3D>(); private equipped?: string;
   private fieldArt?: FieldArt; private touchWasMoving = false; private throwRelease = -1;
   private noticeAge = 0; private notice = '';
   private weaponEnvironment?: T.WebGLRenderTarget;
@@ -226,6 +226,7 @@ export class RaidRuntime {
       const operative = this.assets.instance('player');
       this.humanoid = new HumanoidAnimator(this.player,operative.root,operative.clips);
       for (const id of Object.keys(EQUIPMENT) as EquipmentId[]) { this.playerModels.set(id,this.assets.equipment(id)); this.viewModels.set(id,this.assets.equipment(id)); }
+      for(const slot of this.session.authority?.latest?.loadout.slots??[]){if(slot?.collectionId){await this.assets.loadCollection(slot.collectionId);this.playerModels.set(slot.collectionId,this.assets.collectionInstance(slot.collectionId)!);this.viewModels.set(slot.collectionId,this.assets.collectionInstance(slot.collectionId)!);}}
       this.equip();
       this.socialScene=new SocialScene(this.assets.city.humanoid!,this.session.operation.assignment===undefined?undefined:assignmentAt(this.session.operation.assignment));this.scene.add(this.socialScene.root);
       mountActor(this.bossActor,this.assets); this.bossPresentation = new SecurityPresentation(this.bossActor,this.assets.instance('rifle').root,this.assets.models.get('boss')!.animations);
@@ -274,7 +275,7 @@ export class RaidRuntime {
   setPOV(pov: POV) { this.cameraFeedback.restore();this.cameraFeedback.clear();if (pov !== this.rig.pov) { this.rig.yaw = -this.controller.aimAngle - Math.PI / 2; this.rig.setPOV(pov); } this.needsDraw = true; this.publish(); }
   cyclePOV = () => this.setPOV((['tactical','side','third','first'] as POV[])[(['tactical','side','third','first'].indexOf(this.rig.pov) + 1) % 4]);
   private equip() {
-    const id = this.loadout.current.id; if (this.equipped === id && this.gun) return;
+    const id = this.loadout.current.collectionId??this.loadout.current.id; if (this.equipped === id && this.gun) return;
     this.flash?.dispose(); this.viewFlash?.dispose(); this.gun?.model.removeFromParent(); this.viewGun?.model.removeFromParent(); this.viewGun?.dispose(); this.viewGun?.root.removeFromParent();
     const playerModel=this.playerModels.get(id),viewModel=this.viewModels.get(id);
     if (!playerModel || !viewModel) throw new Error(`Selected weapon model is unavailable: ${id}`);
@@ -472,7 +473,7 @@ export class RaidRuntime {
     if(this.vehicles)this.vehicles.current=state.vehicle.driving?this.vehicles.cars.find(c=>c.id===state.vehicle.id)??null:null;
     if(this.pursuit){this.pursuit.active=state.pursuit.active;this.pursuit.lost=state.pursuit.lost;this.pursuit.quiet=state.pursuit.evading;}
     if(this.campaign){const {witness,...campaign}=state.campaign;Object.assign(this.campaign,campaign);if(witness)Object.assign(this.campaign.witness,{x:witness.x,y:witness.y});}
-    state.loadout.slots.forEach((slot,index)=>{if(!slot){this.loadout.slots[index]=null;return;}if(this.loadout.slots[index]?.id!==slot.id)this.loadout.slots[index]=new Loadout([slot.id]).slots[0];const local=this.loadout.slots[index]!.controller;local.ammo=slot.ammo;local.reserve=slot.reserve;local.reloadRemaining=slot.reload;});
+    state.loadout.slots.forEach((slot,index)=>{if(!slot){this.loadout.slots[index]=null;return;}if(this.loadout.slots[index]?.id!==slot.id||this.loadout.slots[index]?.collectionId!==slot.collectionId){this.loadout.slots[index]=new Loadout([slot.id]).slots[0];if(slot.collectionId)this.loadout.equipCollection(slot.collectionId,[slot.collectionId],index);}const local=this.loadout.slots[index]!.controller;local.ammo=slot.ammo;local.reserve=slot.reserve;local.reloadRemaining=slot.reload;});
     this.loadout.active=state.loadout.active;this.loadout.shots=state.loadout.shots;this.loadout.action=state.loadout.action;this.loadout.remaining=state.loadout.remaining;this.throwRelease=state.loadout.action==='throw'&&state.loadout.remaining>.37?.18:-1;this.equip();
     for(const item of state.field.pickups){this.field.add(item.id,new T.Vector3().fromArray(item.position),item.supply);this.field.pickups.find(p=>p.id===item.id)!.consumed=item.consumed;}
     this.field.quantity=state.field.quantity;this.field.pending=state.field.pending;this.field.message=state.field.message;
