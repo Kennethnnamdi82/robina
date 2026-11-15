@@ -6,7 +6,7 @@ import PurchaseDialog from './PurchaseDialog';
 import {StoreIdentity} from './StoreIdentity';
 import {findProduct} from './catalog';
 import {payments,type PaymentOrder,type StoreSnapshot} from '@/services/payments';
-vi.mock('@/services/payments',()=>({payments:{store:vi.fn(),checkout:vi.fn(),check:vi.fn(),order:vi.fn(),equip:vi.fn()},paymentError:()=> 'Payment unconfirmed. Check the same order.',refreshStore:vi.fn(),STORE_CHANGED:'rivals:store-changed'}));
+vi.mock('@/services/payments',async importOriginal=>({...await importOriginal<typeof import('@/services/payments')>(),payments:{store:vi.fn(),checkout:vi.fn(),check:vi.fn(),order:vi.fn(),equip:vi.fn(),claim:vi.fn()},paymentError:()=> 'Payment unconfirmed. Check the same order.',refreshStore:vi.fn(),STORE_CHANGED:'rivals:store-changed'}));
 const pending:PaymentOrder={id:'0123456789abcdef01234567',sku:'mp5',name:'MP5',cents:300,currency:'USD',environment:'sandbox',status:'pending',checkoutUrl:'https://checkout.bachs.io/c/test',createdAt:'2026-11-14T12:00:00Z'};
 const snapshot:StoreSnapshot={ownedIds:[],equippedIds:[],grenadeBalance:5,recoveryUntil:null,serverTime:'2026-11-14T12:00:00Z',spendingBlocked:false,purchases:[],configured:true,environment:'sandbox',catalog:[{id:'mp5',name:'MP5',cents:300,currency:'USD',kind:'weapon',enabled:true},{id:'urban',name:'Urban Soldier',cents:299,currency:'USD',kind:'character',enabled:false,reason:'Not released.'},{id:'grenades-10',name:'10 grenades',cents:300,currency:'USD',kind:'grenades',enabled:true}]};
 function mount(sku='mp5',orderId?:string,identity='wallet-a'){

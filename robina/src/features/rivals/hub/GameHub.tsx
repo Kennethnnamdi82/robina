@@ -16,6 +16,7 @@ import '../three/social.css';
 import { createPlayerEconomy, gameMoney } from '../progression/PlayerEconomy';
 import { usePlayerEconomy } from '../progression/usePlayerEconomy';
 import {StoreIdentity} from '../store/StoreIdentity';
+import FounderIdentity from '../store/FounderIdentity';
 
 const PlayPage = lazy(() => import('./PlayPage'));
 const StorePage = lazy(() => import('../store/StorePage'));
@@ -64,6 +65,7 @@ function Hub({ identity }: { identity: string }) {
     <header className="rh-topbar"><Link to="/" className="rh-brand" aria-label="RIVALS lobby"><span className="rh-crest"><Swords size={24}/></span><span><strong>RIVALS</strong><small>RIVAL HEIST</small></span></Link><span className="rh-status"><i/> SOLO OPERATIONS</span><div className="rh-campaign-wallet" aria-label="Campaign balances"><span>REVIVE COINS<strong>{balances.coins.toLocaleString()}</strong></span><span>MISSION CASH<strong>{gameMoney(balances.cash)}</strong></span></div><Link to="/profile" className="rh-header-profile"><span className="rh-mini-emblem"><Shield size={18}/></span><span><strong>{dossier.callsign}</strong><small>{stats.rank.name} · DEVICE PROFILE</small></span></Link><button className="rh-icon-button" aria-label="Exit game menu" onClick={() => setExitOpen(true)}><LogOut size={18}/></button></header>
     {pathname !== '/' && <nav className="rh-subnav" aria-label="Game navigation">{NAV.map(({to,label,icon:Icon}) => <NavLink key={to} end={to==='/'} to={to}><Icon size={14}/>{label}</NavLink>)}</nav>}
     <main id="rh-content" ref={title} className={pathname === '/' ? 'rh-main rh-main-lobby' : 'rh-main'}>
+      {pathname==='/profile'&&<FounderIdentity/>}
       <Routes>
         <Route index element={<Lobby dossier={dossier} cash={balances.cash} coins={balances.coins} awards={Object.keys(balances.rewards).length} onExit={() => setExitOpen(true)}/>}/>
         <Route path="missions" element={<Missions dossier={dossier}/>}/>

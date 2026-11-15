@@ -14,7 +14,8 @@ const {env}=await import('../src/config/env.js');
 const {createApp}=await import('../src/app.js');
 const {signSession}=await import('../src/middleware/auth.js');
 const {User}=await import('../src/models/User.js');
-const {StoreOrder,StoreInventory,StoreLedger}=await import('../src/payments/storeModels.js');
+const {StoreOrder,StoreInventory,StoreLedger,StoreSeason,StoreSeasonClaim}=await import('../src/payments/storeModels.js');
+const {publishSeason,claimReward,closeSeason}=await import('../src/payments/seasons.js');
 const {MissionLife,MissionSession}=await import('../src/missions/models.js');
 const {createPaymentService,inventory,reserveMissionGrenade}=await import('../src/payments/service.js');
 let mongo,server,origin,provider,service,serial=1000;
@@ -51,7 +52,7 @@ beforeEach(async()=>{
 after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));await mongoose.disconnect();await mongo?.stop();});
 const player=()=>{const id=++serial;return User.create({wallet:'0x'+id.toString(16).padStart(40,'0'),referralCode:'pay-'+id});};
 async function api(user,path,body,method='POST',key=randomUUID(),headers={}){
-  const response=await fetch(origin+path,{method,headers:{'content-type':'application/json','x-rivals-payments':'1','idempotency-key':key,...(user?{cookie:'bd_session='+signSession(user.wallet)}:{}),...headers},...(method!=='GET'?{body:JSON.stringify(body??{})}:{})});
+    const response=await fetch(origin+path,{method,headers:{'content-type':'application/json','x-rivals-payments':'1','x-rivals-store-version':'2','idempotency-key':key,...(user?{cookie:'bd_session='+signSession(user.wallet)}:{}),...headers},...(method!=='GET'?{body:JSON.stringify(body??{})}:{})});
   return {status:response.status,body:await response.json()};
 }
 const checkout=(user,sku='mp5',key=randomUUID())=>api(user,'/api/payments/checkout',{sku},'POST',key);
@@ -187,8 +188,101 @@ test('refund revocation ignores fulfilled purchases in the other payment environ
   assert.deepEqual(production.ownedIds,['mp5']);assert.deepEqual(production.equippedIds,['mp5']);assert.equal(production.spendingBlocked,false);
 });
 
-test('unsupported previews, bundles and unconfigured season cannot be paid placeholders',async()=>{
-  const user=await player();for(const sku of ['urban','pass','founder','legend','dance'])assert.equal((await checkout(user,sku)).body.error,'product_unavailable');assert.equal(provider.calls,0);
+test('an unconfigured season and unknown products cannot be sold',async()=>{
+  const user=await player();assert.equal((await checkout(user,'pass')).body.error,'season_not_active');assert.equal((await checkout(user,'not-a-product')).body.error,'product_unavailable');assert.equal(provider.calls,0);
+});
+test('older clients cannot pay for collection types they cannot equip',async()=>{
+  const user=await player(),headers={'x-rivals-store-version':''};
+  const legacy=await api(user,'/api/payments/store',undefined,'GET',randomUUID(),headers);
+  assert.equal(legacy.body.catalog.find(p=>p.id==='urban').enabled,false);assert.equal(legacy.body.catalog.find(p=>p.id==='mp5').enabled,true);
+  assert.equal((await api(user,'/api/payments/checkout',{sku:'starter'},'POST',randomUUID(),headers)).body.error,'store_update_required');assert.equal(provider.calls,0);
+  assert.equal((await checkout(user,'starter')).body.status,'pending');
+});
+
+test('every soldier outfit is delivered and selected with server-owned appearance',async()=>{
+  const user=await player();
+  for(const sku of ['urban','neon','shadow','cyber','crimson','golden','midnight','commander']){
+    const order=(await checkout(user,sku)).body;assert.equal(order.status,'pending');assert.equal((await service.snapshot(user._id)).ownedIds.includes(sku),false);
+    provider.paid(order);await webhook(order);assert.equal((await api(user,'/api/payments/equipment',{sku},'PUT')).status,200);
+    assert.equal((await service.snapshot(user._id)).appearance.outfit,sku);await assert.rejects(()=>service.checkout(user._id,sku,randomUUID()),/already_owned/);
+  }
+  assert.equal((await api(user,'/api/payments/equipment',{sku:'urban',slot:'weapon'},'PUT')).status,409);
+  assert.equal((await api(user,'/api/payments/equipment',{sku:null,slot:'outfit'},'PUT')).status,200);assert.equal((await service.snapshot(user._id)).appearance.outfit,null);
+});
+
+test('all four packs grant every promised item once and equip their distinct slots',async()=>{
+  for(const [sku,expected]of [['starter',['urban','desert','salute']],['raider',['shadow','steel','celebration']],['warrior',['cyber','frost','trail','neon-celebrate']],['legend',['commander','protocol','pose','explosion']]]){
+    const user=await player(),order=(await checkout(user,sku)).body;provider.paid(order);
+    await Promise.all(Array.from({length:4},()=>webhook(order,'collection.succeeded','evt-pack-'+sku)));
+    const state=await service.snapshot(user._id);for(const id of [sku,...expected])assert(state.ownedIds.includes(id));assert.equal(await StoreLedger.countDocuments({key:'grant:'+order.id}),1);
+    await service.equip(user._id,sku);const equipped=await service.snapshot(user._id);for(const id of expected)assert(equipped.equippedIds.includes(id));
+    assert.equal(equipped.appearance.outfit,expected[0]);assert.equal(equipped.appearance.finish,expected[1]);
+  }
+});
+
+test('bundle grants are all-or-nothing on delivery failure and recover on the same order',async()=>{
+  const user=await player(),order=(await checkout(user,'legend')).body;provider.paid(order);
+  const original=StoreLedger.create;StoreLedger.create=async()=>{throw new Error('isolated bundle delivery rollback');};
+  try{assert.equal((await webhook(order)).status,503);}finally{StoreLedger.create=original;}
+  assert.deepEqual((await service.snapshot(user._id)).ownedIds,[]);assert.equal((await StoreOrder.findById(order.id)).status,'paid');
+  await service.reconcile(user._id,order.id);assert.equal((await service.snapshot(user._id)).ownedIds.length,5);assert.equal(provider.calls,1);
+});
+
+test('refunded bundles revoke selections but preserve independently purchased included items',async()=>{
+  const user=await player(),direct=(await checkout(user,'urban')).body;provider.paid(direct);await webhook(direct);
+  const pack=(await checkout(user,'starter')).body,payment=provider.paid(pack);await webhook(pack);await service.equip(user._id,'starter');
+  await StoreOrder.updateOne({_id:pack.id},{$set:{includes:['commander']}});assert.deepEqual((await StoreOrder.findById(pack.id)).includes.toObject(),['urban','desert','salute']);
+  payment.status='refunded';provider.payments.set(payment.payment_id,payment);await service.reconcile(user._id,pack.id);
+  const state=await service.snapshot(user._id);assert.deepEqual(state.ownedIds,['urban']);assert.equal(state.appearance.outfit,'urban');assert.equal(state.appearance.finish,null);assert.equal(state.appearance.emote,null);
+});
+
+test('founder delivery unlocks its actual uniform, victory presentation and profile identity',async()=>{
+  const user=await player(),order=(await checkout(user,'founder')).body;provider.paid(order);await webhook(order);await service.equip(user._id,'founder');
+  const state=await service.snapshot(user._id);assert.deepEqual(state.ownedIds,['founder','pose','extraction']);assert.equal(state.appearance.outfit,'founder');assert.equal(state.appearance.identity,'founder');assert.equal(state.appearance.emote,'pose');assert.equal(state.appearance.effect,'extraction');
+});
+
+test('all finishes and expressions have real ownership and isolated selection slots',async()=>{
+  const user=await player();
+  for(const sku of ['desert','pulse','steel','fire','frost','protocol','diamond','salute','celebration','dance','taunt','pose','trail','thunder','entrance','neon-celebrate','dissolve','extraction','explosion']){
+    const order=await service.checkout(user._id,sku,randomUUID());assert.equal(order.status,'pending');provider.paid(order);await webhook(order);await service.equip(user._id,sku);
+    assert((await service.snapshot(user._id)).equippedIds.includes(sku));
+  }
+  const state=await service.snapshot(user._id);assert.equal(state.appearance.trail,'trail');assert.equal(state.appearance.entrance,'entrance');assert.equal(state.appearance.effect,'explosion');
+});
+
+test('published seasons use verified wins, paid premium access and exactly-once reward claims',async()=>{
+  const user=await player(),season=await publishSeason({_id:'season-a',name:'Real owner campaign',startsAt:new Date(Date.now()-60000),endsAt:new Date(Date.now()+86400000),free:[{id:'one',sku:'desert',wins:1}],premium:[{id:'one',sku:'cyber',wins:1}]},'test-owner');
+  assert.equal((await service.snapshot(user._id)).catalog.find(p=>p.id==='pass').enabled,true);
+  await assert.rejects(()=>claimReward(user._id,season.id,'free','one','sandbox'),/season_progress_required/);
+  await assert.rejects(()=>claimReward(user._id,season.id,'premium','one','sandbox'),/premium_pass_required/);
+  await MissionSession.create({playerId:user._id,missionId:'test',configVersion:3,status:'verified_success',authority:true,integrity:'verified',endedAt:new Date()});
+  await Promise.all(Array.from({length:6},()=>claimReward(user._id,season.id,'free','one','sandbox')));
+  const order=(await checkout(user,'pass')).body;provider.paid(order);await webhook(order);await claimReward(user._id,season.id,'premium','one','sandbox');
+  const state=await service.snapshot(user._id);assert.equal(state.season.wins,1);assert.equal(state.season.hasPass,true);assert(state.ownedIds.includes('cyber'));assert.equal(await StoreSeasonClaim.countDocuments({playerId:user._id}),2);
+  assert.equal((await api(user,'/api/payments/season/claim',{seasonId:season.id,track:'premium',rewardId:'one',wins:100})).status,400);
+  await assert.rejects(()=>StoreSeason.updateOne({_id:season.id},{$set:{premium:[{id:'one',sku:'commander',wins:0}]}}),/immutable_season_terms/);
+  await assert.rejects(()=>StoreSeason.updateOne({_id:season.id},{$set:{'premium.0.sku':'commander'}}),/immutable_season_terms/);assert.equal((await StoreSeason.findById(season.id)).premium[0].sku,'cyber');
+  const payment=provider.payments.get('pay_'+order.id);payment.status='refunded';await service.reconcile(user._id,order.id);
+  const revoked=await service.snapshot(user._id);assert(revoked.ownedIds.includes('desert'));assert(!revoked.ownedIds.includes('cyber'));assert.equal(revoked.season.hasPass,false);
+  await assert.rejects(()=>claimReward(user._id,season.id,'premium','one','sandbox'),/payment_account_under_review/);
+  await closeSeason(season.id,'test-owner');assert.equal((await service.snapshot(user._id)).season,null);
+});
+
+test('season administration is owner-only, strict and cannot overlap active publications',async()=>{
+  const user=await player();assert.equal((await api(user,'/api/admin/payments/seasons',undefined,'GET')).status,401);
+  const input={_id:'admin-season',name:'Campaign',startsAt:new Date(Date.now()-1000),endsAt:new Date(Date.now()+86400000),free:[{id:'one',sku:'desert',wins:1}],premium:[{id:'one',sku:'urban',wins:2}]};
+  const token=jwt.sign({sub:'admin',role:'admin',email:env.adminEmail},env.jwtSecret,{issuer:'basedrop-admin',audience:'basedrop-admin',expiresIn:'1h',jwtid:randomUUID()});
+  const {_id,...body}=input;const created=await api(null,'/api/admin/payments/seasons',{...body,startsAt:body.startsAt.toISOString(),endsAt:body.endsAt.toISOString()},'POST',randomUUID(),{cookie:'bd_admin='+token});assert.equal(created.status,201);
+  await assert.rejects(()=>publishSeason({...input,_id:'other'},'test-owner'),/close_existing_season_first/);
+  await assert.rejects(()=>publishSeason({...input,_id:'invalid',free:[{id:'one',sku:'pass',wins:1}]},'test-owner'),/invalid_season_reward/);
+});
+
+test('a closed season never substitutes an old pass for the next season or credits a late payment',async()=>{
+  const user=await player(),input={_id:'season-old',name:'Owner campaign',startsAt:new Date(Date.now()-60000),endsAt:new Date(Date.now()+86400000),free:[{id:'one',sku:'desert',wins:1}],premium:[{id:'one',sku:'urban',wins:1}]};
+  await publishSeason(input,'owner');const first=await service.checkout(user._id,'pass',randomUUID());provider.paid(first);await service.reconcile(user._id,first.id);
+  await closeSeason(input._id,'owner');await publishSeason({...input,_id:'season-next'},'owner');assert.equal((await service.snapshot(user._id)).season.hasPass,false);assert(!(await service.snapshot(user._id)).ownedIds.includes('pass'));
+  const next=await service.checkout(user._id,'pass',randomUUID());assert.notEqual(next.id,first.id);await closeSeason('season-next','owner');provider.paid(next);await service.reconcile(user._id,next.id);
+  const saved=await StoreOrder.findById(next.id);assert.equal(saved.status,'review');assert.equal(saved.issue,'season_ended_refund_required');
 });
 test('a delivery transaction failure retains a paid order and retries one grant without another checkout',async()=>{
   const user=await player(),order=(await checkout(user,'grenades-10')).body;provider.paid(order);

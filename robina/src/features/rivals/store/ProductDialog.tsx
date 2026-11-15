@@ -4,10 +4,11 @@ import { ArrowRight, Box, Pause, Play, Rotate3D, ShieldCheck, X } from 'lucide-r
 import { CATALOG, money, referenceStats, collectionStats, type Product, type StoreAccount } from './catalog';
 import { OUTFITS, OUTFIT_EDITIONS, isOutfit } from './outfits';
 import ProductArt from './ProductArt';
+import {canEquip} from '@/services/payments';
 const ModelPreview = lazy(() => import('./ModelPreview'));
 export default function ProductDialog({ product:p,onClose,onPurchase,onSelect,account,reduced,onEquip }: {product:Product;onClose:()=>void;onPurchase:(p:Product)=>void;onSelect:(p:Product)=>void;account?:StoreAccount;reduced:boolean;onEquip?:(sku:string|null)=>Promise<void>}) {
   const [studio,setStudio]=useState(false),[playing,setPlaying]=useState(false);
-  const owned=account?.ownedIds.includes(p.id),equipped=account?.equippedIds.includes(p.id),outfit=p.model&&isOutfit(p.model)?OUTFITS[p.model]:undefined;
+  const owned=account?.ownedIds.includes(p.id),equipped=p.category==='founder'&&account?.appearance?account.appearance.outfit===p.id:account?.equippedIds.includes(p.id),outfit=p.model&&isOutfit(p.model)?OUTFITS[p.model]:undefined;
   return <Dialog.Root open onOpenChange={open=>{if(!open)onClose();}}><Dialog.Portal><Dialog.Overlay className="rs-overlay"/><Dialog.Content className="rs-dialog rs-product-dialog" data-reduced={reduced} aria-describedby="rs-product-description">
     <Dialog.Close className="rs-close" aria-label="Close product details"><X size={20}/></Dialog.Close>
     <div className="rs-detail-stage"><div className="rs-stage-label"><span>RIVALS / COLLECTION STUDIO</span><span>360° INSPECTION</span></div>
@@ -25,7 +26,7 @@ export default function ProductDialog({ product:p,onClose,onPurchase,onSelect,ac
       {p.includes&&<><h3>THE COMPLETE COLLECTION</h3><div className="rs-bundle-items">{p.includes.map(id=>{const item=CATALOG.find(p=>p.id===id)!;return <button key={id} onClick={()=>onSelect(item)}><ProductArt product={item}/><span>{item.name}<small>INSPECT INCLUDED ITEM</small></span><ArrowRight size={14}/></button>;})}</div></>}
       {p.category==='founder'&&<ul className="rs-inclusions">{['Founder field uniform','Profile badge','Founder title','Signature profile border','Victory presentation'].map(text=><li key={text}><Box size={14}/>{text}</li>)}</ul>}
       <div className="rs-availability"><ShieldCheck size={17}/><p>{p.available?'AVAILABLE / BACHS CHECKOUT':'NOT AVAILABLE FOR PURCHASE'}<small>{p.available?'Payment is verified by the server before delivery.':p.unavailableReason??'Gameplay integration has not been released. Preview only.'}</small></p></div>
-      {owned?<button className="rs-primary" disabled={!onEquip||p.category!=='weapons'} onClick={()=>void onEquip?.(equipped?null:p.id)}>{equipped?'UNEQUIP':'EQUIP FOR NEXT DEPLOYMENT'}</button>:p.price>0&&<button className="rs-primary" disabled={p.available===false} onClick={()=>onPurchase(p)}>{p.available===false?'UNAVAILABLE':'REVIEW SELECTION'} <ArrowRight size={17}/></button>}
+      {owned?<button className="rs-primary" disabled={!onEquip||!canEquip(p.category)} onClick={()=>void onEquip?.(equipped?null:p.id)}>{equipped?'UNEQUIP':p.category==='bundles'?'EQUIP PACK CONTENTS':'EQUIP FOR NEXT DEPLOYMENT'}</button>:p.price>0&&<button className="rs-primary" disabled={p.available===false} onClick={()=>onPurchase(p)}>{p.available===false?'UNAVAILABLE':'REVIEW SELECTION'} <ArrowRight size={17}/></button>}
     </div>
   </Dialog.Content></Dialog.Portal></Dialog.Root>;
 }

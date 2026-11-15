@@ -11,6 +11,7 @@ import { applyVerifiedCombatEvent } from './trustedCombat.js';
 import { saveVerifiedCheckpoint } from './trustedCheckpoints.js';
 import { settleVerifiedResult } from './trustedResults.js';
 import {inventory,reserveMissionGrenade,creditMissionGrenades} from '../payments/service.js';
+import {appearance} from '../payments/entitlements.js';
 
 const unit = z.number().finite().min(-1).max(1), flag = z.boolean();
 export const liveInput = z.object({ seq: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), x: unit, y: unit,
@@ -138,6 +139,7 @@ export class LiveMissionAuthority {
       if (!restored.modifiedCount && mission.health !== checkpoint.health) throw new Error('mission_not_active');
     }
     const supply=await inventory(mission.playerId);
+    sim.appearance=appearance(supply);
     sim.field.quantity=supply.spendingBlocked?0:supply.grenades;
     if(!checkpoint&&supply.equippedWeapon)sim.loadout.equipCollection(supply.equippedWeapon,supply.ownedIds,0);
     // Refund reconciliation revokes paid tuning even in a restored checkpoint.
@@ -174,6 +176,7 @@ export class LiveMissionAuthority {
           });
           if (!result.matchedCount && !entry.terminal) throw new Error('mission_ownership_lost');
           const supply=await inventory(entry.playerId);
+          entry.sim.appearance=appearance(supply);
           if(entry.sim.loadout.action!=='throw')entry.sim.field.quantity=supply.spendingBlocked?0:supply.grenades;
           entry.sim.loadout.slots.forEach((slot,index)=>{if(slot?.collectionId&&!supply.ownedIds.includes(slot.collectionId))entry.sim.loadout.collect(slot.id,index);});
           if (Date.now() - entry.lastAuth > 60000) {

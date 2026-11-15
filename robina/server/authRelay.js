@@ -28,7 +28,7 @@ export async function relay(req,res,upstream=process.env.VITE_API_URL,fetcher=fe
   const headers={accept:'application/json'};
   const cookies=String(req.headers.cookie||'').split(';').map(c=>c.trim()).filter(c=>/^bd_(session|admin)=/.test(c));if(cookies.length)headers.cookie=cookies.join('; ');
   if(bountyMethods.length){headers['x-rivals-bounty']='1';const key=req.headers['idempotency-key'];if(typeof key==='string'&&/^[a-zA-Z0-9_-]{16,100}$/.test(key))headers['idempotency-key']=key;}
-  if(paymentMethods.length){headers['x-rivals-payments']='1';const key=req.headers['idempotency-key'];if(typeof key==='string'&&/^[a-zA-Z0-9_-]{16,100}$/.test(key))headers['idempotency-key']=key;}
+  if(paymentMethods.length){headers['x-rivals-payments']='1';if(req.headers['x-rivals-store-version']==='2')headers['x-rivals-store-version']='2';const key=req.headers['idempotency-key'];if(typeof key==='string'&&/^[a-zA-Z0-9_-]{16,100}$/.test(key))headers['idempotency-key']=key;}
   let body;if(method!=='GET'){
     if(!String(req.headers['content-type']||'').toLowerCase().startsWith('application/json'))return res.status(415).json({error:'json_required'});
     body=typeof req.body==='string'?req.body:JSON.stringify(req.body??{});

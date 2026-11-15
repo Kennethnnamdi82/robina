@@ -20,7 +20,7 @@ final class NativeSessionPolicy {
             if(query == null && route != null && route.startsWith("/api/payments/")) {
                 if("GET".equals(method)) return route.equals("/api/payments/store") || route.matches("/api/payments/orders/[a-fA-F0-9]{24}");
                 if("PUT".equals(method)) return route.equals("/api/payments/equipment");
-                return "POST".equals(method) && (route.equals("/api/payments/checkout") || route.matches("/api/payments/orders/[a-fA-F0-9]{24}/check"));
+                return "POST".equals(method) && (route.equals("/api/payments/checkout") || route.equals("/api/payments/season/claim") || route.matches("/api/payments/orders/[a-fA-F0-9]{24}/check"));
             }
             if (query == null && route != null && route.startsWith("/api/missions/")) {
                 if ("GET".equals(method)) return route.matches("/api/missions/(eligibility|leaderboard|results|sessions|sessions/current)") || route.matches("/api/missions/sessions/[a-fA-F0-9]{24}");

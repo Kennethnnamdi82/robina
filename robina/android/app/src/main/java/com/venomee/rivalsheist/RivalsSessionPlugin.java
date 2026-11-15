@@ -94,7 +94,10 @@ public class RivalsSessionPlugin extends Plugin {
         connection.setRequestProperty("Accept","application/json");connection.setRequestProperty("Origin",ORIGIN);
         connection.setRequestProperty("User-Agent","RIVALS-Android/"+BuildConfig.VERSION_NAME);
         if(path.startsWith("/api/bounties/")) connection.setRequestProperty("X-Rivals-Bounty", "1");
-        if(path.startsWith("/api/payments/")) connection.setRequestProperty("X-Rivals-Payments", "1");
+        if(path.startsWith("/api/payments/")) {
+            connection.setRequestProperty("X-Rivals-Payments", "1");
+            connection.setRequestProperty("X-Rivals-Store-Version", "2");
+        }
         if(idempotencyKey!=null) connection.setRequestProperty("Idempotency-Key", idempotencyKey);
         String session=get("session");if(!session.isEmpty())connection.setRequestProperty("Cookie","bd_session="+session);
         try{

@@ -10,6 +10,9 @@ import { finishOperative } from './OperativeFinish';
 import {collectionWeaponDefinition} from './Loadout';
 import {MODEL_URLS} from '../store/modelAssets';
 import type {ModelAsset} from '../store/catalog';
+import {isOutfit} from '../store/outfits';
+import {prepareOutfit} from './CollectionAppearance';
+import {clone} from 'three/addons/utils/SkeletonUtils.js';
 
 /** The older batching helper removes original meshes even when a merge fails.
  * Keep mixed UV/normal layouts intact instead of losing supplied body parts. */
@@ -45,6 +48,16 @@ export const preloadRaidAssets=(progress?:(fraction:number)=>void)=>warmAssetByt
 export class RaidAssets extends MissionAssets {
   readonly city = new CityAssets();
   readonly collection=new Map<string,Object3D>();
+  private outfits=new Map<string,Object3D>();
+  async outfit(id:string){
+    if(!isOutfit(id))throw Error('Unknown purchased outfit');
+    if(!this.outfits.has(id)){
+      const gltf=await new GLTFLoader().parseAsync(await loadAssetBytes(MODEL_URLS[id],this.stop.signal),'/assets/rivals/store/models/');
+      if(this.released){disposeObject(gltf.scene);throw Error('Assets disposed');}
+      this.outfits.set(id,prepareOutfit(gltf.scene,id));
+    }
+    return {root:clone(this.outfits.get(id)!),clips:this.models.get('player')!.animations};
+  }
   async loadCollection(id:string){
     if(this.collection.has(id)||!collectionWeaponDefinition(id))return;
     const definition=collectionWeaponDefinition(id)!;
@@ -100,5 +113,5 @@ export class RaidAssets extends MissionAssets {
     } catch (error) { this.stop.abort();this.city.dispose();throw error; }
     finally { clearTimeout(timeout); }
   }
-  override dispose() { if (this.released) return; this.released = true; this.stop.abort(); this.city.dispose(); this.collection.forEach(root=>disposeObject(root));this.collection.clear();disposeObject(this.knife); super.dispose(); }
+  override dispose() { if (this.released) return; this.released = true; this.stop.abort(); this.city.dispose(); this.outfits.forEach(root=>disposeObject(root));this.outfits.clear();this.collection.forEach(root=>disposeObject(root));this.collection.clear();disposeObject(this.knife); super.dispose(); }
 }

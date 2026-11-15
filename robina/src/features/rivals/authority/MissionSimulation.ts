@@ -68,6 +68,7 @@ function hydrate(target: State, state: State) {
 }
 
 export class MissionSimulation {
+  appearance:{outfit:string|null;finish:string|null;emote:string|null;effect:string|null;identity:string|null;trail?:string|null;entrance?:string|null}={outfit:null,finish:null,emote:null,effect:null,identity:null,trail:null,entrance:null};
   readonly operation; readonly world; readonly mission; readonly controller = new CharacterController(true);
   readonly loadout = new Loadout(); readonly field = new FieldItems(); readonly pool = new Projectile3D();
   readonly body = { position: new Vector3(), vertical: 0, grounded: true, jumpTime: 0 };
@@ -273,7 +274,7 @@ export class MissionSimulation {
   }
   drainEvents() { return this.events.splice(0); }
   snapshot() {
-    return { version: SIMULATION_VERSION, inputSequence: this.lastSequence, position: this.body.position.toArray(), vertical: this.body.vertical,
+    return { version: SIMULATION_VERSION, appearance:this.appearance, inputSequence: this.lastSequence, position: this.body.position.toArray(), vertical: this.body.vertical,
       grounded: this.body.grounded, health: this.controller.health, maxHealth: this.controller.maxHealth, mission: this.mission.snapshot(),
       loadout: this.loadout.snapshot(), field: this.field.snapshot(), campaign: this.campaign.snapshot, pursuit: this.police.snapshot,
       vehicle: this.vehicles.snapshot, activeFlags: [...this.world.active],

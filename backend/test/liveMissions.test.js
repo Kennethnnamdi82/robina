@@ -58,6 +58,16 @@ async function start(user) {
 }
 const action = (socket, input) => new Promise(resolve => socket.emit('mission:action', input, resolve));
 
+test('trusted inventory appearance reaches gameplay and refunded items are removed on refresh',async()=>{
+  const user=await player();
+  await storeModels.StoreInventory.create({playerId:user._id,environment:'production',ownedIds:['commander','protocol','pose'],equippedOutfit:'commander',equippedFinish:'protocol',equippedEmote:'pose'});
+  const mission=await start(user),{entry}=await connect(user,mission._id);
+  assert.equal(entry.sim.snapshot().appearance.outfit,'commander');assert.equal(entry.sim.snapshot().appearance.finish,'protocol');
+  await storeModels.StoreInventory.updateOne({playerId:user._id},{$set:{ownedIds:[]}});
+  entry.lastPersist=0;authority.tick();await entry.work;
+  assert.equal(entry.sim.snapshot().appearance.outfit,null);assert.equal(entry.sim.snapshot().appearance.finish,null);
+});
+
 test('live server AI damage produces one persisted death, result and two-hour cooldown', async () => {
   const user = await player(), mission = await start(user); assert.equal(mission.authority, true);
   const { socket, entry } = await connect(user, mission._id);
