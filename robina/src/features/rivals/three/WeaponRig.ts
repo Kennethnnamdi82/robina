@@ -2,9 +2,10 @@ import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
 import type { Actor } from '../../rugfire/actors';
 import type { HumanoidAnimator, HumanoidFrame } from './HumanoidAnimator';
 import { ArmIK, setWorldRotation } from './ArmIK';
-import { traceSolids } from './physics3d';
-import type { Solid3D } from './world3d';
+import {SOLDIER_GRIP} from './WeaponGeometry';
+export {safeMuzzleOrigin} from './WeaponGeometry';
 import { FingerGrip, OperativeHands } from './OperativeHands';
+import { ReflexOptic } from './ReflexOptic';
 
 export type GunClass = 'rifle' | 'smg' | 'pistol';
 export interface WeaponMetadata { id: GunClass | 'knife'; length: number; forward: '-Z'; recoil: number; sockets: { grip: number[]; muzzle: number[]; support: number[] | null; eject: number[]; sight: number[] } }
@@ -25,13 +26,16 @@ export class WeaponRig {
   private right?: ArmIK; private left?: ArmIK; private avatar?: HumanoidAnimator;
   private rightPalm?: Object3D; private leftPalm?: Object3D;
   private rotation = new Quaternion(); private handRotation = new Quaternion(); private scratch = new Quaternion();
+  private supportRoll = new Quaternion().setFromAxisAngle(new Vector3(0,0,1),Math.PI/2);
   private rightOffset = new Quaternion(); private leftOffset = new Quaternion(); private look = new Matrix4();
   private anchor = new Vector3(); private desired = new Vector3(); private goal = new Vector3(); private pole = new Vector3();
   private point = new Vector3(); private direction = new Vector3(); private scale = new Vector3();
   private hand = new Vector3(); private leftTarget = new Vector3();
   private fingers?:FingerGrip;
+  private optic?:ReflexOptic;
   constructor(readonly actor: Actor, readonly model: Object3D, avatar?: HumanoidAnimator) {
     this.metadata = weaponMetadata(model); this.muzzle = model.getObjectByName('weapon-muzzle')!; this.support = model.getObjectByName('weapon-support') ?? undefined;
+    if(this.metadata.id==='rifle')this.optic=new ReflexOptic(model,this.metadata);
     // Remove the old torso-mounted proxy and its uncalibrated models.
     actor.weapons.forEach(weapon => weapon.removeFromParent()); actor.weapons.clear(); actor.muzzle.visible = false; actor.muzzleLight.visible = false;
     actor.weapon.position.set(0, 0, 0); actor.weapon.quaternion.identity(); model.visible = true; actor.weapon.add(model);
@@ -54,7 +58,9 @@ export class WeaponRig {
       const temporary = this.metadata.id === 'knife' || Boolean(frame.action && frame.action !== 'idle') || ['dodge', 'hit', 'death'].includes(this.avatar.motion) || frame.reload > 0;
       if (!temporary) {
         this.actor.root.updateMatrixWorld(true);
-        this.anchor.set(.16, 1.29, .29); this.actor.root.localToWorld(this.anchor);
+        // The supplied +Z-forward skeleton has its right shoulder on -X.
+        // Mirroring this anchor pulled the firing arm across the entire chest.
+        this.anchor.set(...SOLDIER_GRIP); this.actor.root.localToWorld(this.anchor);
         // Looking around an idle operative must not fold their rifle backwards
         // through their chest. Orbit is observation, not a weapon command.
         if (!frame.aiming && this.kick < .0005) {
@@ -65,15 +71,15 @@ export class WeaponRig {
         this.handRotation.copy(this.rotation).multiply(this.rightOffset);
         this.rightPalm!.parent!.getWorldScale(this.scale);
         this.goal.copy(this.rightPalm!.position).multiply(this.scale).applyQuaternion(this.handRotation); this.goal.subVectors(this.anchor, this.goal);
-        this.pole.set(.5, 1.08, .02); this.actor.root.localToWorld(this.pole);
+        this.pole.set(-.42, 1.03, .05); this.actor.root.localToWorld(this.pole);
         this.right!.solve(this.goal, this.pole); setWorldRotation(this.rightPalm!.parent!, this.handRotation, this.scratch);
         this.actor.root.updateMatrixWorld(true);
         if (this.support && this.left && this.leftPalm) {
           this.support.getWorldPosition(this.leftTarget);
-          this.handRotation.copy(this.rotation).multiply(this.leftOffset);
+          this.handRotation.copy(this.rotation).multiply(this.supportRoll).multiply(this.leftOffset);
           this.leftPalm.parent!.getWorldScale(this.scale);
           this.goal.copy(this.leftPalm.position).multiply(this.scale).applyQuaternion(this.handRotation); this.goal.subVectors(this.leftTarget, this.goal);
-          this.pole.set(-.48, 1.08, .04); this.actor.root.localToWorld(this.pole);
+          this.pole.set(.36, 1.02, .16); this.actor.root.localToWorld(this.pole);
           this.left.solve(this.goal, this.pole); setWorldRotation(this.leftPalm.parent!, this.handRotation, this.scratch);
           this.leftPalm.getWorldPosition(this.point); this.leftGripError = this.point.distanceTo(this.leftTarget); this.supportEngaged = true;
         }
@@ -92,16 +98,7 @@ export class WeaponRig {
     this.actor.muzzle.visible = false; this.actor.muzzleLight.visible = false;
   }
   muzzleWorld(target: Vector3) { this.actor.root.updateMatrixWorld(true); return this.muzzle.getWorldPosition(target); }
-}
-
-/** Stops barrel-through-wall shooting. This is the same solid set used by the
- * projectile sweep, not a camera-dependent damage shortcut. */
-export function safeMuzzleOrigin(anchor: Vector3, muzzle: Vector3, solids: readonly Solid3D[], out: Vector3) {
-  const delta = new Vector3().subVectors(muzzle, anchor), length = delta.length();
-  if (length < 1e-6) { out.copy(anchor); return false; }
-  delta.divideScalar(length); const clear = traceSolids(anchor, delta, solids, length, .045);
-  out.copy(anchor).addScaledVector(delta, Math.max(0, clear - (clear < length ? .005 : 0)));
-  return clear < length;
+  dispose(){this.optic?.dispose();}
 }
 
 /** Camera-space weapon and articulated gloves share the existing renderer. */
@@ -113,24 +110,40 @@ export class FirstPersonWeapon {
   readonly hands:OperativeHands;
   get handMeshCount(){return this.hands.meshCount;}
   private look = new Matrix4(); private aimRotation = new Quaternion();
+  private optic?:ReflexOptic; private adsBlend=0; private elapsed=0; private identity=new Quaternion();
   constructor(readonly model: Object3D) {
     this.metadata = weaponMetadata(model);
+    if(this.metadata.id==='rifle'){
+      this.optic=new ReflexOptic(model,this.metadata);
+      this.metadata={...this.metadata,sockets:{...this.metadata.sockets,sight:this.optic.sight}};
+    }
     model.visible = true;
     model.traverse(node => { node.frustumCulled = false; });
     this.root.add(model);
     this.hands=new OperativeHands(this.metadata);this.root.add(this.hands.root);
   }
   fire() { this.kick = Math.min(.06, this.kick + this.metadata.recoil);this.hands.fire(); }
-  aimAt(target: Vector3) { this.look.lookAt(this.root.position,target,up); this.aimRotation.setFromRotationMatrix(this.look); this.root.quaternion.premultiply(this.aimRotation); this.root.visible = true; }
+  aimAt(target: Vector3) {
+    this.look.lookAt(this.root.position,target,up); this.aimRotation.setFromRotationMatrix(this.look);
+    // Convergence is useful at hip fire, but rotating an aligned ADS weapon a
+    // second time moved its sight off the actual camera ray at close range.
+    this.aimRotation.slerp(this.identity,this.adsBlend);this.root.quaternion.premultiply(this.aimRotation);this.root.visible=true;
+  }
   update(dt: number, ads: boolean, reload: number, reloadDuration: number,action = 'idle',remaining = 0) {
     this.kick *= Math.exp(-dt * 22);
+    this.adsBlend+=(Number(ads)-this.adsBlend)*(1-Math.exp(-Math.max(0,dt)*16));this.elapsed+=dt;
     this.hands.update(dt,reload,reloadDuration);
     const phase = reload > 0 ? Math.sin(Math.PI * (1 - reload / reloadDuration)) : 0;
-    this.root.position.set(ads ? 0 : .19, (ads ? -this.metadata.sockets.sight[1] : -.23) - phase * .12, -.37 + this.kick);
-    this.root.rotation.set(this.kick * .45 - phase * .35, phase * -.12, phase * -.25);
+    const blend=this.adsBlend,sight=this.metadata.sockets.sight,settle=1-blend;
+    this.root.position.set(.19*settle-sight[0]*blend,-.23*settle-sight[1]*blend-phase*.12,
+      -.37*settle+(-.19-sight[2])*blend+this.kick*(1-blend*.7));
+    this.root.position.x+=Math.sin(this.elapsed*1.4)*.0012*settle;
+    this.root.rotation.set(this.kick*.45*settle-phase*.35,phase*-.12,phase*-.25);
     if (action === 'melee') { const slash = Math.sin(Math.PI * Math.max(0,1 - remaining / .38)); this.root.position.x -= slash * .3; this.root.position.z -= slash * .25; this.root.rotation.set(-slash * .35,slash * .5,-slash * .9); }
     else if (action === 'throw') { const lower = Math.sin(Math.PI * Math.max(0,1 - remaining / .55)); this.root.position.y -= lower * .25; this.root.rotation.x -= lower * .35; }
     else if (action === 'switch') this.root.position.y -= Math.min(1,remaining / .22) * .3;
   }
-  dispose() { this.hands.dispose();this.hands.root.removeFromParent();this.root.remove(this.model); }
+  get sightPoint(){return this.metadata.sockets.sight;}
+  get aimingBlend(){return this.adsBlend;}
+  dispose() { this.optic?.dispose();this.hands.dispose();this.hands.root.removeFromParent();this.root.remove(this.model); }
 }

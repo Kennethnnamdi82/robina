@@ -11,7 +11,7 @@ test('hand sockets, real muzzle shots, audio and reload survive all four POVs', 
   test.setTimeout(420000); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await enter(page);
   await expect(page.getByRole('button', { name: 'Mute ambient audio' })).toBeVisible();
-  await expect.poll(async () => (await combat(page)).audio.buffers, { timeout: 30000 }).toBe(18);
+  await expect.poll(async () => (await combat(page)).audio.buffers, { timeout: 30000 }).toBe(19);
   await expect.poll(async () => (await combat(page)).audio.state).toBe('running');
   const run = await state(page).getAttribute('data-run');
   for (const [id, label] of [['tactical','TACTICAL / TOP-DOWN'], ['side','ACTION / SIDE-VIEW'], ['third','THIRD-PERSON / TPS'], ['first','FIRST-PERSON / FPS']] as const) {
@@ -28,11 +28,11 @@ test('hand sockets, real muzzle shots, audio and reload survive all four POVs', 
     await page.screenshot({ path: info.outputPath(id + '-weapon.png') });
     if (id === 'first') {
       expect((await combat(page)).view.hands).toBe(true);
-      await page.getByRole('button', { name: 'Aim down sights',exact: true }).hover(); await page.mouse.down();
+      await page.getByRole('button', { name: 'Aim down sights',exact: true }).click();
       await expect.poll(async () => (await combat(page)).view.ads).toBe(true);
       await expect.poll(async () => Math.abs((await combat(page)).view.sight[0])).toBeLessThan(.01);
       await expect.poll(async () => Math.abs((await combat(page)).view.sight[1])).toBeLessThan(.02);
-      expect((await combat(page)).view.fov).toBeLessThan(60); await page.screenshot({ path: info.outputPath('first-ads.png') }); await page.mouse.up();
+      expect((await combat(page)).view.fov).toBeLessThan(60); await page.screenshot({ path: info.outputPath('first-ads.png') });await page.getByRole('button', { name: 'Aim down sights',exact: true }).click();
     }
   }
   await page.keyboard.press('r'); await expect.poll(async () => Number(await page.getByTestId('arena-position').getAttribute('data-ammo')), { timeout: 15000 }).toBe(12);

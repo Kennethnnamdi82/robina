@@ -94,7 +94,17 @@ export class VehicleController {
     for(const car of this.cars){if((car.fuse??0)>0){car.fuse=Math.max(0,car.fuse!-dt);if(!car.fuse)this.explode(car);}if((car.fire??0)>0){car.fire=Math.max(0,car.fire!-dt);if((car.health??200)>0)this.damage(car,dt*8);}else if((car.health??200)>0&&(car.health??200)<35){car.fire=15;}}
     if(this.current){driveVehicle(this.current,directionalDriving(input),dt,solids,this.collision);body.set(this.current.x,.55,this.current.z);}
   }
-  blast(point:Vector3,radius:number,damage=150){for(const car of this.cars){const distance=Math.max(0,Math.hypot(point.x-car.x,point.z-car.z)-car.length*.4);if(distance<=radius){const amount=damage*(1-distance/radius*.8);this.damage(car,amount);if(amount>=30)car.fire=Math.max(car.fire??0,24);}}}
+  blast(point:Vector3,radius:number,damage=150,solids:readonly Solid3D[]=[]){
+    const direction=new Vector3(),target=new Vector3();
+    for(const car of this.cars){
+      if(car.exploded||(car.health??200)<=0)continue;
+      const distance=Math.max(0,Math.hypot(point.x-car.x,point.z-car.z)-car.length*.4);if(distance>radius)continue;
+      target.set(car.x,Math.max(.35,point.y),car.z);direction.subVectors(target,point);const length=direction.length();
+      const cover=solids.filter(s=>s.id!=='city-traffic-'+car.id&&!s.box.containsPoint(point));
+      if(length>.01&&traceSolids(point,direction.normalize(),cover,length)<length-.05)continue;
+      const amount=damage*(1-distance/radius*.8);this.damage(car,amount);if(amount>=30)car.fire=Math.max(car.fire??0,24);
+    }
+  }
   damage(car:CityCar,amount:number){if(!Number.isFinite(amount)||amount<=0||(car.health??200)<=0)return 0;const taken=Math.min(car.health??200,amount);car.health=(car.health??200)-taken;if(car.health<=0)this.explode(car);return taken;}
   get snapshot(){return{driving:Boolean(this.current),id:this.current?.id??null,kind:this.current?.kind??null,speed:Math.round(Math.abs(this.current?.speed??0)*3.6),health:Math.round(this.current?.health??0),burning:Boolean(this.current&&(this.current.fire??0)>0),escapeSeconds:this.current?.fuse??null,crashes:this.crashes,explosions:this.explosions,nearby:this.nearby?.kind??null,message:this.message};}
 }

@@ -11,7 +11,7 @@ export class Projectile3D {
     const shot = this.entries.find(b => !b.active); if (!shot || ![...origin.toArray(),...direction.toArray(),speed,life,range,damage].every(Number.isFinite) || direction.lengthSq() < .001 || speed <= 0) return false;
     Object.assign(shot,{ active: true,speed,life,range,damage,owner,team,serial: ++this.serial }); shot.position.copy(origin); shot.origin.copy(origin); shot.direction.copy(direction).normalize(); return true;
   }
-  step(dt: number,solids: readonly Solid3D[],targets: readonly Target3D[],impact: (p: Vector3,damage: number,owner: string) => void,travelled?: (bullet: Bullet3D) => void) {
+  step(dt: number,solids: readonly Solid3D[],targets: readonly Target3D[],impact: (p: Vector3,damage: number,owner: string,target?:Target3D,direction?:Vector3) => void,travelled?: (bullet: Bullet3D) => void) {
     for (const b of this.entries) {
       if (!b.active) continue; const travel = Math.min(b.speed * dt,b.range,b.life * b.speed);
       const ownerCar=b.owner.startsWith('police-car-')?'city-traffic-'+b.owner.slice(11):'';
@@ -26,7 +26,7 @@ export class Projectile3D {
       if (distance < travel - 1e-6 || target) {
         const precision=target?.headshotMultiplier&&b.position.y>=target.box.min.y+(target.box.max.y-target.box.min.y)*.78;
         b.active = false; const taken = target?.damage({ id: b.owner + ':' + b.serial+(precision?':precision':''),sourceId: b.owner,team: b.team,amount: b.damage*(precision?target.headshotMultiplier??1:1),angle: Math.atan2(b.direction.z,b.direction.x) }) ?? 0;
-        impact(b.position,taken,b.owner);
+        impact(b.position,taken,b.owner,target??undefined,b.direction);
       } else if (b.life <= 0 || b.range <= 0) b.active = false;
     }
   }

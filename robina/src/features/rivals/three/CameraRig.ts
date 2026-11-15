@@ -24,6 +24,7 @@ export class CameraRig {
   private movementYaw = 0; private moving = false; private vehicleYaw = 0; private steering = false;
   private mounted = false; private footPitch = -.09;
   private needsSettlement = false;
+  private adsBlend = 0;
   get settling() { return this.transition > 0 || this.needsSettlement; }
   bodyVisible = true;
   constructor() {
@@ -52,7 +53,7 @@ export class CameraRig {
   rotate(dx: number,dy: number) {
     if (!Number.isFinite(dx) || !Number.isFinite(dy) || !dx && !dy) return;
     this.yaw -= dx * .003 * this.sensitivity;
-    this.pitch = MathUtils.clamp(this.pitch - dy * .0025 * this.sensitivity,-1.05,this.pov==='third'?.24:.9);
+    this.pitch = MathUtils.clamp(this.pitch - dy * .0025 * this.sensitivity,this.pov==='third'?-.55:-1.05,this.pov==='third'?.24:.9);
     this.follow.manualLook(); this.movementYaw = this.vehicleYaw = this.yaw;
   }
   /** Refresh aim orientation without advancing follow/zoom damping twice. */
@@ -70,6 +71,7 @@ export class CameraRig {
     const dt = MathUtils.clamp(Number.isFinite(delta) ? delta : 0,0,.2);
     const car = motion?.vehicle;
     if (Boolean(car) !== this.mounted) {
+      if(car)this.ads=false;
       if (car) this.footPitch = this.pitch;
       else this.pitch = this.footPitch;
       this.mounted = Boolean(car); this.transitionFov = this.perspective.fov;
@@ -85,6 +87,8 @@ export class CameraRig {
       this.yaw = this.follow.update(this.yaw,dt,false,followMotion);
     } else this.yaw = this.follow.update(this.yaw,dt,view === 'third',followMotion);
     const immediate = !this.initialized || reduced;
+    if(view==='third'&&!car&&!this.follow.manual&&!combat&&Math.hypot(motion?.vx??0,motion?.vz??0)>.35)this.pitch+=(-.09-this.pitch)*cameraDamping(2.5,dt);
+    this.adsBlend+=(Number(this.ads)-this.adsBlend)*(immediate?1:cameraDamping(16,dt));
     this.displayZoom += (this.zoom[this.pov] - this.displayZoom) * (immediate ? 1 : cameraDamping(12,dt));
     const zoom = this.displayZoom, boost = this.follow.speed;
     this.focus.copy(player); this.focus.y += view === 'first' ? 1.62 : car ? 1.1 : 1.05;
@@ -144,7 +148,7 @@ export class CameraRig {
       camera.quaternion.copy(this.previousRotation).slerp(this.desiredRotation,cameraDamping(12,dt));
     }
     const size = (view === 'tactical' ? this.aspect < 1 ? 12 : 8 : this.aspect < 1 ? 8 : 5.6) / zoom;
-    const baseFov = car ? 59 + boost * 9 : view === 'first' ? MathUtils.clamp(72 / zoom * (this.ads ? .72 : 1),42,90) : this.ads ? 49 : 57 + boost * 4;
+    const baseFov = car ? 59 + boost * 9 : view === 'first' ? MathUtils.clamp(72 / zoom * (1-this.adsBlend*.28),42,90) : MathUtils.lerp(57+boost*4,49,this.adsBlend);
     const targetSpan = view === 'side' || view === 'tactical' ? size : Math.tan(MathUtils.degToRad(baseFov / 2)) * this.desired.distanceTo(this.desiredLook);
     this.halfHeight += (targetSpan - this.halfHeight) * (immediate || !switching ? 1 : cameraDamping(12,dt));
     this.orthographic.left = -this.halfHeight * this.aspect; this.orthographic.right = this.halfHeight * this.aspect;

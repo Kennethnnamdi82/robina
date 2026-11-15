@@ -1,6 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 import { missionsApi } from './missions';
-import type { AuthorityAction, AuthorityInput, AuthoritySnapshot, SimulationEvent } from '@/features/rivals/authority/MissionSimulation';
+import type { AuthorityAction, AuthorityInput, AuthoritySnapshot, SimulationEvent,PresentationEvent } from '@/features/rivals/authority/MissionSimulation';
 
 export interface VerifiedGameResult { _id: string; outcome: 'success' | 'failure'; score: number; durationSeconds: number;
   firstCompletion: boolean; rewardEligible: boolean; verifiedAt: string; remainingHealth?: number }
@@ -10,6 +10,8 @@ export class MissionAuthorityClient {
   recoveryUntil: string | null = null;
   connection: 'connecting' | 'connected' | 'reconnecting' | 'closed' = 'connecting';
   onShot?: (shot: Extract<SimulationEvent, { type: 'shot' }>) => void;
+  onEffect?:(event:PresentationEvent)=>void;
+  onDamage?:(amount:number,angle:number)=>void;
   private socket?: Socket; private listeners = new Set<() => void>(); private closed = false;
   private requestedReady = false; private paused = false; private retry?: ReturnType<typeof setTimeout>;
   private lastSent = 0; private sequence = 0; private pending: Partial<AuthorityInput> = {}; private reconnectStarted = 0;
@@ -35,6 +37,8 @@ export class MissionAuthorityClient {
         if(this.stateFrame===undefined)this.stateFrame=requestAnimationFrame(()=>{this.stateFrame=undefined;this.notify();});
       });
       socket.on('mission:shot', shot => this.onShot?.(shot));
+      socket.on('mission:effect',(event:PresentationEvent)=>{if(!this.closed)this.onEffect?.(event);});
+      socket.on('mission:health',event=>{if(!this.closed&&event.kind==='damage')this.onDamage?.(event.amount,event.angle??0);});
       socket.on('mission:result', ({ result, state, recoveryUntil }) => {
         state.mission.elapsed=result.durationSeconds;
         this.result = result; this.latest = state; this.recoveryUntil = recoveryUntil; this.notify();
@@ -47,6 +51,7 @@ export class MissionAuthorityClient {
         this.notify(); resolve();
       });
       socket.on('disconnect', () => {
+        this.pending={};
         if (this.closed || this.result) return;
         this.connection = 'reconnecting'; this.notify(); this.scheduleReconnect();
       });
@@ -74,13 +79,13 @@ export class MissionAuthorityClient {
     }, 1000);
   }
   ready() { this.requestedReady = true; this.socket?.emit('mission:ready'); this.socket?.emit('mission:pause', this.paused); }
-  pause(value: boolean) { if(this.paused===value)return;this.paused = value; this.socket?.emit('mission:pause', value); }
+  pause(value: boolean) { if(this.paused===value)return;this.paused = value;if(value)this.pending={}; this.socket?.emit('mission:pause', value); }
   submit(frame: Omit<AuthorityInput, 'seq'>) {
-    for (const key of ['dodge', 'interact', 'reload', 'jump', 'highJump'] as const) this.pending[key] = Boolean(this.pending[key] || frame[key]);
+    for (const key of ['dodge', 'interact', 'reload', 'jump', 'highJump','fire'] as const) this.pending[key] = Boolean(this.pending[key] || frame[key]);
     if (performance.now() - this.lastSent < 50 || this.connection !== 'connected') return;
     this.lastSent = performance.now();
     this.socket?.emit('mission:input', { ...frame, ...this.pending, seq: ++this.sequence }); this.pending = {};
   }
   action(action: AuthorityAction) { if (this.connection === 'connected') this.socket?.emit('mission:action', action); }
-  dispose() { this.closed = true; this.connection = 'closed'; clearTimeout(this.retry); if(this.stateFrame!==undefined)cancelAnimationFrame(this.stateFrame);this.socket?.disconnect(); this.listeners.clear(); }
+  dispose() { this.closed = true; this.connection = 'closed'; clearTimeout(this.retry); if(this.stateFrame!==undefined)cancelAnimationFrame(this.stateFrame);this.socket?.disconnect();this.socket?.removeAllListeners();this.onShot=this.onEffect=this.onDamage=undefined;this.pending={}; this.listeners.clear(); }
 }
