@@ -1,8 +1,22 @@
 import {describe,it,expect,vi} from 'vitest';
 import {FrameSurface} from './FrameSurface';
 import {AdaptiveResolution} from './AdaptiveResolution';
+import {CityPostProcess} from './CityPostProcess';
+import {Scene,PerspectiveCamera,type WebGLRenderer} from 'three';
 
 describe('uninterrupted camera presentation',()=>{
+ it('responds to sustained sub-50FPS rendering instead of waiting for sub-30FPS stalls',()=>{
+  const budget=new AdaptiveResolution(1,1);
+  for(let i=0;i<80;i++)budget.sample(1/42);
+  expect(budget.scale).toBeLessThan(1);
+ });
+ it('sheds optional high-quality passes during overload without removing the world or flapping on every frame',()=>{
+  const render=vi.fn(),renderer={render} as unknown as WebGLRenderer,scene=new Scene(),camera=new PerspectiveCamera();
+  const post=new CityPostProcess(renderer,scene,camera);post.quality('high');post.budget(.74);
+  post.render(camera,0);expect(render).toHaveBeenCalledWith(scene,camera);expect(post.budgetLimited).toBe(true);
+  for(const ratio of [.79,.81,.9,.94,NaN])post.budget(ratio);expect(post.budgetLimited).toBe(true);
+  post.budget(.96);expect(post.budgetLimited).toBe(false);post.dispose();
+ });
  it('resizes before drawing and never clears a completed world/weapon frame',()=>{
   const events:string[]=[],surface=new FrameSurface({setDrawingBufferSize:()=>events.push('resize')},()=>events.push('projection'));
   const draw=()=>{events.push('world');events.push('weapon');};

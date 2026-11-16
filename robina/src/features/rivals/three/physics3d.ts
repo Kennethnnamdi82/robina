@@ -2,6 +2,17 @@ import { Vector3 } from 'three';
 import type { Solid3D } from './world3d';
 export const BODY = { radius: .34,height: 1.75,gravity: 18,jump: 6.2,holdSeconds: .32,holdGravity: .35 } as const;
 export interface Body3D { position: Vector3; vertical: number; grounded: boolean; jumpTime?: number }
+/** The same conservative walking broad phase on the server and client.
+ * Two metres exceed one fixed tick's travel, including an evade. Reuse `out`
+ * so a busy street does not allocate and scan the whole city in every solver pass. */
+export function nearbyMovementSolids(position: Vector3, solids: readonly Solid3D[], occupants: readonly Solid3D[], out: Solid3D[]) {
+  out.length = 0;
+  for (let i=0;i<2;i++) for (const solid of i===0?solids:occupants) {
+    if (solid.enabled && solid.box.min.x < position.x + 2 && solid.box.max.x > position.x - 2 &&
+      solid.box.min.z < position.z + 2 && solid.box.max.z > position.z - 2) out.push(solid);
+  }
+  return out;
+}
 export function rayBox(origin: Vector3,direction: Vector3,solid: Solid3D,max: number,padding = 0) {
   // Reject distant static street geometry before slab division.
   // The swept segment AABB is conservative, including grazing impacts.

@@ -10,11 +10,16 @@ import type {QualityId} from '../core/presentation';
 export class CityPostProcess {
  private composer?:EffectComposer;private scenePass?:RenderPass;private ao?:GTAOPass;
  private qualityId:QualityId='balanced';private width=1;private height=1;private dpr=1;
+ private limited=false;
+ get budgetLimited(){return this.limited;}
+ /** Optional full-screen effects yield to input responsiveness under sustained
+  * overload. Keep the composer allocated so recovery cannot recompile shaders. */
+ budget(ratio:number){if(!Number.isFinite(ratio))return;if(ratio<.8)this.limited=true;else if(ratio>.95)this.limited=false;}
  constructor(private renderer:T.WebGLRenderer,private scene:T.Scene,_camera:T.Camera){}
  quality(quality:QualityId){this.qualityId=quality;if(quality!=='high')this.releaseComposer();}
  resize(width:number,height:number,dpr:number){this.width=width;this.height=height;this.dpr=dpr;this.composer?.setPixelRatio(dpr);this.composer?.setSize(width,height);}
  render(camera:T.Camera,_time:number){
-  if(this.qualityId!=='high'){this.renderer.render(this.scene,camera);return;}
+  if(this.qualityId!=='high'||this.limited){this.renderer.render(this.scene,camera);return;}
   if(!this.composer){
    const hdr=this.renderer.extensions.has('EXT_color_buffer_float');
    const target=new T.WebGLRenderTarget(1,1,{type:hdr?T.HalfFloatType:T.UnsignedByteType});target.samples=Math.min(2,this.renderer.capabilities.maxSamples);this.composer=new EffectComposer(this.renderer,target);

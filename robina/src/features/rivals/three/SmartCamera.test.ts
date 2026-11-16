@@ -13,28 +13,28 @@ const tick = (r: CameraRig, m: CameraMotion, seconds = 3, fps = 60, solids: Soli
 };
 beforeEach(() => localStorage.clear());
 
-describe('smart locomotion camera', () => {
-  it('follows travel behind the operative and settles instead of spinning on a held sideways gesture', () => {
+describe('player-controlled four-POV camera', () => {
+  it('keeps a held sideways gesture stable without automatic turning or delayed recentering', () => {
     const r = rig(), m = motion();
     for (let i = 0; i < 600; i++) {
       const move = r.movement(1,0,true); m.vx = move.x * 4; m.vz = move.y * 4;
       r.update(origin,[],1/60,false,0,undefined,m);
       expect(move.x).toBeCloseTo(1); expect(move.y).toBeCloseTo(0);
     }
-    expect(angleDelta(r.yaw,-Math.PI/2)).toBeCloseTo(0,4);
+    expect(r.yaw).toBe(0);
     const settled = r.yaw; m.vx = m.vz = 0; tick(r,m);
     expect(r.yaw).toBeCloseTo(settled,4);
     r.movement(0,0,true);
-    expect(r.movement(0,-1,true).x).toBeCloseTo(1,3);
+    expect(r.movement(0,-1,true)).toEqual({x:0,y:-1});
   });
-  it.each([30,60,120])('tracks a sudden 180-degree turn without a one-frame snap at %s FPS', fps => {
+  it.each([15,30,60,120])('does not steer the camera when movement reverses at %s FPS', fps => {
     const r = rig(), m = motion(); m.vz = 4;
     let before = r.yaw;
     for (let i=0;i<fps*4;i++) {
       r.update(origin,[],1/fps,false,0,undefined,m);
       expect(Math.abs(angleDelta(before,r.yaw))).toBeLessThanOrEqual(2.4/fps+1e-8); before = r.yaw;
     }
-    expect(Math.abs(angleDelta(r.yaw,Math.PI))).toBeLessThan(.001);
+    expect(r.yaw).toBe(0);
   });
   it('uses comparable damping at 30 and 120 FPS', () => {
     const a = rig(), b = rig(), m = motion(); m.vx = 4;
@@ -42,17 +42,17 @@ describe('smart locomotion camera', () => {
     expect(Math.abs(angleDelta(a.yaw,b.yaw))).toBeLessThan(.015);
     expect(a.camera.position.distanceTo(b.camera.position)).toBeLessThan(.08);
   });
-  it('widens sprint framing subtly and restores the walking frame after stopping', () => {
+  it('keeps sprint framing fixed rather than pumping zoom and boom distance', () => {
     const r=rig(), m=motion(), before=r.camera.position.distanceTo(origin); m.vz=-6; m.sprinting=true; tick(r,m);
-    expect(r.perspective.fov).toBeGreaterThan(60); expect(r.perspective.fov).toBeLessThanOrEqual(61);
-    expect(r.camera.position.distanceTo(origin)).toBeGreaterThan(before+.3);
+    expect(r.perspective.fov).toBe(57);
+    expect(r.camera.position.distanceTo(origin)).toBeCloseTo(before,6);
     m.vz=0; m.sprinting=false; tick(r,m);
     expect(r.perspective.fov).toBeCloseTo(57,3);
   });
-  it('allows manual orbit immediately, holds it, then recenters when travelling', () => {
+  it('keeps the chosen manual view indefinitely while travelling', () => {
     const r=rig(), m=motion(); m.vx=4; r.rotate(100,0); const manual=r.yaw;
     tick(r,m,2); expect(r.yaw).toBeCloseTo(manual);
-    tick(r,m,3); expect(Math.abs(angleDelta(r.yaw,-Math.PI/2))).toBeLessThan(.005);
+    tick(r,m,3); expect(r.yaw).toBe(manual);
     m.manual=true; const held=r.yaw; m.vz=4; tick(r,m,4); expect(r.yaw).toBe(held);
   });
   it('never auto-rotates first person, even while sprinting sideways', () => {
@@ -65,7 +65,7 @@ describe('smart locomotion camera', () => {
     expect(r.yaw).toBe(0); expect(r.perspective.fov).toBe(57);
     expect(r.movement(1,0,true)).toEqual({x:1,y:0});
     m.combat=false; tick(r,m,.5); expect(r.yaw).toBe(0);
-    tick(r,m,3); expect(Math.abs(angleDelta(r.yaw,-Math.PI/2))).toBeLessThan(.01);
+    tick(r,m,3); expect(r.yaw).toBe(0);
     r.ads=true; const yaw=r.yaw; m.vz=5; tick(r,m,2);
     expect(r.yaw).toBe(yaw); expect(r.perspective.fov).toBeCloseTo(49,6);
   });
@@ -77,22 +77,22 @@ describe('smart locomotion camera', () => {
       r.camera.getWorldDirection(direction);expect(direction.distanceTo(initial)).toBeLessThan(1e-7);
     }
   });
-  it('freezes follow timers during pause without inventing a manual-look gesture', () => {
+  it('retains the chosen view through pause/resume and combat release', () => {
     const r=rig(),m=motion();m.vx=4;m.paused=true;tick(r,m,3);expect(r.yaw).toBe(0);
-    m.paused=false;tick(r,m,.3);expect(r.yaw).toBeLessThan(-.2);
+    m.paused=false;tick(r,m,.3);expect(r.yaw).toBe(0);
     r.rotate(100,0);const manual=r.yaw;m.paused=true;tick(r,m,10);
     m.paused=false;tick(r,m,2);expect(r.yaw).toBe(manual);
   });
 });
 
 describe('vehicle framing and four-POV transitions', () => {
-  it('adapts chase distance/FOV to speed and does not permanently replace the selected first-person POV', () => {
+  it('keeps vehicle framing stable at speed and restores the selected first-person POV', () => {
     const r=rig(), m=motion(); r.setPOV('first'); r.setZoom(1.4); tick(r,m);
     m.vehicle={id:3,heading:0,speed:0,length:4.1}; tick(r,m);
     const stopped=r.camera.position.distanceTo(origin); expect(r.pov).toBe('first');
     expect(stopped).toBeGreaterThan(4);
-    m.vehicle.speed=20; tick(r,m); expect(r.perspective.fov).toBeGreaterThan(65);
-    expect(r.camera.position.distanceTo(origin)).toBeGreaterThan(stopped+1);
+    m.vehicle.speed=20; tick(r,m); expect(r.perspective.fov).toBe(59);
+    expect(r.camera.position.distanceTo(origin)).toBeCloseTo(stopped,5);
     m.vehicle=null; tick(r,m); expect(r.pov).toBe('first'); expect(r.zoom.first).toBe(1.4);
     expect(r.camera.position.distanceTo(new Vector3(0,1.62,0))).toBeLessThan(.001);
     expect(r.perspective.fov).toBeCloseTo(72/1.4);
@@ -104,9 +104,9 @@ describe('vehicle framing and four-POV transitions', () => {
     r.setPOV('third');r.update(origin,[],0,false,0,undefined,m);expect(r.bodyVisible).toBe(false);
     tick(r,m,2);expect(r.bodyVisible).toBe(true);
   });
-  it('holds reverse visibility through braking, without switching sides at near-zero speed', () => {
+  it('never flips the chosen view when reversing, braking or changing vehicle heading', () => {
     const r=rig(), m=motion(); m.vehicle={id:4,heading:0,speed:5,length:4}; tick(r,m);
-    m.vehicle.speed=-3; tick(r,m,4); expect(Math.abs(angleDelta(r.yaw,Math.PI))).toBeLessThan(.005);
+    m.vehicle.speed=-3; tick(r,m,4); expect(r.yaw).toBe(0);
     const reversing=r.yaw;
     for(const speed of [0,-.2,.2,-.3,0]) {m.vehicle.speed=speed; tick(r,m,.3);}
     expect(Math.abs(angleDelta(r.yaw,reversing))).toBeLessThan(.005);
