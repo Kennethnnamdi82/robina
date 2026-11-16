@@ -14,6 +14,7 @@ import {
   signSession,
   setSessionCookie,
   clearSessionCookie,
+  sessionUnavailable,
 } from "../middleware/auth.js";
 import { generateReferralCode } from "../utils/referral.js";
 import { logActivity, logLoginSession } from "../services/activityLogger.js";
@@ -449,8 +450,11 @@ export async function logout(req, res) {
 }
 
 export async function me(req, res) {
-  const user = await User.findOne({ wallet: req.wallet });
-  if (!user) return res.status(401).json({ error: "unauthenticated" });
-
-  res.json({ user: publicUser(user) });
+  try {
+    const user = await User.findOne({ wallet: req.wallet });
+    if (!user) return res.status(401).json({ error: "unauthenticated" });
+    return res.json({ user: publicUser(user) });
+  } catch {
+    return sessionUnavailable(res);
+  }
 }

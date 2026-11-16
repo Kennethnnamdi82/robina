@@ -26,6 +26,7 @@ import { getPhantomWallet, type PhantomWallet } from "@/lib/phantomWallet";
 import { googleAttemptPending,beginGoogleAttempt,clearGoogleAttempt,verifyGoogleSession } from '@/lib/googleAttempt';
 import {isNativeAndroid} from '@/native/platform';
 import NativeAuthProvider from '@/native/NativeAuthProvider';
+import {restoreSession,sessionTemporarilyUnavailable,SESSION_RETRY_EVENT} from '@/services/sessionRestore';
 
 interface BaseUser {
   name: string;
@@ -91,6 +92,7 @@ function WebAuthProvider({ children }: { children: ReactNode }) {
   useEffect(()=>{signedInRef.current=signedIn;if(signedIn)try{localStorage.setItem('rivals_session_seen','1');}catch{/* Non-secret hint only; never required for authentication. */}},[signedIn]);
 
   const resetAuthState = useCallback(() => {
+    signedInRef.current=false;
     try{localStorage.removeItem('rivals_session_seen');}catch{/* Private browsing. */}
     setSignedIn(false);
     setSignedWallet(null);
@@ -120,23 +122,13 @@ function WebAuthProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController();
     const hydrationEpoch=epoch.current;
     let knownSession=false;try{knownSession=localStorage.getItem('rivals_session_seen')==='1';}catch{/* Storage optional. */}
-    const sessionDeadline = Date.now() + (knownSession?65000:4000);
-    const sessionOptions = () => ({ signal: controller.signal, timeoutMs: Math.max(1, sessionDeadline - Date.now()), retries: 0 });
-    const restoreUserSession=async()=>{
-      for(let attempt=0;;attempt++){
-        try{return await authApi.me(sessionOptions());}catch(error){
-          const status=(error as ApiError).status;
-          if(!knownSession||attempt>=2||controller.signal.aborted||Date.now()+1500>=sessionDeadline||![undefined,502,503,504].includes(status))throw error;
-          await new Promise<void>((resolve,reject)=>{
-            const abort=()=>{clearTimeout(timer);controller.signal.removeEventListener('abort',abort);reject(new DOMException('Request cancelled','AbortError'));};
-            const timer=window.setTimeout(()=>{controller.signal.removeEventListener('abort',abort);resolve();},750*(attempt+1));
-            controller.signal.addEventListener('abort',abort,{once:true});if(controller.signal.aborted)abort();
-          });
-        }
-      }
-    };
+    const sessionOptions = () => ({ signal: controller.signal, timeoutMs:65000, retries: 0 });
+    const restoreUserSession=()=>restoreSession(authApi.me,controller.signal);
+    let restoring=false,retryTimer:ReturnType<typeof setTimeout>|undefined;
 
     const hydrateSession = async () => {
+      if(restoring||cancelled||hydrationEpoch!==epoch.current)return;
+      restoring=true;let waitingForService=false;
       const onAdminRoute = window.location.pathname
         .toLowerCase()
         .startsWith("/admin");
@@ -150,6 +142,7 @@ function WebAuthProvider({ children }: { children: ReactNode }) {
               setIsAdmin(true);
               setSignedWallet(null);
               setAuthChainType("none");
+              setAuthError(null);
               googleIntent.current=false;clearGoogleAttempt();
             }
             return;
@@ -161,6 +154,7 @@ function WebAuthProvider({ children }: { children: ReactNode }) {
               setAuthChainType(user.chainType || "none");
               setSignedIn(true);
               setIsAdmin(false);
+              setAuthError(null);
               googleIntent.current=false;clearGoogleAttempt();
             }
           }
@@ -173,21 +167,51 @@ function WebAuthProvider({ children }: { children: ReactNode }) {
           setAuthChainType(user.chainType || "none");
           setSignedIn(true);
           setIsAdmin(false);
+          setAuthError(null);
           googleIntent.current=false;clearGoogleAttempt();
         }
       } catch (e) {
         const err = e as ApiError;
-        if (!cancelled && hydrationEpoch===epoch.current&&!googleIntent.current&&!googleAttemptPending()&&err?.status === 401) resetAuthState();
+        if (!cancelled && hydrationEpoch===epoch.current&&!googleIntent.current&&!googleAttemptPending()) {
+          if(err?.status===401||err?.status===403)resetAuthState();
+          else if(sessionTemporarilyUnavailable(err)){
+            waitingForService=true;
+            setAuthError(knownSession?'Restoring your saved session. The server is temporarily unavailable; reconnecting automatically.':'Connecting to RIVALS. The server is temporarily unavailable; retrying automatically.');
+            retryTimer=setTimeout(()=>{retryTimer=undefined;void hydrateSession();},5000);
+          }
+        }
       } finally {
-        if (!cancelled&&hydrationEpoch===epoch.current&&!googleIntent.current&&!googleAttemptPending()) setIsAuthLoading(false);
+        restoring=false;
+        if (!waitingForService&&!cancelled&&hydrationEpoch===epoch.current&&!googleIntent.current&&!googleAttemptPending()) setIsAuthLoading(false);
       }
     };
 
-    hydrateSession();
+    const retry=()=>{if(retryTimer!==undefined){clearTimeout(retryTimer);retryTimer=undefined;void hydrateSession();}};
+    window.addEventListener('online',retry);window.addEventListener(SESSION_RETRY_EVENT,retry);
+    void hydrateSession();
     return () => {
-      cancelled = true; controller.abort();
+      cancelled = true; controller.abort();clearTimeout(retryTimer);
+      window.removeEventListener('online',retry);window.removeEventListener(SESSION_RETRY_EVENT,retry);
     };
   }, [resetAuthState]);
+
+  // Foreground revalidation both checks revocation and renews the existing
+  // HttpOnly cookie. Network failures never imply a logout or a fresh Google login.
+  useEffect(()=>{
+    if(!signedIn||isAdmin||!HAS_BACKEND)return;
+    const controller=new AbortController();let checking=false,last=Date.now();
+    const check=async()=>{
+      if(checking||document.hidden||Date.now()-last<60000)return;
+      const ticket=epoch.current;checking=true;last=Date.now();
+      try{await restoreSession(authApi.me,controller.signal);}
+      catch(error){if(!controller.signal.aborted&&ticket===epoch.current&&[401,403].includes((error as ApiError).status??0))resetAuthState();}
+      finally{checking=false;}
+    };
+    const resume=()=>void check();
+    const interval=setInterval(resume,6*60*60*1000);
+    window.addEventListener('focus',resume);window.addEventListener('online',resume);document.addEventListener('visibilitychange',resume);
+    return()=>{controller.abort();clearInterval(interval);window.removeEventListener('focus',resume);window.removeEventListener('online',resume);document.removeEventListener('visibilitychange',resume);};
+  },[signedIn,isAdmin,resetAuthState]);
 
   const completeGoogleLogin = useCallback(async () => {
     if(googleFlight.current)return googleFlight.current;

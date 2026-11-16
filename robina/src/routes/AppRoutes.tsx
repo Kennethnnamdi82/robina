@@ -11,8 +11,8 @@ const AdminLoginPage = lazy(() => import("@/pages/AdminLoginPage"));
 const AdminBountyPage = lazy(() => import('@/features/rivals/admin/AdminBountyPage'));
 const AdminPaymentsPage=lazy(()=>import('@/features/rivals/admin/AdminPaymentsPage'));
 
-function SessionRestoreScreen() {
-  return <CommandLoading message="Restoring your secure session..."/>;
+function SessionRestoreScreen({error}:{error?:string|null}) {
+  return <CommandLoading message={error||'Restoring your secure session...'}/>;
 }
 
 function captureReferral(code: string | null | undefined) {
@@ -33,14 +33,14 @@ function GameRedirect() {
 }
 
 export default function AppRoutes() {
-  const { isLoggedIn, isAuthLoading, isAdmin } = useAuth();
+  const { isLoggedIn, isAuthLoading, isAdmin,authError } = useAuth();
   const { search } = useLocation();
   useEffect(() => {
     const params = new URLSearchParams(search);
     captureReferral(params.get("ref") || params.get("r"));
   }, [search]);
 
-  if (isAuthLoading) return <SessionRestoreScreen />;
+  if (isAuthLoading) return <SessionRestoreScreen error={authError}/>;
   return <Suspense fallback={<CommandLoading message="Loading RIVALS…"/>}>
     <Routes>
       <Route path="/ref/:code" element={<ReferralCapture />} />

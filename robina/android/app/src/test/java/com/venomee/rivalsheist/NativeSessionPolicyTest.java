@@ -4,6 +4,15 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class NativeSessionPolicyTest {
+    @Test public void onlyDefinitiveAuthenticationFailuresClearTheEncryptedSession() {
+        for(String error:new String[]{"unauthenticated","invalid_token","token_revoked","session_expired"}) {
+            assertTrue(NativeSessionPolicy.definitiveSessionFailure(401,error));
+            assertFalse(NativeSessionPolicy.definitiveSessionFailure(503,error));
+        }
+        assertFalse(NativeSessionPolicy.definitiveSessionFailure(401,"upstream_unavailable"));
+        assertFalse(NativeSessionPolicy.definitiveSessionFailure(503,"session_verification_unavailable"));
+        assertFalse(NativeSessionPolicy.definitiveSessionFailure(200,""));
+    }
     @org.junit.Test public void seasonClaimsArePlayerOnly() {
         assertTrue(NativeSessionPolicy.allowedClientRequest("/api/payments/season/claim", "POST"));
         assertFalse(NativeSessionPolicy.allowedClientRequest("/api/payments/season/claim", "GET"));

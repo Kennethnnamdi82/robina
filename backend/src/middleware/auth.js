@@ -40,14 +40,30 @@ export function clearSessionCookie(res) {
   });
 }
 
+export function sessionUnavailable(res) {
+  res.setHeader('Retry-After', '3');
+  return res.status(503).json({ error: 'session_verification_unavailable' });
+}
+
 export async function web3Middleware(req, res, next) {
+  const token = req.cookies?.bd_session;
+  if (!token) return res.status(401).json({ error: "unauthenticated" });
+  let decoded;
   try {
-    const token = req.cookies?.bd_session;
-    if (!token) return res.status(401).json({ error: "unauthenticated" });
-    const decoded = jwt.verify(token, env.jwtSecret, {
+    decoded = jwt.verify(token, env.jwtSecret, {
       issuer: "basedrop",
       audience: "basedrop-users",
     });
+  } catch (error) {
+    return res.status(401).json({ error: error?.name === 'TokenExpiredError' ? 'session_expired' : 'invalid_token' });
+  }
+  if (!decoded || typeof decoded.sub !== 'string' || !decoded.sub || !Number.isFinite(decoded.started ?? decoded.iat)) {
+    return res.status(401).json({ error: 'invalid_token' });
+  }
+  if (Date.now() >= ((decoded.started ?? decoded.iat) * 1000) + env.sessionMaximumMs) {
+    return res.status(401).json({ error: 'session_expired' });
+  }
+  try {
     if (decoded?.jti) {
       const revoked = await RevokedToken.exists({ jti: decoded.jti });
       if (revoked) return res.status(401).json({ error: "token_revoked" });
@@ -60,14 +76,10 @@ export async function web3Middleware(req, res, next) {
     if (!user || !isSessionVersionCurrent(decoded.sv, user.sessionVersion)) {
       return res.status(401).json({ error: "invalid_token" });
     }
-    if(Date.now()>=((decoded.started??decoded.iat)*1000)+env.sessionMaximumMs)return res.status(401).json({error:'session_expired'});
     if (user?.accountStatus === "suspended") {
-      const until =
-        user.suspendedUntil && new Date(user.suspendedUntil).getTime() > Date.now()
-          ? user.suspendedUntil
-          : null;
-      if (until) {
-        return res.status(403).json({ error: "account_suspended", suspendedUntil: until });
+      const suspensionEnd=user.suspendedUntil?new Date(user.suspendedUntil).getTime():null;
+      if (suspensionEnd===null||!Number.isFinite(suspensionEnd)||suspensionEnd>Date.now()) {
+        return res.status(403).json({ error: "account_suspended", suspendedUntil: user.suspendedUntil??null });
       }
       await User.updateOne(
         { wallet: req.wallet, accountStatus: "suspended" },
@@ -76,10 +88,12 @@ export async function web3Middleware(req, res, next) {
     }
     if(req.method==='GET'&&req.path==='/me'&&Date.now()-(decoded.iat??0)*1000>=24*60*60*1000)setSessionCookie(res,signSession(req.wallet,decoded.sv,decoded));
     req.authSession = { jti: decoded.jti ?? null, sv: decoded.sv ?? 0 };
-    next();
   } catch {
-    res.status(401).json({ error: "invalid_token" });
+    // A database outage is not proof of invalid credentials. In particular the
+    // native bridge must not erase a valid Keystore session during cold starts.
+    return sessionUnavailable(res);
   }
+  return next();
 }
 
 // ✅ Added back to prevent the "Missing Export" error on startup
