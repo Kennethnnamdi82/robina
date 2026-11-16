@@ -1,13 +1,13 @@
 import * as T from 'three';
 import type { CityAssets } from './CityAssets';
-import { CitySimulation, carActive, vehicleCollisionDimensions, type CityCar, type VehicleKind } from './CitySimulation';
+import { CitySimulation, TRAFFIC_COUNT, carActive, vehicleCollisionDimensions, type CityCar, type VehicleKind } from './CitySimulation';
 import { addParkedVehicles,drivenVehiclePose } from './VehicleController';
 import type { Solid3D } from './world3d';
 import { vehicleFinish } from './VehicleFinish';
 interface VehicleBatch { mesh:T.InstancedMesh; local:T.Matrix4; cars:CityCar[];length:number;wheel?:{center:T.Vector3;radius:number};paint:boolean }
 export class CityTrafficArt {
   readonly root=new T.Group();readonly simulation:CitySimulation;
-  readonly colliders:Solid3D[]=[];active=28;
+  readonly colliders:Solid3D[]=[];active=TRAFFIC_COUNT;
   private batches:VehicleBatch[]=[];private dummy=new T.Object3D();private matrix=new T.Matrix4();
   private renderYaw=new Map<number,number>();
   private materials=new Map<T.Material,T.MeshStandardMaterial>();

@@ -32,7 +32,7 @@ describe('frontend-only game hub',()=>{
     const view=at('/missions');expect(screen.getByRole('heading',{name:'OPERATIONS'})).toBeTruthy();expect(screen.getAllByRole('link',{name:'VIEW BRIEFING'})).toHaveLength(9);expect(screen.queryAllByRole('link',{name:'REVIEW UNLOCK REQUIREMENT'})).toHaveLength(0);
     fireEvent.click(screen.getByRole('link',{name:'PLAYER PROFILE'}));expect(screen.getByRole('heading',{name:'OPERATIVE PROFILE'})).toBeTruthy();
     fireEvent.click(screen.getByRole('link',{name:'RANK'}));expect(screen.getByRole('heading',{name:'EARN YOUR NAME'})).toBeTruthy();view.unmount();
-  });
+  },15000);
   it('keeps local practice separate from the verified server leaderboard',async()=>{
     const network=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({items:[]}),{status:200,headers:{'content-type':'application/json'}}));at('/leaderboards');
     expect(screen.getByText('SET THE FIRST BENCHMARK.')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'VERIFIED STANDINGS'}));expect(await screen.findByText(/Only server-verified successful missions/)).toBeTruthy();

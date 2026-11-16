@@ -21,12 +21,14 @@ import FounderIdentity from '../store/FounderIdentity';
 const PlayPage = lazy(() => import('./PlayPage'));
 const StorePage = lazy(() => import('../store/StorePage'));
 const RecoveryPage = lazy(() => import('../store/RecoveryPage'));
+const SupportPage = lazy(() => import('../store/SupportPage'));
 const BountyPage = lazy(() => import('../bounties/BountyPage'));
 const NAV = [
   { to: '/', label: 'LOBBY', icon: Swords }, { to: '/missions', label: 'MISSIONS', icon: Crosshair },
   { to: '/customization', label: 'CUSTOMIZATION', icon: Shield }, { to: '/inventory', label: 'LOADOUT', icon: Target }, { to: '/profile', label: 'PLAYER PROFILE', icon: UserRound },
   { to: '/leaderboards', label: 'LEADERBOARDS', icon: Trophy }, { to: '/rank', label: 'RANK', icon: Medal },
   { to: '/store', label: 'STORE', icon: ShoppingBag },
+  { to: '/support', label: 'SUPPORT', icon: Sparkles },
   { to: '/bounties', label: 'BOUNTY & EARN', icon: Radio },
   { to: '/settings', label: 'SETTINGS', icon: SlidersHorizontal },
 ];
@@ -77,6 +79,7 @@ function Hub({ identity }: { identity: string }) {
         <Route path="store/*" element={<Suspense fallback={<p role="status">OPENING THE EXCHANGE…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
         <Route path="inventory" element={<Suspense fallback={<p role="status">OPENING FIELD LOCKER…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
         <Route path="purchase-history" element={<Suspense fallback={<p role="status">OPENING PURCHASE HISTORY…</p>}><StorePage reduced={preferences.motion==='reduce'}/></Suspense>}/>
+        <Route path="support" element={<Suspense fallback={<p role="status">OPENING SUPPORT…</p>}><SupportPage/></Suspense>}/>
         <Route path="recovery" element={<Suspense fallback={<p role="status">OPENING RECOVERY PREVIEW…</p>}><RecoveryPage/></Suspense>}/>
         <Route path="customization" element={<Customization dossier={dossier} onSave={(callsign,emblem) => updateDossier(old => ({...old,callsign,emblem}))} saved={saved}/>}/>
         <Route path="leaderboard" element={<Navigate to="/leaderboards" replace/>}/>

@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MissionSimulation} from '../generated/missionSimulation.mjs';
 
+test('authoritative idle grenades follow facing instead of the camera target behind the soldier',()=>{
+  const sim=new MissionSimulation('assignment-reserve',42,'forward-grenade');
+  sim.body.position.set(8,0,8);sim.controller.aimAngle=0;sim.aim.set(-100,1,8);
+  assert.equal(sim.action({type:'grenade'}),true);
+  for(let i=0;i<12;i++)sim.step();const bomb=sim.field.bombs.find(b=>b.active);
+  assert.ok(bomb);assert.ok(bomb.velocity.x>0);assert.equal(sim.grenadesSpent,1);
+});
+
 test('server-confirmed pedestrian impacts survive checkpoints without replaying visual events',()=>{
   const sim=new MissionSimulation('assignment-reserve',42,'cinematic-pedestrian'),p=sim.crowd.people[0];
   const origin=sim.body.position.clone().set(p.x,.9,p.z+.7),direction=origin.clone().set(0,0,-1);

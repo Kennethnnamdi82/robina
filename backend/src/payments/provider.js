@@ -35,11 +35,11 @@ export function createBachsProvider() {
       return remote.id;
     },
     createCheckout: (order,productId) => client.checkoutSessions.create({
-      product_cart:[{product_id:productId,quantity:1,pricing:{price_type:'fixed',amount:usd(order.cents)}}],reference:String(order._id),
+      ...(order.kind==='support'?{pricing:{currency:'USD',price_type:'fixed',amount:usd(order.cents)}}:{product_cart:[{product_id:productId,quantity:1,pricing:{price_type:'fixed',amount:usd(order.cents)}}]}),reference:String(order._id),
       metadata:{rivals_order:String(order._id),rivals_player:String(order.playerId),rivals_environment:environment},
       success_url:env.siweUri+'/store/payment-return?order='+order._id,
       cancel_url:env.siweUri+'/store/payment-return?cancelled=1&order='+order._id,
-      expires_in_minutes:60,
+      expires_in_minutes:10,
     },{idempotencyKey:`rivals:checkout:${environment}:${order._id}`}),
     checkout: id=>client.checkoutSessions.get(id),payment:id=>client.payments.get(id),
     async recoverCheckout(order){

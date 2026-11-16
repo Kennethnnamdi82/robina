@@ -11,6 +11,12 @@ export interface Pickup { id: string; position: Vector3; supply: Supply; consume
 export const HEALTH_BOXES = { small: 25,medium: 25,large: 25 } as const;
 export const BOMB = { capacity: 6,fuse: 1.5,radius: 7,damage: 110,speed: 11.5,vertical: 4.2,gravity: 12,cooldown: .65 } as const;
 export const ENEMY_DROPS = { guard: 'pistol',enforcer: 'smg',heavy: 'rifle' } as const;
+/** Idle throws follow the soldier, not a freely orbiting camera behind him. */
+export function grenadeTarget(point:Vector3,aim:Vector3,facing:number,aiming:boolean,out=new Vector3()){
+  out.copy(aim).sub(point).setY(0);
+  if(!aiming||out.lengthSq()<.01)out.set(Math.cos(facing),0,Math.sin(facing));
+  return out.normalize().multiplyScalar(12).add(point).setY(point.y+1.25);
+}
 export interface ThrownBomb { active: boolean; serial: number; position: Vector3; velocity: Vector3; life: number }
 /** Gameplay-only items share Health, target damage and the physical solid set. */
 export class FieldItems {

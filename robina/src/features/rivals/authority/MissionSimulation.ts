@@ -14,9 +14,9 @@ import { emptyCommand, type PlayerCommand } from '../input/InputBuffer';
 import { moveKinematic, traceSolids, horizontalContact } from '../three/physics3d';
 import { convertSolids, point3, METRES, type Solid3D } from '../three/world3d';
 import { Projectile3D, type Target3D } from '../three/Projectile3D';
-import { FieldItems, ENEMY_DROPS, HEALTH_BOXES, meleeStrike } from '../three/FieldItems';
+import { FieldItems, ENEMY_DROPS, HEALTH_BOXES, meleeStrike, grenadeTarget } from '../three/FieldItems';
 import { Loadout } from '../three/Loadout';
-import { CitySimulation, VEHICLE_LENGTH, vehicleCollisionDimensions } from '../three/CitySimulation';
+import { CitySimulation, TRAFFIC_COUNT, carActive, VEHICLE_LENGTH, vehicleCollisionDimensions } from '../three/CitySimulation';
 import { VehicleController, addParkedVehicles, vehicleOverlap } from '../three/VehicleController';
 import { PolicePursuit } from '../three/PolicePursuit';
 import { CampaignGameplay } from '../three/CampaignGameplay';
@@ -109,7 +109,7 @@ export class MissionSimulation {
       const solid: Solid3D = { id: `city-traffic-${car.id}`, kind: 'cover', enabled: true, box: new Box3(),
         oriented: { center: new Vector3(), half: new Vector3(), yaw: 0 } };
       this.solids.push(solid);
-      this.targets.push({ id: `vehicle-${car.id}`, team: 'civilian', box: solid.box, alive: () => (car.health ?? 200) > 0,
+      this.targets.push({ id: `vehicle-${car.id}`, team: 'civilian', box: solid.box, alive: () => carActive(car,TRAFFIC_COUNT)&&(car.health ?? 200) > 0,
         damage: event => this.vehicles.damage(car, event.amount) });
     }
     this.police = new PolicePursuit(this.traffic.cars, new NavigationGrid(this.world.level.width, this.world.level.height, 64, this.world.blockers, 46),
@@ -201,7 +201,7 @@ export class MissionSimulation {
           hz = Math.abs(car.dz) * car.length / 2 + Math.abs(car.dx) * w / 2;
         solid.box.set(new Vector3(car.x - hx, 0, car.z - hz), new Vector3(car.x + hx, h, car.z + hz));
         solid.oriented!.center.set(car.x, h / 2, car.z); solid.oriented!.half.set(w / 2, h / 2, VEHICLE_LENGTH[car.kind] / 2); solid.oriented!.yaw = Math.atan2(car.dx, car.dz);
-        solid.enabled = Math.hypot(car.x - this.body.position.x, car.z - this.body.position.z) < 105;
+        solid.enabled = carActive(car,TRAFFIC_COUNT)&&Math.hypot(car.x - this.body.position.x, car.z - this.body.position.z) < 105;
       }
     }
     const setBox = (box: Box3, p: Vector3, radius: number,height=1.75) => box.set(new Vector3(p.x - radius, p.y, p.z - radius), new Vector3(p.x + radius, p.y + height, p.z + radius));
@@ -244,7 +244,7 @@ export class MissionSimulation {
     // per-pedestrian database writes are introduced on the server.
     this.crowd.combat.step(dt);this.crowdAge+=dt;if(this.crowdAge>=1/15){this.crowd.step(this.crowdAge,this.traffic.time,this.traffic.cars,this.body.position,this.solids.filter(s=>!s.id.startsWith('city-traffic-')),false);this.crowdAge=0;}
     this.traffic.step(dt, [{ x: this.body.position.x, z: this.body.position.z }, ...this.enemies.filter(e => e.alive).map(e => ({ x: e.x * METRES, z: e.y * METRES }))]);
-    this.vehicles.scan(this.body.position, 28);
+    this.vehicles.scan(this.body.position, TRAFFIC_COUNT);
     this.police.step(dt, this.legacy, this.enemies.filter(e => e.spawn.id.startsWith('police-')).map(e => ({ x: e.x, y: e.y, alive: e.alive })));
     this.campaign.step(dt, this.body.position, this.enemies.filter(e => e.spawn.id.startsWith('site-guard-') && e.alive).length);
     const door = this.solids.find(s => s.id === 'mission-vault-door'); if (door) door.enabled = this.world.blockers.find(b => b.id === door.id)!.enabled;
@@ -259,7 +259,7 @@ export class MissionSimulation {
       });
       for (const solid of this.solids.filter(s => s.enabled && s.id.startsWith('city-traffic-'))) { const hit = horizontalContact(enemy.x * METRES, enemy.y * METRES, .36, solid); if (hit) { enemy.x += hit.x * hit.depth / METRES; enemy.y += hit.z * hit.depth / METRES; } }
     }
-    if (this.throwRelease >= 0) { this.throwRelease -= dt; if (this.throwRelease <= 0) { if (this.field.throw(this.body.position, this.aim, this.controller.health > 0)) { this.grenadesSpent++; this.events.push({ type: 'grenade' }); } this.throwRelease = -1; } }
+    if (this.throwRelease >= 0) { this.throwRelease -= dt; if (this.throwRelease <= 0) { if (this.field.throw(this.body.position, grenadeTarget(this.body.position,this.aim,this.controller.aimAngle,this.controller.aiming), this.controller.health > 0)) { this.grenadesSpent++; this.events.push({ type: 'grenade' }); } this.throwRelease = -1; } }
     this.syncGeometry();
     this.field.step(dt, this.solids, this.targets.filter(t => !t.id.startsWith('vehicle-')), (p, radius) => { this.vehicles.blast(p, radius,150,this.solids); this.police.alert();this.crowd.threat(p,this.mission.elapsed);this.events.push({type:'blast',point:p.toArray(),radius,vehicle:false}); });
     const fired = this.loadout.step(dt, command.fire && !this.vehicles.current, command.reload, this.controller.canAttack, command.touchRepeat);

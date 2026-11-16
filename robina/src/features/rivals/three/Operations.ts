@@ -35,7 +35,8 @@ export function createOperation(seed=(salt+sequence++)>>>0,ordinal=1):Operation3
   const city=cityPlan(venue,seed);
   level.width=CITY_WIDTH/1.6;level.height=CITY_SIZE/1.6;
   const walls=Array.from({length:level.height},(_,y)=>Array.from({length:level.width},(_,x)=>Number(
-    x===0||y===0||x===level.width-1||y===level.height-1||Boolean(buildingAt(city,(x+.5)*1.6,(y+.5)*1.6))
+    ((x===0||y===0||x===level.width-1||y===level.height-1)&&
+      !STREET_CENTRES.some(c=>Math.abs((x+.5)*1.6-c)<5.8||Math.abs((y+.5)*1.6-c)<5.8))||Boolean(buildingAt(city,(x+.5)*1.6,(y+.5)*1.6))
   )));level.walls=walls;
   const reachable=()=>{
     const world=new WorldState(level);world.blockers.forEach(b=>{if(['transit-door','vault-gate','vault'].includes(b.id))b.enabled=false;});

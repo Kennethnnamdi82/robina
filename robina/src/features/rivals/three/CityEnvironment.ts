@@ -5,6 +5,7 @@ import type { QualityId } from '../core/presentation';
 import type { POV } from './CameraRig';
 import { cityPlan, cityRandom, buildingPlacement, STREET_CENTRES, trafficPhase,waterfrontRails,BRIDGE_SPAN, type CityPoint, type CityWeather } from './LivingCityPlan';
 import { CityTrafficArt } from './CityTrafficArt';
+import {TRAFFIC_COUNT} from './CitySimulation';
 import { CityCrowd } from './CityCrowd';
 import { CityTrees } from './CityTrees';
 import { CityGrounding } from './CityGrounding';
@@ -189,7 +190,7 @@ export class CityEnvironment {
       this.cube({x:x-6.1,z:z-6.1,width:.11,height:5.4,depth:.11},metal);this.cube({x:x-5.4,z:z-6.1,y:5.25,width:1.5,height:.1,depth:.22},metal);this.cube({x:x-5.4,z:z-6.1,y:5.22,width:1.35,height:.025,depth:.18},lens);
       this.sign(`${String.fromCharCode(65+STREET_CENTRES.indexOf(x))} / ${STREET_CENTRES.indexOf(z)+1} AVENUE`,x-6.1,3.1,z-6.1,0,2.0,.36,'#234c4d','#e2e9d8');
     }
-    this.batch('cone',Array.from({length:5},(_,i)=>({x:87+i*.75,z:63,height:.65,width:.35,depth:.35})),this.detail,true);
+    // No decorative construction barricade across the driving lanes.
     this.batch('ac',this.plan.buildings.filter(b=>b.model==='commerce').map(b=>({x:b.x+2,z:b.z,y:b.height,height:1,width:1.8,depth:1.2})),this.detail);
   }
   private trafficSignals(metal:T.Material){
@@ -223,12 +224,12 @@ export class CityEnvironment {
     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=64;const c=canvas.getContext('2d')!;c.fillStyle=background;c.fillRect(0,0,512,64);c.fillStyle=color;c.fillRect(8,7,3,50);c.textAlign='center';c.textBaseline='middle';c.font='600 25px sans-serif';c.fillText(text,263,34,470);
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;this.textures.add(texture);const material=new T.MeshStandardMaterial({map:texture,emissiveMap:texture,emissive:0xffffff,emissiveIntensity:.32,roughness:.7});this.materials.add(material);const geometry=new T.PlaneGeometry(w,h);this.geometries.add(geometry);const mesh=new T.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.rotation.y=yaw;this.root.add(mesh);
   }
-  setQuality(quality:QualityId){this.quality=quality;this.trees.setQuality(quality);this.architectureShadows.visible=quality!=='high';for(const mesh of this.architecture)mesh.castShadow=quality==='high'&&!mesh.userData.citySkyline;this.assets.setQuality(quality);this.crowd.setQuality(quality);this.detail.visible=quality!=='low';this.traffic.active=quality==='low'?18:quality==='balanced'?24:28;this.crowd.active=quality==='low'?24:quality==='balanced'?36:48;if(this.grass)this.grass.count=quality==='low'?135:quality==='balanced'?324:540;}
+  setQuality(quality:QualityId){this.quality=quality;this.trees.setQuality(quality);this.architectureShadows.visible=quality!=='high';for(const mesh of this.architecture)mesh.castShadow=quality==='high'&&!mesh.userData.citySkyline;this.assets.setQuality(quality);this.crowd.setQuality(quality);this.detail.visible=quality!=='low';this.traffic.active=TRAFFIC_COUNT;this.crowd.active=quality==='low'?24:quality==='balanced'?36:48;if(this.grass)this.grass.count=quality==='low'?135:quality==='balanced'?324:540;}
   setLighting(lighting:CityWeather){this.lighting=lighting;const night=lighting==='night';this.night.value=night?1:0;this.nightLights.forEach(l=>l.visible=night);this.lamps.forEach(m=>m.emissiveIntensity=night?3.2:.65);this.windowMaterials.forEach(m=>m.emissiveIntensity=night?.8:.15);}
   threat(point:CityPoint){this.crowd.threat(point,this.lastTime);}
   serverTraffic=false;
   update(time:number,_pov:POV,reduced:boolean,player=new T.Vector3(7.2,0,7.2),shots=0,actors:readonly CityPoint[]=[],camera?:T.Camera,alpha=1){
-    if(this.serverTraffic)this.traffic.active=28;
+    if(this.serverTraffic)this.traffic.active=TRAFFIC_COUNT;
     let delta=Math.min(.2,Math.max(0,time-this.lastTime));this.nightClock+=delta;this.lastTime=time;this.wind.value=reduced?0:time;
     if(shots!==this.shots){this.threat(player);this.shots=shots;}
     const obstacles:CityPoint[]=[player,...actors,...this.solids.filter(s=>s.enabled&&s.kind==='cover'&&!s.id.startsWith('city-traffic')).map(s=>({x:(s.box.min.x+s.box.max.x)/2,z:(s.box.min.z+s.box.max.z)/2}))];

@@ -26,6 +26,7 @@ export class CameraRig {
   private needsSettlement = false;
   private adsBlend = 0;
   get settling() { return this.transition > 0 || this.needsSettlement; }
+  get transitioning(){return this.transition>0;}
   bodyVisible = true;
   constructor() {
     try { const p = JSON.parse(localStorage.getItem(ZOOM_KEY) ?? '{}'); for (const key of POVS) if (Number.isFinite(p[key])) this.zoom[key] = MathUtils.clamp(p[key],.7,1.4); } catch { /* Preference storage is optional. */ }
@@ -55,10 +56,11 @@ export class CameraRig {
     this.yaw -= dx * .003 * this.sensitivity;
     this.pitch = MathUtils.clamp(this.pitch - dy * .0025 * this.sensitivity,this.pov==='third'?-.55:-1.05,this.pov==='third'?.24:.9);
     this.follow.manualLook(); this.movementYaw = this.vehicleYaw = this.yaw;
+    if(!this.transitioning)this.refreshLook();
   }
   /** Refresh aim orientation without advancing follow/zoom damping twice. */
   refreshLook() {
-    if (this.pov !== 'first' && this.pov !== 'third') return;
+    if (this.mounted || this.pov !== 'first' && this.pov !== 'third') return;
     this.direction.set(-Math.sin(this.yaw)*Math.cos(this.pitch),Math.sin(this.pitch),-Math.cos(this.yaw)*Math.cos(this.pitch));
     this.lookTarget.copy(this.camera.position).addScaledVector(this.direction,this.pov === 'third' || this.mounted ? 5 : 20);
     this.camera.lookAt(this.lookTarget); this.camera.updateMatrixWorld();
@@ -113,7 +115,7 @@ export class CameraRig {
       this.direction.set(-Math.sin(this.yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(this.yaw)*Math.cos(pitch));
       if (view === 'first') this.desired.copy(this.focus);
       else {
-        const distance = car ? Math.max(5.2,car.length * .82) + boost * 2.5 : this.ads ? 1.85 : 3.05 + boost * .65;
+        const distance = car ? Math.max(5.2,car.length * .82) + boost * 2.5 : MathUtils.lerp(3.05+boost*.65,1.85,this.adsBlend);
         this.desired.copy(this.focus).addScaledVector(this.direction,-distance / zoom);
         this.desired.x += Math.cos(this.yaw) * (car ? 0 : .48);
         this.desired.y += car ? 1.1 : .48;
@@ -126,7 +128,7 @@ export class CameraRig {
       else this.desiredLook.copy(this.desired).addScaledVector(this.direction,view === 'third' ? 5 : 20);
     }
     const camera = this.camera;
-    const positionRate = car ? 7 : view === 'first' ? 24 : 13;
+    const positionRate = car ? 12 : view === 'first' ? 24 : 16;
     // Head tracking has no positional latency; POV/vehicle transitions still blend.
     camera.position.lerp(this.desired,immediate || view === 'first' && !this.transition ? 1 : cameraDamping(positionRate,dt));
     if (view === 'third' || view === 'first') {
@@ -134,10 +136,11 @@ export class CameraRig {
       this.obstruction.constrain(this.focus,camera.position,solids);
     }
     const switching = this.transition > 0 && !immediate;
-    if ((view === 'third' || view === 'first') && !switching) {
+    if (!switching) {
       // A lagged shoulder position must never introduce sideways aim drift.
       // Orient from the actual eye, not a moving player-relative look target.
-      if (car && this.obstruction.elevated) this.desiredLook.copy(this.focus);
+      if(view==='tactical'||view==='side')this.desiredLook.sub(this.desired).add(camera.position);
+      else if (car && this.obstruction.elevated) this.desiredLook.copy(this.focus);
       else this.desiredLook.copy(camera.position).addScaledVector(this.direction,view === 'third' ? 5 : 20);
     }
     this.lookTarget.lerp(this.desiredLook,immediate || !switching ? 1 : cameraDamping(12,dt));
@@ -145,7 +148,7 @@ export class CameraRig {
     camera.lookAt(this.lookTarget);
     if ((switching || car) && !combat && !motion?.manual) {
       this.desiredRotation.copy(camera.quaternion);
-      camera.quaternion.copy(this.previousRotation).slerp(this.desiredRotation,cameraDamping(12,dt));
+      camera.quaternion.copy(this.previousRotation).slerp(this.desiredRotation,cameraDamping(car?18:12,dt));
     }
     const size = (view === 'tactical' ? this.aspect < 1 ? 12 : 8 : this.aspect < 1 ? 8 : 5.6) / zoom;
     const baseFov = car ? 59 + boost * 9 : view === 'first' ? MathUtils.clamp(72 / zoom * (1-this.adsBlend*.28),42,90) : MathUtils.lerp(57+boost*4,49,this.adsBlend);
