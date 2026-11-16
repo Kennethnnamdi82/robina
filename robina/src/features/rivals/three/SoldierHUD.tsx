@@ -1,4 +1,4 @@
-import { ArrowUp, Bomb, Crosshair, Shield, Wind, Zap } from 'lucide-react';
+import { ArrowUp, Bomb, Crosshair, Shield, Wind, Zap,LogOut } from 'lucide-react';
 import type { SandboxSession } from './SandboxSession';
 import type { RaidRuntime } from './RaidRuntime';
 import { useArenaValue } from '../ui/useArenaValue';
@@ -44,7 +44,7 @@ export function DrivingControls({runtime,disabled}:{runtime:RaidRuntime;disabled
     {vehicle.burning&&<strong className="r3-engine-warning" role="alert">ENGINE FIRE — EXIT NOW{vehicle.escapeSeconds!=null?' · '+Math.ceil(vehicle.escapeSeconds)+'s':''}</strong>}
     <div className="r3-pedals"><button aria-label="Reverse vehicle" disabled={disabled} {...held({throttle:-1})}>REVERSE</button><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button><button aria-label="Accelerate vehicle" disabled={disabled} {...held({throttle:1})}>ACCEL</button></div>
     <span className="r3-drive-hint">POINT TO DRIVE · PULL BACK TO REVERSE</span>
-    <button className="r3-exit-car" disabled={disabled} onClick={runtime.vehicleInteract}>EXIT VEHICLE · F</button>
+    <button className="r3-exit-car" aria-label="Exit vehicle" title="Exit vehicle · F" disabled={disabled} onClick={runtime.vehicleInteract}><LogOut size={18}/><span>EXIT</span></button>
   </div>;
 }
 export function SoldierDock({ session,runtime }: { session: SandboxSession; runtime: RaidRuntime | undefined }) {

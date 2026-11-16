@@ -69,6 +69,10 @@ export class CombatAudio {
   hit(body: boolean, distance = 0, pan = 0) { this.play(body ? 'body-hit' : `metal-${this.sequence++ % 2 as 0 | 1}`, body ? .6 : .3, distance, pan, body ? 2 : 1); }
   hurt(distance=0,pan=0){const now=this.context?.currentTime??0;if(now-this.lastHurt<.28)return;this.lastHurt=now;this.play('vocal-hurt',.48,distance,pan,2,1+(this.sequence++%3-1)*.025);}
   death(distance = 0, pan = 0) { this.play(`vocal-death-${this.deathSequence++%2 as 0|1}`, .78, distance, pan, 4, .97+(this.deathSequence%3)*.025);this.play('collapse', .5, distance, pan, 2, .9); }
+  enemyHealth(previous:number,current:number,distance=0,pan=0,restored=false){
+    if(restored||previous<=0||current>=previous)return;
+    if(current<=0)this.death(distance,pan);else this.hurt(distance,pan);
+  }
   blast(distance = 0, pan = 0) { this.play('blast-0', .85, distance, pan, 4, 1, 1800); this.play('metal-0', .35, distance, pan, 2, .7); }
   walk(travel: number, grounded: boolean, sprinting: boolean) {
     if (!grounded) { this.footfallDistance = 0; return; } this.footfallDistance += travel;
