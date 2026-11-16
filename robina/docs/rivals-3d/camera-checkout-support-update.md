@@ -55,6 +55,9 @@
 - Support payments share history, expiry, authentication, rate limiting and
   refund/reconciliation protections with existing purchases. No new secret or
   payment infrastructure is required.
+- Android update metadata is read from the actual published release manifest,
+  not a stale branch CDN; the versioned APK size/signature metadata stays tied
+  to that manifest before advertising the download.
 - Provider contract: https://docs.bachs.io/api-reference/payments/create-checkout-session
 
 ## Verification

@@ -12,6 +12,8 @@ describe('real Android release availability',()=>{
  it('only enables the stable official link after the actual APK has the expected size',async()=>{
   const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(manifest))).mockResolvedValueOnce(new Response(null,{headers:{'content-length':String(manifest.bytes)}}));
   expect(await releaseInfo(fetcher)).toMatchObject({available:true,url:APK_URL,versionCode:1011});expect(fetcher.mock.calls[1][1].method).toBe('HEAD');
+  expect(fetcher.mock.calls[0][0]).toBe('https://github.com/Kennethnnamdi82/rivals-heist-android/releases/latest/download/android-release.json');
+  expect(fetcher.mock.calls[1][0]).toContain('/releases/download/android-1011/');
   const missing=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(manifest))).mockResolvedValueOnce(new Response(null,{status:404}));expect(await releaseInfo(missing)).toEqual({available:false});
  });
  it('does not render a link when no production release exists',async()=>{
