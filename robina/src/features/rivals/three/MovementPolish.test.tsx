@@ -2,6 +2,7 @@ import {cleanup,render,screen} from '@testing-library/react';
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {Vector3} from 'three';
 import {PresentationCorrection,HeadingCorrection} from './PresentationCorrection';
+import {CameraRig,POVS} from './CameraRig';
 import {CombatAudio} from './CombatAudio';
 import {CampaignStatus} from './CampaignStatus';
 import {DrivingControls} from './SoldierHUD';
@@ -53,5 +54,16 @@ describe('focused movement and HUD regressions',()=>{
     render(<DrivingControls runtime={runtime} disabled={false}/>);
     const button=screen.getByRole('button',{name:'Exit vehicle'});
     expect(button.textContent).toBe('EXIT');button.click();expect(vehicleInteract).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/KM\/H|POINT TO DRIVE/)).toBeNull();
+  });
+  it.each(POVS)('avoids redundant projection rebuilds while following in %s',pov=>{
+    const rig=new CameraRig(),player=new Vector3();rig.setPOV(pov);rig.resize(640,360);
+    for(let i=0;i<120;i++)rig.update(player,[],1/60);
+    const perspective=vi.spyOn(rig.perspective,'updateProjectionMatrix'),orthographic=vi.spyOn(rig.orthographic,'updateProjectionMatrix');
+    for(let i=0;i<60;i++){player.z+=.05;rig.update(player,[],1/60);}
+    expect(perspective).not.toHaveBeenCalled();expect(orthographic).not.toHaveBeenCalled();
+    const before=rig.camera.projectionMatrix.clone(),distance=rig.camera.position.distanceTo(player);rig.cycleZoom();for(let i=0;i<60;i++)rig.update(player,[],1/60);
+    if(pov==='third')expect(Math.abs(rig.camera.position.distanceTo(player)-distance)).toBeGreaterThan(.1);
+    else expect(rig.camera.projectionMatrix.equals(before)).toBe(false);
   });
 });

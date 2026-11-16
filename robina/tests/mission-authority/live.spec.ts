@@ -47,7 +47,8 @@ test('a validated handoff persists a verified result before the actual completio
 test('the rendered soldier and entered vehicle move through real acknowledged server updates',async({page,request},info)=>{
   const playerId=await deploy(page,request),state=page.getByTestId('three-state');
   await expect(page.locator('.r3-campaign-status p')).toHaveCount(0);
-  await expect(page.locator('.r3-campaign-status')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await expect(page.locator('.r3-campaign-status')).toBeHidden();
+  await expect(page.locator('.rv-objective')).toBeHidden();
   await expect(page.getByRole('img',{name:'Red direction arrow'})).toBeVisible();
   expect((await request.post(`${backend}/__test/motion-setup?playerId=${playerId}`)).ok()).toBeTruthy();
   await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:30000}).toBeLessThan(9);
@@ -64,6 +65,7 @@ test('the rendered soldier and entered vehicle move through real acknowledged se
   await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).driving,{timeout:30000}).toBe(true);
   await expect(page.locator('.r3-enter-car')).toHaveCount(0);
   const exit=page.getByRole('button',{name:'Exit vehicle'});await expect(exit).toBeVisible();
+  await expect(page.locator('.r3-speed,.r3-drive-hint')).toHaveCount(0);
   const bounds=await exit.boundingBox();expect(bounds!.width).toBeLessThanOrEqual(56);expect(bounds!.height).toBeLessThanOrEqual(56);
   expect(bounds!.x).toBeGreaterThan(page.viewportSize()!.width/2);
   const before=Number(await state.getAttribute('data-z'));

@@ -142,12 +142,15 @@ export class CameraRig {
     const baseFov = car ? 59 : view === 'first' ? MathUtils.clamp(72 / zoom * (1-this.adsBlend*.28),42,90) : MathUtils.lerp(57,49,this.adsBlend);
     const targetSpan = view === 'side' || view === 'tactical' ? size : Math.tan(MathUtils.degToRad(baseFov / 2)) * this.desired.distanceTo(this.desiredLook);
     this.halfHeight += (targetSpan - this.halfHeight) * (immediate || !switching ? 1 : cameraDamping(12,dt));
-    this.orthographic.left = -this.halfHeight * this.aspect; this.orthographic.right = this.halfHeight * this.aspect;
-    this.orthographic.top = this.halfHeight; this.orthographic.bottom = -this.halfHeight;
+    const halfWidth=this.halfHeight*this.aspect;
+    const projectionChanged=Math.abs(this.orthographic.right-halfWidth)>1e-6||Math.abs(this.orthographic.top-this.halfHeight)>1e-6;
     const matchedFov = MathUtils.radToDeg(2 * Math.atan(this.halfHeight / Math.max(.05,camera.position.distanceTo(this.lookTarget))));
     const weight = switching ? MathUtils.smoothstep(this.transition / .7,0,1) : 0;
-    this.perspective.fov = MathUtils.lerp(baseFov,this.matchProjection ? MathUtils.clamp(matchedFov,3,110) : this.transitionFov,weight);
-    this.perspective.updateProjectionMatrix(); this.orthographic.updateProjectionMatrix();
+    const fov=MathUtils.lerp(baseFov,this.matchProjection ? MathUtils.clamp(matchedFov,3,110) : this.transitionFov,weight);
+    // These invert projection matrices. Ordinary following changes the world
+    // transform only; do not rebuild both projections on every rendered frame.
+    if(Math.abs(this.perspective.fov-fov)>1e-6){this.perspective.fov=fov;this.perspective.updateProjectionMatrix();}
+    if(projectionChanged){this.orthographic.left=-halfWidth;this.orthographic.right=halfWidth;this.orthographic.top=this.halfHeight;this.orthographic.bottom=-this.halfHeight;this.orthographic.updateProjectionMatrix();}
     camera.updateMatrixWorld(); this.transition = Math.max(0,this.transition-dt);
     // Draw the exact endpoint after the last blended frame even while paused.
     // Otherwise an idle renderer can retain the penultimate FOV/orientation.
