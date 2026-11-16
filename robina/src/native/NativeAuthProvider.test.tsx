@@ -10,7 +10,18 @@ vi.mock('./auth',()=>({listenForNativeLogin:mocks.listen,cancelNativeLogin:mocks
 function Probe(){const auth=useContext(AuthContext)!;return <><span>{auth.isLoggedIn?'signed in':'signed out'}</span><span>{auth.isAuthLoading?'restoring':'ready'}</span><button onClick={()=>void auth.signOut()}>Sign out</button></>;}
 const user={wallet:'0x1111111111111111111111111111111111111111',chainType:'evm',completedTasks:[]};
 beforeEach(()=>{vi.resetAllMocks();mocks.listen.mockResolvedValue(vi.fn());mocks.logout.mockResolvedValue({ok:true});});
-afterEach(cleanup);
+afterEach(()=>{cleanup();vi.useRealTimers();});
+it('keeps startup in reconnecting state through a long outage instead of forcing browser login',async()=>{
+ vi.useFakeTimers();mocks.me.mockRejectedValue({status:503});render(<NativeAuthProvider><Probe/></NativeAuthProvider>);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(66000);});expect(screen.getByText('restoring')).toBeTruthy();expect(screen.queryByText('ready')).toBeNull();
+ mocks.me.mockResolvedValue({user});await act(async()=>{window.dispatchEvent(new Event('online'));});expect(screen.getByText('signed in')).toBeTruthy();expect(screen.getByText('ready')).toBeTruthy();
+});
+it('restores the Keystore account after repeated cold-start errors rather than showing login',async()=>{
+ vi.useFakeTimers();mocks.me.mockRejectedValueOnce({status:503}).mockRejectedValueOnce({status:503}).mockRejectedValueOnce({status:502}).mockResolvedValue({user});
+ render(<NativeAuthProvider><Probe/></NativeAuthProvider>);await act(async()=>{await vi.advanceTimersByTimeAsync(2000);});
+ expect(screen.getByText('restoring')).toBeTruthy();expect(screen.queryByText('ready')).toBeNull();
+ await act(async()=>{await vi.advanceTimersByTimeAsync(4000);});expect(screen.getByText('signed in')).toBeTruthy();expect(screen.getByText('ready')).toBeTruthy();
+});
 it('restores the existing account and rechecks suspended sessions after returning to the app',async()=>{
  mocks.me.mockResolvedValueOnce({user}).mockRejectedValueOnce(Object.assign(Error('suspended'),{status:403}));render(<NativeAuthProvider><Probe/></NativeAuthProvider>);
  await screen.findByText('signed in');await act(async()=>{window.dispatchEvent(new Event('rivals:native-resume'));});await screen.findByText('signed out');expect(mocks.me).toHaveBeenCalledTimes(2);

@@ -12,6 +12,26 @@ function Probe(){const a=useAuth();return <><output>{a.isLoggedIn?'VERIFIED':a.i
 beforeEach(()=>{vi.stubEnv('VITE_PRIVY_APP_ID','test-public-app');vi.clearAllMocks();mocks.authenticated=false;sessionStorage.clear();localStorage.clear();mocks.token.mockResolvedValue('test-token');mocks.init.mockResolvedValue(undefined);mocks.me.mockRejectedValue({status:401});mocks.google.mockResolvedValue({user:{wallet:'google-user',chainType:'none'}});mocks.logout.mockResolvedValue(undefined);});
 afterEach(()=>{cleanup();vi.useRealTimers();vi.unstubAllEnvs();});
 describe('Google session synchronization',()=>{
+  it('shows reconnecting rather than login after the initial recovery deadline and recovers without credentials',async()=>{
+    vi.useFakeTimers();localStorage.setItem('rivals_session_seen','1');mocks.me.mockRejectedValue({status:503});
+    render(<AuthProvider><Probe/></AuthProvider>);await act(async()=>{await vi.advanceTimersByTimeAsync(66000);});
+    expect(screen.getByText('VERIFYING')).toBeTruthy();expect(screen.getByText(/reconnecting automatically/)).toBeTruthy();expect(screen.queryByText('SIGNED OUT')).toBeNull();
+    mocks.me.mockResolvedValue({user:{wallet:'recovered-user'}});await act(async()=>{window.dispatchEvent(new Event('online'));await vi.advanceTimersByTimeAsync(6000);});
+    expect(screen.getByText('VERIFIED')).toBeTruthy();expect(mocks.google).not.toHaveBeenCalled();
+  });
+  it('keeps restoring a saved cookie through repeated quick backend wake-up errors',async()=>{
+    vi.useFakeTimers();localStorage.setItem('rivals_session_seen','1');
+    mocks.me.mockRejectedValueOnce({status:503}).mockRejectedValueOnce({status:503}).mockRejectedValueOnce({status:503}).mockResolvedValue({user:{wallet:'durable-user'}});
+    render(<AuthProvider><Probe/></AuthProvider>);await act(async()=>{await vi.advanceTimersByTimeAsync(2000);});
+    expect(screen.getByText('VERIFYING')).toBeTruthy();expect(screen.queryByText('SIGNED OUT')).toBeNull();
+    await act(async()=>{await vi.advanceTimersByTimeAsync(4000);});expect(screen.getByText('VERIFIED')).toBeTruthy();expect(mocks.google).not.toHaveBeenCalled();
+  });
+  it('revalidates and renews the existing cookie when a signed-in browser returns after a day',async()=>{
+    vi.useFakeTimers();mocks.me.mockResolvedValue({user:{wallet:'returning-user'}});
+    render(<AuthProvider><Probe/></AuthProvider>);await act(async()=>{});expect(screen.getByText('VERIFIED')).toBeTruthy();
+    vi.setSystemTime(Date.now()+24*60*60*1000);await act(async()=>{window.dispatchEvent(new Event('focus'));});
+    expect(mocks.me).toHaveBeenCalledTimes(2);expect(screen.getByText('VERIFIED')).toBeTruthy();expect(mocks.google).not.toHaveBeenCalled();
+  });
   it('restores a known cookie after a temporary backend wake-up failure without asking for Google again',async()=>{
     vi.useFakeTimers();localStorage.setItem('rivals_session_seen','1');mocks.me.mockRejectedValueOnce({status:503}).mockResolvedValueOnce({user:{wallet:'returning-user'}});
     render(<AuthProvider><Probe/></AuthProvider>);await act(async()=>{await vi.advanceTimersByTimeAsync(800);});expect(screen.getByText('VERIFIED')).toBeTruthy();expect(mocks.me).toHaveBeenCalledTimes(2);expect(mocks.google).not.toHaveBeenCalled();

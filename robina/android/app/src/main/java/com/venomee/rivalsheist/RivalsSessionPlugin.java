@@ -76,13 +76,17 @@ public class RivalsSessionPlugin extends Plugin {
         System.arraycopy(iv,0,all,0,iv.length);System.arraycopy(encrypted,0,all,iv.length,encrypted.length);
         if(!preferences().edit().putString(name,Base64.encodeToString(all,Base64.NO_WRAP)).commit())throw new IllegalStateException("Secure storage unavailable");
     }
-    private String get(String name){
+    private String get(String name) throws Exception {
         try{
             String value=preferences().getString(name,"");if(value.isEmpty())return "";
-            byte[] all=Base64.decode(value,Base64.NO_WRAP);if(all.length<29)throw new IllegalStateException();
+            byte[] all=Base64.decode(value,Base64.NO_WRAP);if(all.length<29)throw new IllegalArgumentException("Invalid encrypted session");
             Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");cipher.init(Cipher.DECRYPT_MODE,key(),new GCMParameterSpec(128,Arrays.copyOfRange(all,0,12)));
             return new String(cipher.doFinal(all,12,all.length-12),StandardCharsets.UTF_8);
-        }catch(Exception ignored){preferences().edit().remove(name).commit();return "";}
+        }catch(javax.crypto.AEADBadTagException | android.security.keystore.KeyPermanentlyInvalidatedException | IllegalArgumentException ignored){
+            preferences().edit().remove(name).commit();return "";
+        }
+        // Other Keystore failures can be temporary. Propagate them as service
+        // errors instead of deleting a durable credential and claiming logout.
     }
     private String random(){byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);return Base64.encodeToString(bytes,Base64.URL_SAFE|Base64.NO_PADDING|Base64.NO_WRAP);}
     private JSObject send(String path,String method,String body) throws Exception {
@@ -109,13 +113,16 @@ public class RivalsSessionPlugin extends Plugin {
                     String token=cookie.substring(11).split(";",2)[0];if(token.length()>8192||!token.matches("[A-Za-z0-9_.-]*"))throw new IllegalStateException("Invalid session response");put("session",token);
                 }
             }
-            if(status==401&&path.equals("/api/auth/me"))put("session","");
             InputStream input=status>=400?connection.getErrorStream():connection.getInputStream();String text="{}";
             if(input!=null)try(input;ByteArrayOutputStream output=new ByteArrayOutputStream()){
                 int maximum=path.startsWith("/api/bounties/")?2097152:65536;
                 byte[] chunk=new byte[4096];int count;while((count=input.read(chunk))!=-1){if(output.size()+count>maximum)throw new IllegalStateException("Response too large");output.write(chunk,0,count);}text=output.toString(StandardCharsets.UTF_8.name());
             }
-            JSObject response=new JSObject();response.put("status",status);response.put("data",new JSObject(text));return response;
+            JSObject data=new JSObject(text);
+            // A proxy error/HTML response or temporary database failure must not
+            // destroy the durable credential. Only verified auth failures do.
+            if(path.equals("/api/auth/me")&&NativeSessionPolicy.definitiveSessionFailure(status,data.optString("error")))put("session","");
+            JSObject response=new JSObject();response.put("status",status);response.put("data",data);return response;
         }finally{connection.disconnect();}
     }
     @PluginMethod public void request(PluginCall call){

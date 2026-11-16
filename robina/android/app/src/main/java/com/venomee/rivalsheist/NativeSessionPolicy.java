@@ -6,6 +6,11 @@ import java.net.URI;
 final class NativeSessionPolicy {
     private NativeSessionPolicy() {}
 
+    static boolean definitiveSessionFailure(int status, String error) {
+        return status == 401 && ("unauthenticated".equals(error) || "invalid_token".equals(error)
+            || "token_revoked".equals(error) || "session_expired".equals(error));
+    }
+
     static boolean validParameter(String value) {
         return value != null && value.matches("[A-Za-z0-9_-]{43}");
     }

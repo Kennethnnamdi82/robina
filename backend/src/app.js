@@ -17,6 +17,7 @@ import { createBachsWebhookRoutes } from './payments/bachsWebhook.js';
 import {createBachsProvider} from './payments/provider.js';
 import {createPaymentService} from './payments/service.js';
 import {createPaymentRoutes} from './payments/routes.js';
+import {createAndroidDownloadRoutes} from './downloads/android.js';
 
 
 
@@ -95,6 +96,7 @@ app.use(cookieParser());
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 
 // Routes
+app.use('/api/downloads',createAndroidDownloadRoutes(options.androidDownload));
 app.get('/health', (_req, res) => {
   const ready = isReady();
   const release=process.env.RENDER_GIT_COMMIT;
