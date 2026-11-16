@@ -91,9 +91,9 @@ describe("game-only public entry", () => {
     const view=render(<AppAt path="/admin/payments"/>);expect(await screen.findByRole('heading',{name:'Owner sign in'})).toBeTruthy();view.unmount();
     auth.isLoggedIn=auth.isAdmin=true;render(<AppAt path="/admin/payments"/>);expect(await screen.findByRole('heading',{name:'Payments and revenue'})).toBeTruthy();
   });
-  it('keeps a public non-authoritative return notice for Android browser checkouts',async()=>{
+  it('returns signed-out checkout visitors to normal login without a payment-return nag',async()=>{
     render(<AppAt path="/store/payment-return?order=0123456789abcdef01234567&paid=true"/>);
-    expect(await screen.findByRole('heading',{name:'Check saved payment in your app or sign in'})).toBeTruthy();expect(screen.queryByText('RIVALS game menu')).toBeNull();
+    expect(await screen.findByRole('heading',{name:'Sign in to RIVALS'})).toBeTruthy();expect(screen.queryByText('Check saved payment in your app or sign in')).toBeNull();
   });
   it("keeps retired dashboard links behind normal game login", async () => {
     render(<AppAt path="/admin/users" />);

@@ -1,0 +1,15 @@
+.rs-support{max-width:980px;margin-inline:auto}
+.rs-store.rs-support .rs-masthead{position:relative;display:block}
+.rs-store.rs-support .rs-masthead>svg{position:absolute;right:0;top:12px;width:28px;height:28px}
+.rs-store.rs-support .rs-masthead h1{font-size:clamp(2.25rem,6vw,4.5rem);line-height:1.02;letter-spacing:-.035em;margin-top:16px}
+.rs-support .rs-masthead p{margin-top:18px;max-width:520px;color:#bac3cc;line-height:1.6}
+.rs-support-card{max-width:620px;padding:clamp(20px,4vw,40px);border:1px solid #ffffff24;background:#10151b;margin:24px auto}
+.rs-support-card p{color:#bec5cc;line-height:1.65}
+.rs-support-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:24px 0}
+.rs-support-presets button[aria-pressed=true]{border-color:#e5ddd0;background:#ffffff14}
+.rs-support-card form{display:grid;gap:12px}
+.rs-support-card label,.rs-support-card small{font-size:12px;letter-spacing:.06em}
+.rs-support-amount{display:flex;align-items:center;gap:12px;border:1px solid #ffffff40;padding:14px;font-size:30px}
+.rs-support-amount input{width:100%;min-width:0;background:transparent;border:0;color:white;font:inherit}
+.rs-support-card .rs-fineprint{display:flex;gap:10px;font-size:12px;margin:24px 0}
+.rs-support-card .rs-primary{margin-top:16px}

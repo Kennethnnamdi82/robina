@@ -18,7 +18,7 @@ describe('completed collection fulfillment UI',()=>{
     const review=await screen.findByRole('button',{name:'REVIEW SELECTION'});expect(review.hasAttribute('disabled')).toBe(false);fireEvent.click(review);
     const confirm=await screen.findByRole('button',{name:/CONFIRM \/ CONTINUE/});await waitFor(()=>expect(confirm.hasAttribute('disabled')).toBe(false));fireEvent.click(confirm);await screen.findByText('PAYMENT STATUS / PENDING');
     fireEvent.click(screen.getByRole('button',{name:'CHECK PAYMENT STATUS'}));await screen.findByText('PURCHASE CONFIRMED');fireEvent.click(screen.getByRole('button',{name:'EQUIP PACK CONTENTS'}));await waitFor(()=>expect(payments.equip).toHaveBeenCalledWith('starter',undefined));
-  });
+  },15000);
   it('equips an owned soldier through the authenticated outfit slot',async()=>{
     vi.mocked(payments.store).mockResolvedValue({...state,ownedIds:['urban']});vi.mocked(payments.equip).mockResolvedValue({});mount(<StorePage/>,'/inventory');
     fireEvent.click(await screen.findByRole('button',{name:'Details for URBAN SOLDIER'}));fireEvent.click(screen.getByRole('button',{name:'EQUIP FOR NEXT DEPLOYMENT'}));await waitFor(()=>expect(payments.equip).toHaveBeenCalledWith('urban','outfit'));

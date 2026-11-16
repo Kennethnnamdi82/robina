@@ -1,5 +1,6 @@
 import { cityRandom, STREET_CENTRES, trafficPhase, trafficRoute, type CityPoint } from './LivingCityPlan';
 export type VehicleKind = 'sedan' | 'coupe' | 'taxi' | 'police' | 'van' | 'lorry' | 'tanker' | 'bus';
+export const TRAFFIC_COUNT=14;
 export interface CityCar { id:number; kind:VehicleKind; route:CityPoint[]; lengths:number[]; total:number; distance:number; x:number; z:number; dx:number; dz:number; speed:number; cruise:number; length:number; stopped:boolean; travelled:number; mode?:'traffic'|'parked'|'player'|'pursuit'|'disabled'; health?:number; driver?:boolean; door?:number;fire?:number; fuse?:number; exploded?:boolean }
 export const carActive=(car:CityCar,active:number)=>car.id<active||Boolean(car.mode&&car.mode!=='traffic');
 export const VEHICLE_LENGTH:Record<VehicleKind,number>={sedan:4.1,coupe:4.2,taxi:4.1,police:4.3,van:4.8,lorry:6.8,tanker:7.2,bus:6.8};
@@ -32,7 +33,7 @@ export class CitySimulation {
       car.distance=distance;this.cars.push(car);
     }
   }
-  step(dt:number,obstacles:readonly CityPoint[]=[],active=28) {
+  step(dt:number,obstacles:readonly CityPoint[]=[],active=TRAFFIC_COUNT) {
     this.time+=dt;const phase=trafficPhase(this.time);
     for(let index=0;index<this.cars.length;index++) {
       const car=this.cars[index];if(index>=active||car.mode&&car.mode!=='traffic')continue;

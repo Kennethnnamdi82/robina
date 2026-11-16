@@ -97,7 +97,8 @@ app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 // Routes
 app.get('/health', (_req, res) => {
   const ready = isReady();
-  res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ok: ready, chainId: env.chainId, bountyPayoutMode: 'manual' });
+  const release=process.env.RENDER_GIT_COMMIT;
+  res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ok: ready, chainId: env.chainId, bountyPayoutMode: 'manual',...(/^[a-f\d]{40}$/i.test(release??'')?{release}:{}) });
 });
 app.use('/api', (_req, res, next) => {
   res.set('Cache-Control', 'no-store');

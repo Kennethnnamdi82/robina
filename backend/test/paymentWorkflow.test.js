@@ -14,7 +14,7 @@ const {env}=await import('../src/config/env.js');
 const {createApp}=await import('../src/app.js');
 const {signSession}=await import('../src/middleware/auth.js');
 const {User}=await import('../src/models/User.js');
-const {StoreOrder,StoreInventory,StoreLedger,StoreSeason,StoreSeasonClaim}=await import('../src/payments/storeModels.js');
+const {StoreOrder,StoreInventory,StoreLedger,StoreSeason,StoreSeasonClaim,StorePurchaseLock}=await import('../src/payments/storeModels.js');
 const {publishSeason,claimReward,closeSeason}=await import('../src/payments/seasons.js');
 const {MissionLife,MissionSession}=await import('../src/missions/models.js');
 const {createPaymentService,inventory,reserveMissionGrenade}=await import('../src/payments/service.js');
@@ -38,6 +38,40 @@ function fakeProvider(){
     },
   };
 }
+test('custom support is verified exactly once and never grants gameplay inventory',async()=>{
+  const user=await player(),key=randomUUID(),order=await service.checkout(user._id,'support',key,1234);
+  assert.equal(order.cents,1234);assert.equal(order.name,'SUPPORT THE DEVELOPER');assert.equal(provider.calls,1);
+  assert.equal((await service.checkout(user._id,'support',key,1234)).id,order.id);
+  await assert.rejects(service.checkout(user._id,'support',key,999),e=>e.code==='idempotency_key_conflict');
+  provider.paid(order);await Promise.all([service.reconcile(user._id,order.id),service.reconcile(user._id,order.id)]);
+  const saved=await StoreOrder.findById(order.id);assert.equal(saved.status,'fulfilled');
+  const account=await StoreInventory.findOne({playerId:user._id});assert.deepEqual(account.ownedIds.toObject(),[]);assert.equal(account.grenades,5);
+  assert.equal(await StoreLedger.countDocuments({key:'grant:'+order.id}),1);
+  assert.ok((await service.snapshot(user._id)).purchases.some(p=>p.id===order.id));
+});
+test('support amount validation and fixed-price tampering are rejected before contacting Bachs',async()=>{
+  const user=await player();
+  for(const amount of [undefined,0,-1,1.5,1000001,NaN])await assert.rejects(service.checkout(user._id,'support',randomUUID(),amount),e=>e.code==='invalid_request');
+  assert.equal((await api(user,'/api/payments/checkout',{sku:'mp5',amountCents:1})).status,400);
+  assert.equal((await api(user,'/api/payments/checkout',{sku:'support'})).status,400);assert.equal(provider.calls,0);
+});
+test('ten-minute abandoned orders leave player history without deleting payment audit evidence',async()=>{
+  const user=await player(),order=await service.checkout(user._id,'mp5',randomUUID());
+  await StoreOrder.collection.updateOne({_id:new mongoose.Types.ObjectId(order.id)},{$set:{createdAt:new Date(Date.now()-601000)}});
+  assert.equal((await service.snapshot(user._id)).purchases.length,0);assert.equal(await StoreOrder.countDocuments({_id:order.id}),1);
+  assert.equal((await service.reconcile(user._id,order.id)).checkoutUrl,null);
+  // A browser clock cannot release a provider session that remains open.
+  await assert.rejects(service.checkout(user._id,'mp5',randomUUID()),e=>e.code==='purchase_already_pending');
+  provider.checkouts.get('chk_'+order.id).status='expired';const next=await service.checkout(user._id,'mp5',randomUUID());
+  assert.notEqual(next.id,order.id);assert.equal(await StorePurchaseLock.countDocuments({orderId:next.id}),1);
+});
+test('a late verified payment is preserved and credited even after its checkout disappears from history',async()=>{
+  const user=await player(),order=await service.checkout(user._id,'support',randomUUID(),500);
+  await StoreOrder.collection.updateOne({_id:new mongoose.Types.ObjectId(order.id)},{$set:{createdAt:new Date(Date.now()-601000)}});
+  assert.equal((await service.snapshot(user._id)).purchases.length,0);provider.paid(order);
+  await service.reconcile(user._id,order.id);const snapshot=await service.snapshot(user._id);
+  assert.equal(snapshot.purchases.length,1);assert.equal(snapshot.purchases[0].status,'fulfilled');
+});
 before(async()=>{
   const binary=fileURLToPath(new URL('../.cache/test-mongodb/mongod.exe',import.meta.url));
   mongo=await MongoMemoryReplSet.create({binary:{version:'7.0.24',...(process.platform==='win32'&&existsSync(binary)?{systemBinary:binary}:{})},replSet:{count:1,storageEngine:'wiredTiger'},instanceOpts:[{ip:'127.0.0.1'}]});
@@ -138,7 +172,7 @@ test('Bachs-converted billing uses provider-confirmed base price, linked charge 
 test('failure and expiration never grant; terminal unpaid checkout releases eligibility safely',async()=>{
   const user=await player(),order=(await checkout(user)).body;provider.paid(order,{status:'failed'});
   await webhook(order,'collection.failed');assert.equal((await inventory(user._id)).ownedIds.length,0);
-  Object.assign(provider.checkouts.get('chk_'+order.id),{status:'expired',charge:null});
+  Object.assign(provider.checkouts.get('chk_'+order.id),{status:'expired',payment_status:'failed',charge:null});
   await webhook(order,'checkout.expired');assert.equal((await StoreOrder.findById(order.id)).status,'expired');
   assert.equal((await checkout(user)).status,200);
 });

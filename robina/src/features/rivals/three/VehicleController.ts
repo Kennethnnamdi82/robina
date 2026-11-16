@@ -1,6 +1,6 @@
 import { Box3,Vector3 } from 'three';
 import type { CityCar } from './CitySimulation';
-import { carActive, VEHICLE_LENGTH,sampleRoute } from './CitySimulation';
+import { carActive, TRAFFIC_COUNT, VEHICLE_LENGTH,sampleRoute } from './CitySimulation';
 import type { Solid3D } from './world3d';
 import { horizontalContact,traceSolids } from './physics3d';
 export interface DrivingInput { throttle:number; steer:number; brake:boolean;heading?:number;stickX?:number;stickY?:number;cameraYaw?:number }
@@ -97,7 +97,7 @@ export class VehicleController {
   blast(point:Vector3,radius:number,damage=150,solids:readonly Solid3D[]=[]){
     const direction=new Vector3(),target=new Vector3();
     for(const car of this.cars){
-      if(car.exploded||(car.health??200)<=0)continue;
+      if(!carActive(car,TRAFFIC_COUNT)||car.exploded||(car.health??200)<=0)continue;
       const distance=Math.max(0,Math.hypot(point.x-car.x,point.z-car.z)-car.length*.4);if(distance>radius)continue;
       target.set(car.x,Math.max(.35,point.y),car.z);direction.subVectors(target,point);const length=direction.length();
       const cover=solids.filter(s=>s.id!=='city-traffic-'+car.id&&!s.box.containsPoint(point));

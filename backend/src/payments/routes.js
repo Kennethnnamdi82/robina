@@ -44,11 +44,12 @@ export function createPaymentRoutes(service){
     res.json(await claimReward(req.paymentPlayer,input.seasonId,input.track,input.rewardId,state.environment??undefined));
   }));
   player.post('/checkout',wrap(async(req,res)=>{
-    const input=parse(z.object({sku:z.string().min(1).max(80)}).strict(),req.body);
+    const input=parse(z.object({sku:z.string().min(1).max(80),amountCents:z.number().int().min(1).max(1000000).optional()}).strict(),req.body);
+    if(input.sku==='support'?input.amountCents===undefined:input.amountCents!==undefined)return res.status(400).json({error:'invalid_request'});
     requireCollectionClient(req,input.sku);
     const key=parse(z.string().regex(/^[a-zA-Z0-9_-]{16,100}$/),req.get('idempotency-key'));
     await consumeRate(`checkout:${req.paymentPlayer}`,15);
-    res.json(await service.checkout(req.paymentPlayer,input.sku,key));
+    res.json(await service.checkout(req.paymentPlayer,input.sku,key,input.amountCents));
   }));
   player.get('/orders/:id',wrap(async(req,res)=>res.json(publicOrder(await service.ownedOrder(req.paymentPlayer,parse(id,req.params.id))))));
   player.post('/orders/:id/check',wrap(async(req,res)=>{

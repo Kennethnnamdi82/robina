@@ -2,6 +2,7 @@
 export const CATALOG_VERSION = 2;
 const item = (id, name, cents, kind, extra = {}) => Object.freeze({ id, name, cents, currency: 'USD', kind, enabled: true, ...extra });
 export const paymentCatalog = Object.freeze([
+  item('support','SUPPORT THE DEVELOPER',100,'support'),
   ...[['mp5','MP5',300],['ak47','AK-47',500],['m4a1','M4A1',700],['scar','SCAR-H',1000],['m249','M249',1500],['elite','ELITE TACTICAL RIFLE',2000]].map(([id,name,cents]) => item(id,name,cents,'weapon')),
   ...[[10,300],[20,500],[100,1000]].map(([quantity,cents]) => item(`grenades-${quantity}`,`${quantity} GRENADE PACK`,cents,'grenades',{quantity})),
   item('revive','INSTANT RECOVERY',200,'recovery'),

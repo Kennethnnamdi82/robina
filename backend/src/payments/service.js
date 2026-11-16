@@ -22,19 +22,41 @@ export async function inventory(playerId,session,environment=storeEnvironment())
 const lockKey=(order)=>`${order.environment}:${order.playerId}:${order.kind==='recovery'?'recovery-'+order.recoveryDeaths:order.kind==='season'?'season-'+order.seasonId:order.sku}`;
 const locked=order=>['weapon','character','finish','effect','bundle','season','founder','recovery'].includes(order.kind);
 const terminal=['fulfilled','review','refund_review','refunded','disputed'];
+const unpaid=new Set(['initializing','pending','failed','expired','cancelled']);
+export function orderDeadline(order){
+  const windowEnd=new Date(order.createdAt).getTime()+600000;
+  const providerEnd=new Date(order.expiresAt).getTime();
+  return new Date(Number.isFinite(providerEnd)?Math.min(windowEnd,providerEnd):windowEnd);
+}
+export const visibleOrder=(order,now=Date.now())=>Boolean(order.verifiedAt||order.chargeId)||!unpaid.has(order.status)||orderDeadline(order).getTime()>now;
 export function publicOrder(order) {
   return {id:String(order._id),sku:order.sku,name:order.name,cents:order.cents,currency:order.currency,environment:order.environment,
-    status:order.status,checkoutUrl:['pending','verification_pending','failed'].includes(order.status)?order.checkoutUrl:null,
+    status:order.status,checkoutUrl:['pending','failed'].includes(order.status)&&orderDeadline(order).getTime()>Date.now()?safeCheckoutUrl(order.checkoutUrl):null,
+    expiresAt:orderDeadline(order),serverTime:new Date(),
     createdAt:order.createdAt,fulfilledAt:order.fulfilledAt,issue:order.issue,chargedAmount:order.chargedAmount,chargedCurrency:order.chargedCurrency,includes:order.includes,seasonId:order.seasonId};
 }
 export function createPaymentService(provider) {
   const configured=()=>{if(!provider)fail('payments_not_configured',503);};
   async function ownedOrder(playerId,id){const order=await StoreOrder.findOne({_id:id,playerId});if(!order)fail('order_not_found',404);return order;}
-  async function checkout(playerId,sku,key) {
-    configured();const product=getProduct(sku);if(!product||(!product.enabled&&product.kind!=='season'))fail('product_unavailable');
+  async function checkout(playerId,sku,key,amountCents) {
+    configured();let product=getProduct(sku);if(!product||(!product.enabled&&product.kind!=='season'))fail('product_unavailable');
+    if(sku==='support'){
+      if(!Number.isSafeInteger(amountCents)||amountCents<1||amountCents>1000000)fail('invalid_request',400);
+      product={...product,cents:amountCents};
+    }else if(amountCents!==undefined)fail('invalid_request',400);
     let order=await StoreOrder.findOne({playerId,key});
-    if(order&&order.sku!==sku)fail('idempotency_key_conflict');
+    if(order&&(order.sku!==sku||sku==='support'&&order.cents!==amountCents))fail('idempotency_key_conflict');
     if(!order) {
+      // Release only after the provider confirms expiry/cancellation. A UI
+      // countdown never authorizes replaying an uncertain payment operation.
+      const previous=await StoreOrder.findOne({playerId,sku,environment:provider.environment,status:{$in:['initializing','pending','failed','verification_pending']}}).sort({_id:-1});
+      if(previous&&orderDeadline(previous).getTime()<=Date.now()){
+        if(previous.checkoutId)await reconcile(playerId,previous._id);
+        else if(!previous.checkoutAttemptedAt)await transaction(async session=>{
+          const closed=await StoreOrder.findOneAndUpdate({_id:previous._id,status:'initializing',checkoutAttemptedAt:{$exists:false},$or:[{leaseUntil:null},{leaseUntil:{$lt:new Date()}}]},{$set:{status:'expired'}},{session,new:true});
+          if(closed)await StorePurchaseLock.deleteOne({_id:lockKey(closed),orderId:closed._id},{session});
+        });
+      }
       try {order=await transaction(async session=>{
         const account=await inventory(playerId,session,provider.environment);if(account.spendingBlocked)fail('payment_account_under_review');
         if(account.ownedIds.includes(sku)&&!['grenades','season'].includes(product.kind))fail('already_owned');
@@ -68,7 +90,7 @@ export function createPaymentService(provider) {
     if(!claim)return publicOrder(order);
     let stage='initialize_product';
     try {
-      const productId=await provider.product(product);
+      const productId=product.kind==='support'?'support':await provider.product(product);
       stage='initialize_checkout';
       const permission=await StoreOrder.updateOne({_id:order._id,status:'initializing',attempts:claim.attempts,
         leaseUntil:{$gt:new Date()},checkoutAttemptedAt:{$exists:false}},{$set:{productId,checkoutAttemptedAt:new Date()}});
@@ -131,7 +153,7 @@ export function createPaymentService(provider) {
         if(!account.ownedIds.includes('pass'))account.ownedIds.push('pass');
       }else if(['weapon','character','finish','effect','bundle','founder'].includes(current.kind)){
         for(const id of entitlementIds(current))if(!account.ownedIds.includes(id))account.ownedIds.push(id);
-      }else fail('fulfillment_not_implemented'); // Disabled SKUs cannot be sold by accident.
+      }else if(current.kind!=='support')fail('fulfillment_not_implemented'); // Support grants a receipt only, never game advantages.
       account.version++;await account.save({session});
       await StoreLedger.create([{key:`grant:${current._id}`,playerId:current.playerId,orderId:current._id,kind:'grant',sku:current.sku,quantity:current.quantity,cents:current.cents}],{session});
       current.status='fulfilled';current.fulfilledAt=new Date();current.issue=null;await current.save({session});
@@ -140,7 +162,7 @@ export function createPaymentService(provider) {
   async function reconcile(playerId,id) {
     configured();let order=await ownedOrder(playerId,id);
     if(order.environment!==provider.environment)fail('payment_environment_changed');
-    if(!order.checkoutId){if(order.status==='initializing')return checkout(playerId,order.sku,order.key);return publicOrder(order);}
+    if(!order.checkoutId){if(order.status==='initializing')return checkout(playerId,order.sku,order.key,order.kind==='support'?order.cents:undefined);return publicOrder(order);}
     if(order.status==='disputed')return publicOrder(order);
     let verifiedPaid=false;
     try {
@@ -171,12 +193,15 @@ export function createPaymentService(provider) {
           await StoreOrder.updateOne({_id:id,status:{$nin:terminal}},{$set:{status:'paid',chargeId:payment.payment_id,verifiedAt:new Date(),chargedAmount:payment.amount,chargedCurrency:payment.currency}}, {writeConcern:{w:'majority',j:true,wtimeout:5000}});
           verifiedPaid=true;await fulfill(order,payment);
         }
-        else if(!terminal.includes(order.status))await StoreOrder.updateOne({_id:id,status:{$nin:terminal}},{$set:{status:payment.status==='failed'?'failed':'verification_pending',issue:null}});
-      }else if(['expired','cancelled'].includes(remote.status)&&!terminal.includes(order.status)){
+        else if(!terminal.includes(order.status))await StoreOrder.updateOne({_id:id,status:{$nin:[...terminal,'paid']}},{$set:{status:payment.status==='failed'?'failed':'verification_pending',issue:null}});
+      }else if(['expired','cancelled'].includes(remote.status)&&!terminal.includes(order.status)&&order.status!=='paid'&&[undefined,'requires_payment_method','failed','cancelled'].includes(remote.payment_status)){
         await transaction(async session=>{
-          await StoreOrder.updateOne({_id:id,status:{$nin:terminal}},{$set:{status:remote.status,issue:null}},{session});
-          await StorePurchaseLock.deleteOne({_id:lockKey(order),orderId:order._id},{session});
+          const closed=await StoreOrder.updateOne({_id:id,status:{$nin:[...terminal,'paid']}},{$set:{status:remote.status,issue:null}},{session});
+          if(closed.modifiedCount)await StorePurchaseLock.deleteOne({_id:lockKey(order),orderId:order._id},{session});
         });
+      }else if(remote.status==='open'&&!terminal.includes(order.status)&&order.status!=='paid'){
+        const url=safeCheckoutUrl(remote.checkout_url);
+        await StoreOrder.updateOne({_id:id,status:{$nin:[...terminal,'paid']}},{$set:{status:'pending',...(url?{checkoutUrl:url}:{}),issue:null}});
       }
       await StoreOrder.updateOne({_id:id},{$set:{lastCheckedAt:new Date()}});
     }catch(error) {
@@ -252,7 +277,7 @@ export function createPaymentService(provider) {
     const season=await seasonSnapshot(playerId,environment);
     return {ownedIds:account.ownedIds.filter(id=>id!=='pass'||season?.hasPass),equippedIds:[...new Set(Object.values(selectionFields).map(field=>account[field]).filter(Boolean))],appearance:appearance(account),grenadeBalance:account.grenades,
       recoveryUntil:life?.recoveryUntil??null,serverTime:new Date(),spendingBlocked:account.spendingBlocked,
-      purchases:orders.map(publicOrder),season,catalog:paymentCatalog.map(p=>p.kind==='season'?{...p,enabled:Boolean(season),reason:season?undefined:'No active season has been published by the owner.'}:p),configured:Boolean(provider),environment:provider?.environment??null};
+      purchases:orders.filter(order=>visibleOrder(order)).map(publicOrder),season,catalog:paymentCatalog.map(p=>p.kind==='season'?{...p,enabled:Boolean(season),reason:season?undefined:'No active season has been published by the owner.'}:p),configured:Boolean(provider),environment:provider?.environment??null};
   }
   return {checkout,reconcile,event,equip,snapshot,ownedOrder,reverse,attachCheckout};
 }

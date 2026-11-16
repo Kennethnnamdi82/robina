@@ -12,7 +12,7 @@ const snapshot:StoreSnapshot={ownedIds:[],equippedIds:[],grenadeBalance:5,recove
 function mount(sku='mp5',orderId?:string,identity='wallet-a'){
   return render(<StoreIdentity.Provider value={identity}><MemoryRouter><PurchaseDialog product={findProduct(sku)!} orderId={orderId} onClose={()=>{}}/></MemoryRouter></StoreIdentity.Provider>);
 }
-beforeEach(()=>{sessionStorage.clear();vi.resetAllMocks();vi.mocked(payments.store).mockResolvedValue(snapshot);vi.mocked(payments.checkout).mockResolvedValue(pending);vi.mocked(payments.check).mockResolvedValue(pending);});
+beforeEach(()=>{sessionStorage.clear();vi.resetAllMocks();pending.createdAt=new Date().toISOString();pending.serverTime=new Date().toISOString();pending.expiresAt=new Date(Date.now()+600000).toISOString();snapshot.serverTime=new Date().toISOString();vi.mocked(payments.store).mockResolvedValue(snapshot);vi.mocked(payments.checkout).mockResolvedValue(pending);vi.mocked(payments.check).mockResolvedValue(pending);});
 afterEach(cleanup);
 describe('real Bachs purchase UI',()=>{
   it('requires confirmation and shows pending until the server confirms fulfillment',async()=>{

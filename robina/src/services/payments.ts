@@ -7,7 +7,7 @@ export interface SeasonReward{id:string;sku:string;wins:number;claimed:boolean}
 export interface StoreSeason{_id:string;name:string;startsAt:string;endsAt:string;status:'published'|'closed';wins:number;hasPass:boolean;free:SeasonReward[];premium:SeasonReward[]}
 export const equipmentSlot=(category:string,id:string):EquipmentSlot|undefined=>category==='weapons'?'weapon':category==='characters'||category==='founder'?'outfit':category==='cosmetics'?'finish':category==='effects'?(['salute','celebration','dance','taunt','pose'].includes(id)?'emote':id==='trail'?'trail':id==='entrance'?'entrance':'effect'):undefined;
 export const canEquip=(category:string)=>['weapons','characters','cosmetics','effects','bundles','founder'].includes(category);
-export interface PaymentOrder {id:string;sku:string;name:string;cents:number;currency:'USD';environment:'sandbox'|'production';status:OrderStatus;checkoutUrl?:string|null;issue?:string|null;createdAt:string;fulfilledAt?:string;chargedAmount?:string;chargedCurrency?:string;includes?:string[];seasonId?:string}
+export interface PaymentOrder {id:string;sku:string;name:string;cents:number;currency:'USD';environment:'sandbox'|'production';status:OrderStatus;checkoutUrl?:string|null;issue?:string|null;createdAt:string;expiresAt?:string;serverTime?:string;fulfilledAt?:string;chargedAmount?:string;chargedCurrency?:string;includes?:string[];seasonId?:string}
 export interface ServerProduct {id:string;name:string;cents:number;currency:'USD';kind:string;enabled:boolean;reason?:string}
 export interface StoreSnapshot {ownedIds:string[];equippedIds:string[];appearance?:Appearance;season?:StoreSeason|null;grenadeBalance:number;recoveryUntil:string|null;serverTime:string;spendingBlocked:boolean;purchases:PaymentOrder[];catalog:ServerProduct[];configured:boolean;environment:'sandbox'|'production'|null}
 export function paymentRequest<T>(path:string,method='GET',body?:unknown,key?:string,signal?:AbortSignal):Promise<T>{
@@ -16,6 +16,7 @@ export function paymentRequest<T>(path:string,method='GET',body?:unknown,key?:st
 export const payments={
   store:(signal?:AbortSignal)=>paymentRequest<StoreSnapshot>('/api/payments/store','GET',undefined,undefined,signal),
   checkout:(sku:string,key:string)=>paymentRequest<PaymentOrder>('/api/payments/checkout','POST',{sku},key),
+  support:(amountCents:number,key:string)=>paymentRequest<PaymentOrder>('/api/payments/checkout','POST',{sku:'support',amountCents},key),
   order:(id:string)=>paymentRequest<PaymentOrder>('/api/payments/orders/'+id),
   check:(id:string)=>paymentRequest<PaymentOrder>('/api/payments/orders/'+id+'/check','POST'),
   equip:(sku:string|null,slot?:EquipmentSlot)=>paymentRequest('/api/payments/equipment','PUT',{sku,...(slot?{slot}:{})}),

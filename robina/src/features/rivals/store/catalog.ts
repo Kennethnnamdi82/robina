@@ -51,7 +51,8 @@ export interface StoreAccount {
   appearance?:{outfit?:string|null;identity?:string|null};
   ownedIds: readonly string[]; equippedIds: readonly string[]; grenadeBalance: number | null;
   equipment: readonly { id: EquipmentId; ammo: number; reserve: number }[];
-  purchases: readonly { id: string; product: string; price: number; date: string; status: string }[];
+  serverTime?:string;
+  purchases: readonly { id: string; product: string; price: number; date: string; status: string;createdAt?:string;expiresAt?:string }[];
 }
 export function referenceStats(id: EquipmentId) {
   return equipmentStats(EQUIPMENT[id]);
