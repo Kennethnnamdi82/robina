@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 const expect=baseExpect.configure({timeout:120000});
 const mobile=process.argv.includes('--mobile');
 const quality=process.argv.includes('--low')?'low':'balanced';
-const output='docs/rivals-3d/smart-camera/'+(mobile?'mobile':'desktop');
+const output='test-results/manual-camera/'+(mobile?'mobile':'desktop');
 await fs.mkdir(output,{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
 let page;
@@ -15,7 +15,9 @@ try{
  page.on('pageerror',error=>{errors.push(error.message);console.error('BROWSER',error.message);});
  page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
  page.on('response',response=>{if(response.status()>=400)failed.push({url:response.url(),status:response.status()});});
- await page.goto('http://127.0.0.1:8084/tests/realism/index.html?quality='+quality);
+ const origin=process.env.RIVALS_CAMERA_TEST_ORIGIN??'http://127.0.0.1:8099';
+ if(!['127.0.0.1','localhost'].includes(new URL(origin).hostname))throw Error('Camera QA is restricted to local fixtures');
+ await page.goto(origin+'/tests/realism/index.html?quality='+quality);
  await page.getByRole('button').click();
  await expect.poll(()=>page.evaluate(()=>window.__realismAudit?.status),{timeout:240000}).toBe('playing');
  console.log('Actual renderer ready');
@@ -25,9 +27,9 @@ try{
  await expect.poll(async()=>!(await state()).settling).toBe(true);
  const initial=await state();
  await page.evaluate(()=>window.__realismAudit.camera.walk(1,0));
- const target=initial.yaw-Math.PI/2;
- await expect.poll(async()=>{const s=await state();return Math.abs(Math.atan2(Math.sin(s.yaw-target),Math.cos(s.yaw-target)));},{timeout:240000}).toBeLessThan(.12);
- await sample('held-stick-follow');
+ await expect.poll(async()=>(await state()).elapsed).toBeGreaterThan(initial.elapsed+.5);
+ expect((await state()).yaw).toBe(initial.yaw);
+ await sample('held-stick-no-auto-turn');
  const beforeOrbit=(await state()).yaw;
  if(mobile){
   const touch=await page.context().newCDPSession(page);
@@ -65,9 +67,11 @@ try{
  await expect.poll(async()=>Math.abs((await state()).speed)).toBeLessThan(.2);
  await page.evaluate(()=>window.__realismAudit.camera.drive(-1));
  await expect.poll(async()=>(await state()).speed).toBeLessThan(-.8);
- // Verify the actual reverse-facing view, not just negative vehicle speed.
- await expect.poll(async()=>{const s=await state();return Math.abs(Math.atan2(Math.sin(s.yaw-s.motion.vehicle.heading-Math.PI),Math.cos(s.yaw-s.motion.vehicle.heading-Math.PI)));},{timeout:240000}).toBeLessThan(.2);
- await sample('reverse-chase');
+ // Reversing must not flip the chosen view or rebase the steering controls.
+ const reverse=await state();
+ await expect.poll(async()=>(await state()).elapsed).toBeGreaterThan(reverse.elapsed+.5);
+ expect((await state()).yaw).toBe(reverse.yaw);
+ await sample('reverse-without-camera-flip');
  await page.evaluate(()=>window.__realismAudit.camera.drive(0,0,true));
  await expect.poll(async()=>Math.abs((await state()).speed)).toBeLessThan(.2);
  await page.evaluate(()=>window.__realismAudit.camera.exitVehicle());
