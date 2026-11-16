@@ -14,6 +14,14 @@ function transport(){
   fakes.io.mockReturnValue(socket);fakes.connectApi.mockResolvedValue({origin:'https://api.example.com',ticket:'one-use-ticket'});return socket;
 }
 describe('live mission client',()=>{
+  it('sends optional movement labels only after the backend advertises replay support',()=>{
+    const client=new MissionAuthorityClient('isolated'),emit=vi.fn();Object.assign(client,{socket:{emit},connection:'connected'});
+    let now=100;vi.spyOn(performance,'now').mockImplementation(()=>now);
+    const frame={...emptyCommand(),aim:[0,1,-10],tick:18,jump:false,jumpHeld:false,highJump:false,touchRepeat:false,throttle:0,steer:0,brake:false,stickX:0,stickY:0,cameraYaw:0} as Omit<AuthorityInput,'seq'>;
+    client.submit(frame);expect(emit.mock.lastCall?.[1]).not.toHaveProperty('tick');
+    Object.assign(client,{latest:{prediction:{tick:null,steps:0}}});now=160;client.submit({...frame,tick:24});
+    expect(emit.mock.lastCall?.[1]).toMatchObject({tick:24,seq:2});
+  });
   it('recovers an already persisted result after a lost terminal packet with a fresh render snapshot',async()=>{
     vi.useFakeTimers();transport();const client=new MissionAuthorityClient('session');await client.connect();
     fakes.handlers.get('mission:state')?.({health:80,mission:{state:'ACTIVE',elapsed:30}});const previous=client.latest;

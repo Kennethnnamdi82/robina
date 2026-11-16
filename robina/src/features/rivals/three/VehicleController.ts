@@ -44,7 +44,12 @@ export function driveVehicle(car:CityCar,input:DrivingInput,dt:number,solids:rea
   car.speed=Math.sign(car.speed)*Math.max(0,Math.abs(car.speed)-deceleration);
   const steps=Math.max(1,Math.ceil(Math.abs(car.speed)*dt/.15));
   for(let i=0;i<steps;i++){
-    const oldYaw=Math.atan2(car.dx,car.dz),turn=input.heading===undefined?Math.max(-1,Math.min(1,input.steer||0))*Math.sign(car.speed)*Math.min(1.4,Math.abs(car.speed)*.22)*dt/steps:Math.max(-6*dt/steps,Math.min(6*dt/steps,Math.atan2(Math.sin(input.heading-oldYaw),Math.cos(input.heading-oldYaw)))),yaw=oldYaw+turn;
+    // Directional touch steering obeys a vehicle turn rate too. The old 6rad/s
+    // heading shortcut could pivot a car almost 90 degrees in a quarter second.
+    // Preserve the pursuit AI's existing path-following rate; this correction
+    // is for a player's directional controls, not a change to police tactics.
+    const turnRate=car.mode==='player'?Math.min(heavy?1.1:1.8,Math.abs(car.speed)*.32):6;
+    const oldYaw=Math.atan2(car.dx,car.dz),turn=input.heading===undefined?Math.max(-1,Math.min(1,input.steer||0))*Math.sign(car.speed)*Math.min(1.4,Math.abs(car.speed)*.22)*dt/steps:Math.max(-turnRate*dt/steps,Math.min(turnRate*dt/steps,Math.atan2(Math.sin(input.heading-oldYaw),Math.cos(input.heading-oldYaw)))),yaw=oldYaw+turn;
     const x=car.x+Math.sin(yaw)*car.speed*dt/steps,z=car.z+Math.cos(yaw)*car.speed*dt/steps;
     const contact=solids.find(s=>s.id!=='city-traffic-'+car.id&&vehicleOverlap(car,x,z,yaw,s));
     if(contact){const speed=Math.abs(car.speed);if(impact)impact(car,contact,speed);else if(speed>3)car.health=Math.max(0,(car.health??200)-speed*2);car.speed=0;break;}

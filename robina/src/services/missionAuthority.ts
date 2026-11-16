@@ -16,6 +16,8 @@ export class MissionAuthorityClient {
   private requestedReady = false; private paused = false; private retry?: ReturnType<typeof setTimeout>;
   private lastSent = 0; private sequence = 0; private pending: Partial<AuthorityInput> = {}; private reconnectStarted = 0;
   private stateFrame?: number;
+  /** Network sequence is not the movement acknowledgement; the server may
+   * receive a packet just before publishing an older simulated position. */
   constructor(readonly sessionId: string) {}
   subscribe(listener: () => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   private notify() { this.listeners.forEach(listener => listener()); }
@@ -84,7 +86,9 @@ export class MissionAuthorityClient {
     for (const key of ['dodge', 'interact', 'reload', 'jump', 'highJump','fire'] as const) this.pending[key] = Boolean(this.pending[key] || frame[key]);
     if (performance.now() - this.lastSent < 50 || this.connection !== 'connected') return;
     this.lastSent = performance.now();
-    this.socket?.emit('mission:input', { ...frame, ...this.pending, seq: ++this.sequence }); this.pending = {};
+    const {tick,...legacy}=frame;
+    this.socket?.emit('mission:input', { ...legacy, ...this.pending,
+      ...(this.latest?.prediction&&tick!==undefined?{tick}:{}),seq: ++this.sequence }); this.pending = {};
   }
   action(action: AuthorityAction) { if (this.connection === 'connected') this.socket?.emit('mission:action', action); }
   dispose() { this.closed = true; this.connection = 'closed'; clearTimeout(this.retry); if(this.stateFrame!==undefined)cancelAnimationFrame(this.stateFrame);this.socket?.disconnect();this.socket?.removeAllListeners();this.onShot=this.onEffect=this.onDamage=undefined;this.pending={}; this.listeners.clear(); }

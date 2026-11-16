@@ -1,4 +1,4 @@
-import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
+import { Group, MathUtils, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
 import type { Actor } from '../../rugfire/actors';
 import type { HumanoidAnimator, HumanoidFrame } from './HumanoidAnimator';
 import { ArmIK, setWorldRotation } from './ArmIK';
@@ -33,6 +33,10 @@ export class WeaponRig {
   private hand = new Vector3(); private leftTarget = new Vector3();
   private fingers?:FingerGrip;
   private optic?:ReflexOptic;
+  private chestGrip=new Vector3();private reloadTarget=new Vector3();
+  private carriedGrip=new Vector3();private reachOffset=new Vector3();
+  private localRotation=new Quaternion();private desiredLocal=new Quaternion();private rootRotation=new Quaternion();
+  private poseInitialized=false;
   constructor(readonly actor: Actor, readonly model: Object3D, avatar?: HumanoidAnimator) {
     this.metadata = weaponMetadata(model); this.muzzle = model.getObjectByName('weapon-muzzle')!; this.support = model.getObjectByName('weapon-support') ?? undefined;
     if(this.metadata.id==='rifle')this.optic=new ReflexOptic(model,this.metadata);
@@ -46,28 +50,53 @@ export class WeaponRig {
       this.right = new ArmIK(body.getObjectByName('upperarm_r')!, body.getObjectByName('lowerarm_r')!, this.rightPalm.parent!);
       this.left = new ArmIK(body.getObjectByName('upperarm_l')!, body.getObjectByName('lowerarm_l')!, this.leftPalm.parent!);
       this.rightOffset.copy(this.rightPalm.quaternion).invert(); this.leftOffset.copy(this.leftPalm.quaternion).invert();
+      actor.root.updateMatrixWorld(true);
+      actor.root.localToWorld(this.chestGrip.set(...SOLDIER_GRIP));
+      avatar.sockets.chest.worldToLocal(this.chestGrip);
     }
   }
   fire() { this.kick = Math.min(.065, this.kick + this.metadata.recoil); }
   decay(dt: number) { this.kick *= Math.exp(-dt * 24); }
-  pose(target: Vector3, frame?: HumanoidFrame) {
+  pose(target: Vector3, frame?: HumanoidFrame,dt=1/60) {
     const group = this.actor.weapon;
-    group.rotation.x = this.kick * .4; group.rotation.z = this.kick * .1;
+    const twoHanded=this.metadata.id==='rifle'||this.metadata.id==='smg';
+    const reload=twoHanded&&frame?.reload?Math.sin(Math.PI*MathUtils.clamp(1-frame.reload/(frame.reloadDuration??1.25),0,1)):0;
+    group.rotation.x = this.kick * .4+reload*.18; group.rotation.z = this.kick * .1-reload*.2;
     this.supportEngaged = false;
     if (this.avatar && frame) {
-      const temporary = this.metadata.id === 'knife' || Boolean(frame.action && frame.action !== 'idle') || ['dodge', 'hit', 'death'].includes(this.avatar.motion) || frame.reload > 0;
+      const temporary = this.metadata.id === 'knife' || Boolean(frame.action && frame.action !== 'idle') || ['dodge', 'hit', 'death'].includes(this.avatar.motion) || !twoHanded&&frame.reload > 0;
       if (!temporary) {
         this.actor.root.updateMatrixWorld(true);
         // The supplied +Z-forward skeleton has its right shoulder on -X.
         // Mirroring this anchor pulled the firing arm across the entire chest.
-        this.anchor.set(...SOLDIER_GRIP); this.actor.root.localToWorld(this.anchor);
+        // Follow the animated chest, not a fixed point in the physics root.
+        // Both hands and the gun now share the body's continuous stride/bob.
+        this.anchor.copy(this.chestGrip);this.avatar.sockets.chest.localToWorld(this.anchor);
+        this.actor.root.worldToLocal(this.anchor);
+        if(!this.poseInitialized)this.carriedGrip.copy(this.anchor);
+        else this.carriedGrip.lerp(this.anchor,1-Math.exp(-24*Math.max(0,Math.min(.1,dt))));
+        this.actor.root.localToWorld(this.anchor.copy(this.carriedGrip));
         // Looking around an idle operative must not fold their rifle backwards
         // through their chest. Orbit is observation, not a weapon command.
         if (!frame.aiming && this.kick < .0005) {
-          this.desired.set(-7, .8, 10); this.actor.root.localToWorld(this.desired);
+          this.desired.set(0,-.08,1).transformDirection(this.actor.root.matrixWorld).multiplyScalar(12).add(this.anchor);
         } else this.desired.copy(target);
         if (this.desired.distanceToSquared(this.anchor) < .09) this.desired.copy(this.anchor).add(new Vector3(Math.cos(frame.angle), 0, Math.sin(frame.angle)));
         this.look.lookAt(this.anchor, this.desired, up); this.rotation.setFromRotationMatrix(this.look);
+        // Smooth in character space: turning the body must not leave a gun
+        // lagging behind in world space or snap between carry and aimed poses.
+        this.actor.root.getWorldQuaternion(this.rootRotation);
+        this.desiredLocal.copy(this.rootRotation).invert().multiply(this.rotation);
+        if(!this.poseInitialized){this.localRotation.copy(this.desiredLocal);this.poseInitialized=true;}
+        else this.localRotation.slerp(this.desiredLocal,1-Math.exp(-24*Math.max(0,Math.min(.1,dt))));
+        this.rotation.copy(this.rootRotation).multiply(this.localRotation);
+        if(this.support&&this.left&&this.leftPalm){
+          this.leftTarget.fromArray(this.metadata.sockets.support!).applyQuaternion(group.quaternion).applyQuaternion(this.rotation).add(this.anchor);
+          this.handRotation.copy(this.rotation).multiply(this.supportRoll).multiply(this.leftOffset);
+          this.leftPalm.parent!.getWorldScale(this.scale);
+          this.goal.copy(this.leftPalm.position).multiply(this.scale).applyQuaternion(this.handRotation);this.goal.subVectors(this.leftTarget,this.goal);
+          this.left.reachOffset(this.goal,this.reachOffset);this.anchor.addScaledVector(this.reachOffset,1-reload);
+        }
         this.handRotation.copy(this.rotation).multiply(this.rightOffset);
         this.rightPalm!.parent!.getWorldScale(this.scale);
         this.goal.copy(this.rightPalm!.position).multiply(this.scale).applyQuaternion(this.handRotation); this.goal.subVectors(this.anchor, this.goal);
@@ -76,15 +105,22 @@ export class WeaponRig {
         this.actor.root.updateMatrixWorld(true);
         if (this.support && this.left && this.leftPalm) {
           this.support.getWorldPosition(this.leftTarget);
+          if(reload){
+            // The firing hand retains the actual grip while the support hand
+            // visits the magazine and returns, instead of a pistol reload.
+            this.reloadTarget.set(0,-.12,.1);this.model.localToWorld(this.reloadTarget);
+            this.leftTarget.lerp(this.reloadTarget,reload);
+          }
           this.handRotation.copy(this.rotation).multiply(this.supportRoll).multiply(this.leftOffset);
           this.leftPalm.parent!.getWorldScale(this.scale);
           this.goal.copy(this.leftPalm.position).multiply(this.scale).applyQuaternion(this.handRotation); this.goal.subVectors(this.leftTarget, this.goal);
           this.pole.set(.36, 1.02, .16); this.actor.root.localToWorld(this.pole);
           this.left.solve(this.goal, this.pole); setWorldRotation(this.leftPalm.parent!, this.handRotation, this.scratch);
-          this.leftPalm.getWorldPosition(this.point); this.leftGripError = this.point.distanceTo(this.leftTarget); this.supportEngaged = true;
+          this.leftPalm.getWorldPosition(this.point); this.leftGripError = this.point.distanceTo(this.leftTarget); this.supportEngaged = reload<.01;
         }
       }
       this.rightPalm!.getWorldPosition(this.hand); this.model.getWorldPosition(this.point); this.rightGripError = this.point.distanceTo(this.hand);
+      if(temporary)this.poseInitialized=false;
     } else {
       // Rigid security rigs have designated wrist sockets rather than skins.
       group.getWorldPosition(this.anchor); this.look.lookAt(this.anchor, target, up); this.rotation.setFromRotationMatrix(this.look);

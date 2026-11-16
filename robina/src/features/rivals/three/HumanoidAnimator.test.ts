@@ -26,6 +26,22 @@ it('turns only the visual stance instead of aiming backwards through a locked to
 });
 
 describe('humanoid animation lifecycle', () => {
+  it('starts aligned with the controller and bounds body turns on a full movement reversal',()=>{
+    const a=fixture();expect(a.yaw).toBe(0);let previous=a.yaw;
+    for(let i=0;i<120;i++){
+      a.update(1/120,frame({vz:-4,angle:-Math.PI/2,independentAim:true,pov:'third'}));
+      expect(Math.abs(Math.atan2(Math.sin(a.yaw-previous),Math.cos(a.yaw-previous)))).toBeLessThanOrEqual(6/120+1e-6);previous=a.yaw;
+    }
+    expect(Math.cos(a.yaw)).toBeLessThan(-.999);a.dispose();
+  });
+  it('keeps the rifle pose continuous through sustained fire and reload rather than inserting pistol arm animations',()=>{
+    const a=fixture();a.update(.1,frame({vz:4,angle:Math.PI/2,equipment:'rifle'}));
+    for(let i=1;i<90;i++){
+      a.update(1/60,frame({vz:4,angle:Math.PI/2,equipment:'rifle',aiming:true,shots:i,reload:i>60?.9:0}));
+      expect(a.upperClipName).toBe('Pistol_Aim_Neutral');expect(a.motion).toBe('jog');
+    }
+    expect(a.activeActions).toBeLessThanOrEqual(2);a.dispose();
+  });
   it('does not lower an aimed weapon or interrupt a stride when taking damage',()=>{
     const a=fixture();
     for(let i=1;i<20;i++){

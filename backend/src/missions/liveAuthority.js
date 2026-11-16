@@ -15,6 +15,7 @@ import {appearance} from '../payments/entitlements.js';
 
 const unit = z.number().finite().min(-1).max(1), flag = z.boolean();
 export const liveInput = z.object({ seq: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), x: unit, y: unit,
+  tick: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER-10000).optional(),
   aimX: unit, aimY: unit, aim: z.tuple([z.number().finite().min(-1000).max(1000), z.number().finite().min(-100).max(100), z.number().finite().min(-1000).max(1000)]),
   aiming: flag, sprint: flag, dodge: flag, interact: flag, fire: flag, reload: flag, jump: flag, jumpHeld: flag, highJump: flag,
   touchRepeat: flag, throttle: unit, steer: unit, brake: flag, stickX: unit, stickY: unit, cameraYaw: z.number().finite().min(-100000).max(100000),

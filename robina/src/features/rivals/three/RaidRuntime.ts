@@ -34,6 +34,7 @@ import { Loadout, EQUIPMENT, type EquipmentId } from './Loadout';
 import { FieldItems, ENEMY_DROPS, HEALTH_BOXES, meleeStrike, grenadeTarget } from './FieldItems';
 import {TRAFFIC_COUNT} from './CitySimulation';
 import {PresentationCorrection} from './PresentationCorrection';
+import {MovementPrediction,type PredictedInput} from './MovementPrediction';
 import {aimNearDistance} from './CameraAim';
 import { FieldArt } from './FieldArt';
 import { CityAtmosphere } from './CityAtmosphere';
@@ -45,7 +46,7 @@ import {AdaptiveResolution} from './AdaptiveResolution';
 import {FrameSurface} from './FrameSurface';
 import { assignmentAt } from '../missions/assignments';
 import { addAssignmentWalls,AssignmentSite } from './AssignmentSite';
-import { VehicleController,vehicleOverlap } from './VehicleController';
+import { VehicleController,vehicleOverlap,driveVehicle,directionalDriving } from './VehicleController';
 import { PolicePursuit } from './PolicePursuit';
 import { CampaignGameplay } from './CampaignGameplay';
 import type { EnemySpawn } from '../ai/definitions';
@@ -65,6 +66,7 @@ import {WeaponFinish} from './CollectionAppearance';
 import {CollectionEffects} from './CollectionEffects';
 
 interface CombatDiagnostics {
+  motion?:{corrections:number;replayedSteps:number;history:number;render:number[]};
   inventory: ReturnType<Loadout['snapshot']>; field: ReturnType<FieldItems['snapshot']>; flashError: number;
   ready: boolean;headshots?:number;
   fires?:WorldFires['snapshot'];
@@ -112,6 +114,7 @@ export class RaidRuntime {
   private flash?: MuzzleFlash; private viewFlash?: MuzzleFlash; private securityFlashes = new Map<string,MuzzleFlash>(); private cameraFeedback=new CameraFeedback();private resolution=new AdaptiveResolution(1,1);private shadowClock=1;
   private previousPosition=this.body.position.clone();private renderPosition=new T.Vector3();
   private correction=new PresentationCorrection();private aimStart=new T.Vector3();private aimHit=new T.Vector3();
+  private prediction=new MovementPrediction();
   private nearbySolids: Solid3D[] = [];
   private remoteDirty = false;
   private framePlayerTarget = new T.Vector3();
@@ -495,8 +498,8 @@ export class RaidRuntime {
     for(const [id,model]of [...this.playerModels,...this.viewModels])if(id!=='knife'&&id!=='pistol')this.weaponFinish.apply(model,state.appearance?.finish??null);
     const previousHealth=this.controller.health,position=new T.Vector3().fromArray(state.position);
     const vehicleChanged=(state.vehicle.driving?state.vehicle.id:null)!==(this.vehicles?.current?.id??null);
-    if(restored||vehicleChanged||this.body.position.distanceTo(position)>(state.vehicle.driving?2.5:1.5)){this.correction.correct(this.body.position,position,restored);this.body.position.copy(position);this.previousPosition.copy(position);}
-    this.body.vertical=state.vertical;this.body.grounded=state.grounded;this.controller.vitality.current=state.health;
+    const before=this.body.position.clone();
+    this.controller.vitality.current=state.health;
     if(state.health<previousHealth){const prior=this.session.getSnapshot().damage;this.session.update({damage:{serial:prior.serial+1,amount:previousHealth-state.health,angle:this.lastDamageAngle}});this.combatAudio.hit(true);}
     this.session.mission.applyAuthority(state.mission,Boolean(authority.result));this.elapsed=state.mission.elapsed;
     const flagsChanged=this.world.active.size!==state.activeFlags.length||state.activeFlags.some(id=>!this.world.active.has(id));
@@ -511,7 +514,7 @@ export class RaidRuntime {
       Object.assign(n.model,{x:row.x,y:row.y,vx:row.vx,vy:row.vy,angle:row.angle,state:row.state,shots:row.shots,hurt:row.hurt,detection:row.detection,tactic:row.tactic,sprinting:row.sprinting});
       n.model.health.current=row.health;n.collider.enabled=row.health>0;this.setBox(n.target.box,point3(row.x,row.y),.36,1.8);
     }
-    for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,row);if(predict)Object.assign(car,motion);}}
+    for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=!state.prediction&&car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,row);if(predict)Object.assign(car,motion);}}
     if(this.art.city)this.art.city.traffic.simulation.time=state.trafficTime;
     if(this.vehicles)this.vehicles.current=state.vehicle.driving?this.vehicles.cars.find(c=>c.id===state.vehicle.id)??null:null;
     if(this.pursuit){this.pursuit.active=state.pursuit.active;this.pursuit.lost=state.pursuit.lost;this.pursuit.quiet=state.pursuit.evading;}
@@ -522,6 +525,20 @@ export class RaidRuntime {
     this.field.quantity=state.field.quantity;this.field.pending=state.field.pending;this.field.message=state.field.message;
     this.field.bombs.forEach(b=>{b.active=false;});state.field.bombs.forEach((b,i)=>{const local=this.field.bombs[i];if(local){local.active=true;local.serial=b.serial;local.life=b.life;local.position.fromArray(b.position);}});
     if(restored)this.pool.clear();
+    const reset=restored||vehicleChanged||state.health<=0||state.mission.state!=='ACTIVE'||this.session.getSnapshot().status!=='playing'||this.session.blocked;
+    const reconciled=this.prediction.reconcile(state,()=>{
+      this.body.position.copy(position);this.body.vertical=state.vertical;this.body.grounded=state.grounded;
+      this.body.jumpTime=state.prediction.jumpTime;this.controller.restoreMotion(state.prediction.controller);
+    },input=>this.predictMotion(input,1/60,true),reset);
+    if(reconciled){
+      this.previousPosition.add(this.body.position).sub(before);
+      if(reset)this.previousPosition.copy(this.body.position);
+      this.correction.correct(before,this.body.position,reset);
+    }else{
+      // Older backends remain playable during a rolling deployment.
+      if(reset||before.distanceTo(position)>(state.vehicle.driving?2.5:1.5)){this.correction.correct(before,position,reset);this.body.position.copy(position);this.previousPosition.copy(position);}
+      this.body.vertical=state.vertical;this.body.grounded=state.grounded;
+    }
     this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
     if(state.campaign.handoff==='waiting'&&!this.session.blocked)this.menu(true);
     // The regular HUD clock already publishes at 10Hz. Only terminal/death
@@ -538,13 +555,14 @@ export class RaidRuntime {
     const aimDirection=this.direction.subVectors(this.aim,this.body.position).setY(0).normalize();
     if(this.rig.pov==='first'&&!this.vehicles?.current)command.aiming=true;
     if(command.aiming){command.aimX=aimDirection.x;command.aimY=aimDirection.z;}
-    authority.submit({...command,aim:this.aim.toArray() as [number,number,number],jump:this.jump,jumpHeld:this.jumpHeld,highJump:this.highJump,
+    command.dodge=command.dodge&&this.body.grounded&&!this.loadout.busy;
+    const predicted=this.prediction.record({...command,aim:this.aim.toArray() as [number,number,number],jump:this.jump,jumpHeld:this.jumpHeld,highJump:this.highJump,
       touchRepeat:this.session.input.touchAiming,throttle:-raw.y||this.drivingInput.throttle,steer:raw.x||this.drivingInput.steer,
       brake:this.drivingInput.brake||command.dodge,stickX:this.drivingInput.stickX,stickY:this.drivingInput.stickY,cameraYaw:drivingYaw});
+    authority.submit(predicted);
     if(authority.connection!=='connected'||this.controller.health<=0)return;
     this.previousPosition.copy(this.body.position);const before=this.body.position.clone();
-    if(this.vehicles?.current){this.controller.stepMounted(dt);this.vehicles.step(dt,{...this.drivingInput,throttle:-raw.y||this.drivingInput.throttle,steer:raw.x||this.drivingInput.steer,cameraYaw:drivingYaw},this.solids,this.body.position);}
-    else{command.dodge=command.dodge&&this.body.grounded&&!this.loadout.busy;this.controller.step(command,dt);const scale=dodgeMotionScale(this.controller.dodgeRemaining,dt);moveKinematic(this.body,this.controller.vx*METRES*dt*scale,this.controller.vy*METRES*dt*scale,dt,nearbyMovementSolids(this.body.position,this.solids,this.occupants,this.nearbySolids),this.jump,this.jumpHeld,this.highJump);}
+    this.predictMotion(predicted,dt);
     this.jump=this.highJump=false;this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
     this.humanoidFrame.vx=(this.body.position.x-before.x)/dt;this.humanoidFrame.vz=(this.body.position.z-before.z)/dt;
     this.combatAudio.walk(before.distanceTo(this.body.position),!this.vehicles?.current&&this.body.grounded,this.controller.sprinting);
@@ -561,6 +579,22 @@ export class RaidRuntime {
     this.assignmentSite?.update(dt,this.body.position,this.campaign?.holdActive?this.campaign.holdProgress:0);
     const objective=this.session.mission.snapshot(),goal=this.socialGoal??this.campaign?.destination??objective.objectives.find(o=>o.id===objective.activeId)?.marker;
     this.gps?.update(dt,this.legacy,goal,Boolean(this.vehicles?.current));this.fires?.step(dt,this.vehicles?.cars??[]);
+  }
+  /** Replaying movement must never replay collisions' damage, inventory,
+   * weapon triggers, audio or mission events. Only the server settles those. */
+  private predictMotion(input:PredictedInput,dt:number,replay=false){
+    const car=this.vehicles?.current;
+    if(car){
+      this.controller.stepMounted(dt);
+      if(replay){driveVehicle(car,directionalDriving(input),dt,this.solids,()=>{});this.body.position.set(car.x,.55,car.z);}
+      else this.vehicles!.step(dt,input,this.solids,this.body.position);
+      this.body.grounded=true;this.body.vertical=0;
+    }else{
+      this.controller.step(input,dt);
+      const scale=dodgeMotionScale(this.controller.dodgeRemaining,dt);
+      moveKinematic(this.body,this.controller.vx*METRES*dt*scale,this.controller.vy*METRES*dt*scale,dt,
+        nearbyMovementSolids(this.body.position,this.solids,this.occupants,this.nearbySolids),input.jump,input.jumpHeld,input.highJump);
+    }
   }
   private step(dt: number) {
     if(this.session.authority){this.stepRemote(dt);return;}
@@ -674,7 +708,7 @@ export class RaidRuntime {
     Object.assign(this.humanoidFrame,{ vertical: this.body.vertical,grounded: this.body.grounded,sprinting: this.controller.sprinting,aiming: this.controller.aiming,angle: this.controller.aimAngle,pov: this.rig.pov,dodgeRemaining: this.controller.dodgeRemaining,dodgeSerial: this.controller.dodgeSerial,health: this.controller.health,hitSerial: this.session.getSnapshot().damage.serial,shots: this.loadout.shots,reload: this.weapon.reloadRemaining,reloadDuration: this.loadout.definition.reloadSeconds,equipment: this.loadout.current.id,action: this.loadout.action,actionRemaining: this.loadout.remaining });
     this.humanoidFrame.independentAim=this.independentAim&&this.rig.pov!=='first';
     if(this.socialRemaining>0){this.humanoidFrame.action=this.socialGesture;this.humanoidFrame.actionRemaining=this.socialRemaining;}
-    this.humanoid?.update(dt,this.humanoidFrame);if(this.socialRemaining>0)this.humanoid?.poseSocial(this.socialGesture,3.2-this.socialRemaining); this.gun?.decay(dt); this.gun?.pose(this.aim,this.humanoidFrame);this.player.weapon.visible=this.socialRemaining<=0;
+    this.humanoid?.update(dt,this.humanoidFrame);if(this.socialRemaining>0)this.humanoid?.poseSocial(this.socialGesture,3.2-this.socialRemaining); this.gun?.decay(dt); this.gun?.pose(this.aim,this.humanoidFrame,dt);this.player.weapon.visible=this.socialRemaining<=0;
     const appearance=this.session.authority?.latest?.appearance,won=this.session.authority?.latest?.mission.state==='SUCCESS';
     this.cosmeticEffects.step(dt,position,appearance?.effect??null,won,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz)>.3);
     this.trailEffects.step(dt,position,appearance?.trail??null,false,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz)>.3);
@@ -726,13 +760,13 @@ export class RaidRuntime {
     const wallDt=this.last?Math.max(0,(now-this.last)/1000):0;
     const {delta:dt,step:physicsStep}=frameTiming(wallDt); this.last = now;
     const active = this.modelsReady && this.session.getSnapshot().status === 'playing' && !this.session.getSnapshot().hack && !this.session.blocked&&!this.session.revivePending;
+    if(!active)this.prediction.clear();
     // The fire stick owns weapon aim only. Camera look remains a separate
     // playfield swipe; locomotion remains exclusively the left stick/keys.
     // Age existing effects before simulation so new short flashes survive their
     // first rendered frame even on a slow device. Pause freezes these clocks.
     if (active){this.effects?.age(dt);this.screenBlood?.update(dt);}
-    let simulationDelta = 0;
-    if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator+1e-9 >= physicsStep && steps++ < 12) { this.step(physicsStep); simulationDelta += physicsStep; this.accumulator = Math.max(0,this.accumulator-physicsStep); if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
+    if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator+1e-9 >= physicsStep && steps++ < 12) { this.step(physicsStep); this.accumulator = Math.max(0,this.accumulator-physicsStep); if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
     if(this.socialNoticeRemaining>0){this.socialNoticeRemaining=Math.max(0,this.socialNoticeRemaining-dt);if(!this.socialNoticeRemaining&&!this.socialRemaining){this.socialNotice='';this.needsDraw=true;}}
     if(this.socialRemaining>0){this.socialRemaining=Math.max(0,this.socialRemaining-dt);if(!this.socialRemaining){this.socialHeld?.removeFromParent();this.socialHeld=undefined;this.socialGesture='idle';this.socialNotice='';}}
     const storyOpen=Boolean(this.socialMenu)||this.campaign?.handoff==='waiting';
@@ -744,7 +778,9 @@ export class RaidRuntime {
     if (!active && !settling && !storyOpen && !this.needsDraw && !this.rig.settling) return;
     if(active){const scale=this.resolution.sample(wallDt);if(scale!==undefined)this.dpr=scale;this.post.budget(this.resolution.scale/this.resolution.ceiling);}
     const presented=this.surface.present(this.host.clientWidth,this.host.clientHeight,this.dpr,()=>{
-    const animationDelta = finished||storyOpen ? dt : simulationDelta;
+    // Skin/weapon/camera presentation shares the render clock. Advancing skin
+    // only on physics ticks made it freeze every other frame on 120Hz screens.
+    const animationDelta = active||finished||storyOpen ? dt : 0;
     this.renderPosition.copy(active?this.previousPosition:this.body.position);if(active)this.renderPosition.lerp(this.body.position,T.MathUtils.clamp(this.accumulator/physicsStep,0,1));
     this.correction.present(this.renderPosition,dt,this.renderPosition);
     const cameraCar=this.vehicles?.current;
@@ -838,6 +874,7 @@ export class RaidRuntime {
     const flashError = flash && marker ? flash.root.getWorldPosition(new T.Vector3()).distanceTo(marker.getWorldPosition(new T.Vector3())) : 0;
     return { inventory: this.loadout.snapshot(),field: this.field.snapshot(),flashError,view: { ads: this.rig.ads,fov: this.viewCamera.fov,visible: this.rig.pov === 'first',hands: Boolean(this.viewGun?.handsVisible && this.viewGun?.handsAttachedToWeapon),sight,yaw: this.rig.yaw,pitch: this.rig.pitch,feedback:this.cameraFeedback.snapshot },ready: !this.loadout.busy && (this.loadout.definition.kind !== 'melee' || this.loadout.meleeCooldown <= .00001) && this.controller.canAttack && this.weapon.cooldown <= .00001 && this.weapon.reloadRemaining === 0,grip: gun?.rightGripError ?? 0,support: gun?.leftGripError ?? 0,supported: gun?.supportEngaged ?? false,alignment: gun?.alignment ?? 1,muzzle: this.gun ? this.firingMuzzle(new T.Vector3()).toArray() : [],lastShot: this.lastShot,audio: this.combatAudio.snapshot(),effects: this.effects?.snapshot(),
       enemies: this.npcs.map(n => ({ id: n.model.spawn.id,dead: n.presentation?.dead ?? false,transitions: n.presentation?.deathTransitions ?? 0,age: n.presentation?.deathAge ?? 0,height: n.presentation?.height ?? 0,floorError: n.presentation?.floorError ?? 0,collider: n.collider.enabled,visible: n.presentation?.fall.visible ?? false,tactic:n.model.tactic,evasions:n.model.evasions,covers:n.model.covers,speed:Math.hypot(n.model.vx,n.model.vy),motion:n.actor.current,hits: n.presentation?.hitCount ?? 0 })),
+      motion:{corrections:this.prediction.corrections,replayedSteps:this.prediction.replays,history:this.prediction.size,render:this.renderPosition.toArray()},
       headshots:this.headshots,fires:this.fires?.snapshot,boss: b ? { dead: b.dead,transitions: b.deathTransitions,age: b.deathAge,height: b.height,floorError: b.floorError } : null };
   }
   private publish() {

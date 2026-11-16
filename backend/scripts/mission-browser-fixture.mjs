@@ -35,10 +35,23 @@ const server=createServer(async(req,res)=>{
     if(url.pathname==='/__test/state'){
       const [life,results]=await Promise.all([models.MissionLife.findOne({playerId}).lean(),models.VerifiedMissionResult.find({playerId}).lean()]);
       const live=[...authority.entries.values()].find(e=>e.playerId===playerId);
-      return res.end(JSON.stringify({life,results,live:live?{ready:live.ready,paused:live.paused,connected:Boolean(live.socket),health:live.sim.controller.health,elapsed:live.sim.mission.elapsed,faulted:live.faulted}:null}));
+      return res.end(JSON.stringify({life,results,live:live?{ready:live.ready,paused:live.paused,connected:Boolean(live.socket),health:live.sim.controller.health,elapsed:live.sim.mission.elapsed,faulted:live.faulted,position:live.sim.body.position.toArray(),vehicle:live.sim.vehicles.snapshot}:null}));
     }
     const entry=[...authority.entries.values()].find(e=>e.playerId===playerId);
     if(!entry){res.statusCode=409;return res.end('{"error":"operation_not_ready"}');}
+    if(url.pathname==='/__test/motion-setup'){
+      const sim=entry.sim;sim.neutral();sim.controller.stop();sim.police.end();
+      sim.enemies.forEach(e=>{e.health.current=0;});sim.body.position.set(8,0,8);
+      // An empty, real avenue isolates motion from traffic collisions. Never
+      // spawn the test car inside an existing traffic vehicle's collision box.
+      for(const car of sim.traffic.cars)if(car.id!==28)Object.assign(car,{x:-1000-car.id*10,z:-1000,speed:0,mode:'parked'});
+      if(url.searchParams.get('vehicle')==='true'){
+        const car=sim.traffic.cars[28];Object.assign(car,{x:8,z:12,dx:0,dz:1,speed:0,mode:'parked'});
+        sim.body.position.set(5.9,0,12);
+      }
+      await authority.checkpoint(entry,'test-motion');entry.socket?.emit('mission:state',sim.snapshot());
+      return res.end('{"ok":true}');
+    }
     if(url.pathname==='/__test/combat'){
       const enemy=entry.sim.enemies[0];enemy.x=8*40;enemy.y=26*40;enemy.angle=Math.PI/2;
       await authority.checkpoint(entry,'test-encounter');

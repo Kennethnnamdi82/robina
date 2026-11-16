@@ -18,6 +18,14 @@ export class CharacterController {
   private dashX = 0; private dashY = 1;
   private hurtRemaining = 0; private interactionRemaining = 0;
   private attackRemaining = 0; private recoveryRemaining = 0; private damageSerial = 0;
+  /** Movement-only reconciliation. Never contains health, inventory or rewards. */
+  captureMotion() {
+    return { vx:this.vx, vy:this.vy, facing:this.facing, aimAngle:this.aimAngle, aiming:this.aiming,
+      sprinting:this.sprinting, dodgeRemaining:this.dodgeRemaining, dodgeCooldown:this.dodgeCooldown,
+      dodgeSerial:this.dodgeSerial, dashX:this.dashX, dashY:this.dashY, hurtRemaining:this.hurtRemaining,
+      interactionRemaining:this.interactionRemaining, attackRemaining:this.attackRemaining, recoveryRemaining:this.recoveryRemaining };
+  }
+  restoreMotion(state: ReturnType<CharacterController['captureMotion']>) { Object.assign(this,state); }
   get canAttack() { return this.health > 0 && (this.evasiveDodge || this.hurtRemaining <= 0) && this.interactionRemaining <= 0 && this.dodgeRemaining <= 0 && this.recoveryRemaining <= 0; }
   get dodgeImmune() { return this.dodgeRemaining > MOVEMENT.dodgeDuration - MOVEMENT.dodgeInvulnerability; }
   private intent: AnimationIntent = { alive: true, hurt: false, dashing: false, interacting: false, moving: false, running: false, aiming: false, attacking: false };
