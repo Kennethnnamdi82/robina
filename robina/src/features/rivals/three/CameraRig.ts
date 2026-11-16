@@ -149,7 +149,8 @@ export class CameraRig {
     const fov=MathUtils.lerp(baseFov,this.matchProjection ? MathUtils.clamp(matchedFov,3,110) : this.transitionFov,weight);
     // These invert projection matrices. Ordinary following changes the world
     // transform only; do not rebuild both projections on every rendered frame.
-    if(Math.abs(this.perspective.fov-fov)>1e-6){this.perspective.fov=fov;this.perspective.updateProjectionMatrix();}
+    const fovChanged=Math.abs(this.perspective.fov-fov)>1e-6;this.perspective.fov=fov;
+    if(fovChanged)this.perspective.updateProjectionMatrix();
     if(projectionChanged){this.orthographic.left=-halfWidth;this.orthographic.right=halfWidth;this.orthographic.top=this.halfHeight;this.orthographic.bottom=-this.halfHeight;this.orthographic.updateProjectionMatrix();}
     camera.updateMatrixWorld(); this.transition = Math.max(0,this.transition-dt);
     // Draw the exact endpoint after the last blended frame even while paused.
