@@ -2,6 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MissionSimulation} from '../generated/missionSimulation.mjs';
 
+test('prediction labels acknowledge simulated input but cannot grant extra movement time or change health',()=>{
+  const normal=new MissionSimulation('assignment-reserve',42,'normal-time'),forged=new MissionSimulation('assignment-reserve',42,'forged-label');
+  const command={seq:1,x:1,y:0,aimX:1,aimY:0,aim:[20,1,20],aiming:false,sprint:true,dodge:false,interact:false,fire:false,reload:false,jump:false,jumpHeld:false,highJump:false,touchRepeat:false,throttle:0,steer:0,brake:false,stickX:0,stickY:0,cameraYaw:0};
+  normal.input({...command,tick:1});forged.input({...command,tick:1000000000});
+  assert.equal(normal.snapshot().prediction.tick,null,'receiving input must not acknowledge an unsimulated step');
+  for(let i=0;i<15;i++){normal.step();forged.step();}
+  assert.deepEqual(normal.body.position,forged.body.position);assert.equal(normal.controller.health,forged.controller.health);
+  assert.equal(normal.snapshot().prediction.steps,15);assert.equal(forged.snapshot().prediction.steps,15);
+  assert.equal(forged.snapshot().prediction.tick,1000000000);assert.equal(normal.mission.elapsed,forged.mission.elapsed);
+  const checkpoint=normal.checkpoint(),restored=new MissionSimulation('assignment-reserve',42,'restored-label');restored.restore(checkpoint,0);
+  assert.equal(restored.snapshot().prediction.tick,null);assert.deepEqual(restored.body.position,normal.body.position);
+});
+
 test('authoritative idle grenades follow facing instead of the camera target behind the soldier',()=>{
   const sim=new MissionSimulation('assignment-reserve',42,'forward-grenade');
   sim.body.position.set(8,0,8);sim.controller.aimAngle=0;sim.aim.set(-100,1,8);

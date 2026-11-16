@@ -79,7 +79,7 @@ export class HumanoidAnimator {
     this.mixer.stopAllAction(); this.mixer.uncacheClip(neutral); this.mixer.setTime(0);
     rightHand.add(actor.weapon);
     actor.weapon.position.set(0, 0, 0); actor.weapon.quaternion.identity();
-    this.update(0, { vx: 0, vz: 0, vertical: 0, grounded: true, sprinting: false, aiming: false, angle: -Math.PI / 2, pov: 'tactical', dodgeRemaining: 0, dodgeSerial: 0, health: 100, hitSerial: 0, shots: 0, reload: 0 });
+    this.update(0, { vx: 0, vz: 0, vertical: 0, grounded: true, sprinting: false, aiming: false, angle: Math.PI / 2, pov: 'tactical', dodgeRemaining: 0, dodgeSerial: 0, health: 100, hitSerial: 0, shots: 0, reload: 0 });
   }
   private action(key: string, clipName: string, layer: 'lower' | 'upper' | 'full', once = false) {
     let action = this.actions.get(key);
@@ -142,7 +142,13 @@ export class HumanoidAnimator {
     }
     const turn = Math.atan2(Math.sin(desired - this.yaw), Math.cos(desired - this.yaw));
     if (!this.initialized) { this.yaw = desired; this.initialized = true; }
-    else this.yaw += turn * (1 - Math.exp(-dt * 18));
+    else{
+      // Exponential damping alone permits a huge first-frame angular jump on
+      // a 180-degree reversal. Bound the visual body turn as well; aim/hit rays
+      // remain immediate and server-controlled independently of this pose.
+      const limit=(frame.aiming?8:6)*dt;
+      this.yaw+=MathUtils.clamp(turn*(1-Math.exp(-dt*18)),-limit,limit);
+    }
     this.actor.root.rotation.y = this.yaw;
     const full = Boolean(special[motion]);
     let lowerTwist = 0, reverse = false;
@@ -184,7 +190,11 @@ export class HumanoidAnimator {
       // layer at all times; the lower layer remains the authored walk/run/sprint
       // cycle. A supplied sword idle pose gives the knife its own readable hold.
       const readyPose = frame.equipment === 'knife' && this.clips.has('Sword_Idle') ? 'Sword_Idle' : 'Pistol_Aim_Neutral';
-      const upperName = hasAction ? actionName : frame.reload > 0 ? 'Pistol_Reload' : this.shotRemaining > 0 ? 'Pistol_Shoot' : readyPose;
+      // Rifles/SMGs use the continuous two-hand WeaponRig for recoil/reload.
+      // Crossfading a one-hand pistol shot into that grip pulled the rifle
+      // backwards on every burst. The neutral clip is only its source pose.
+      const twoHanded=frame.equipment!==undefined&&!['knife','pistol'].includes(frame.equipment);
+      const upperName = hasAction ? actionName : !twoHanded&&frame.reload > 0 ? 'Pistol_Reload' : !twoHanded&&this.shotRemaining > 0 ? 'Pistol_Shoot' : readyPose;
       const upperOnce = Boolean(hasAction) || ['Pistol_Reload', 'Pistol_Shoot', 'Pistol_Aim_Neutral'].includes(upperName);
       const actionDurations: Record<string,number> = { melee: .38,throw: .55,pickup: .35,switch: .22 };
       const upperRate = hasAction ? this.clips.get(upperName)!.duration / actionDurations[frame.action!] : upperName === 'Pistol_Reload' ? this.clips.get(upperName)!.duration / (frame.reloadDuration ?? 1.25) : upperName === 'Pistol_Shoot' ? this.clips.get(upperName)!.duration / .16 : upperName === clipName ? rate : 1;

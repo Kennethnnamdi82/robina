@@ -7,6 +7,15 @@ export class ArmIK {
   private from = new Vector3(); private to = new Vector3(); private turn = new Quaternion();
   private parent = new Quaternion(); private world = new Quaternion();
   constructor(readonly upper: Object3D, readonly lower: Object3D, readonly hand: Object3D) {}
+  /** Translate a held item's anchor into the support arm's reachable volume,
+   * instead of stretching the skin or leaving the support hand floating. */
+  reachOffset(target:Vector3,out:Vector3){
+    this.upper.updateWorldMatrix(true,true);this.upper.getWorldPosition(this.shoulder);
+    this.lower.getWorldPosition(this.elbow);this.hand.getWorldPosition(this.wrist);
+    const reach=(this.shoulder.distanceTo(this.elbow)+this.elbow.distanceTo(this.wrist))*.98;
+    out.subVectors(target,this.shoulder);const distance=out.length();
+    return distance>reach&&distance>1e-5?out.multiplyScalar(reach/distance-1):out.set(0,0,0);
+  }
   solve(target: Vector3, elbowHint: Vector3) {
     this.upper.updateWorldMatrix(true, true);
     this.upper.getWorldPosition(this.shoulder); this.lower.getWorldPosition(this.elbow); this.hand.getWorldPosition(this.wrist);

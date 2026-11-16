@@ -28,6 +28,8 @@ export const SIMULATION_VERSION = 3;
 export const SIMULATION_STEP = 1 / 60;
 export interface AuthorityInput extends PlayerCommand {
   seq: number; aim: [number, number, number]; jump: boolean; jumpHeld: boolean; highJump: boolean;
+  /** Echoed prediction label only; never determines server time or travel. */
+  tick?: number;
   touchRepeat: boolean; throttle: number; steer: number; brake: boolean; stickX: number; stickY: number; cameraYaw: number;
 }
 export type AuthorityAction = { type: 'vehicle' | 'grenade' | 'handoff' | 'cancelHandoff' | 'cancelPickup' }
@@ -83,6 +85,8 @@ export class MissionSimulation {
   hits = 0; firearmShots = 0; firearmHits = 0; grenadesSpent = 0; lastSequence = -1;
   private healthSerial = 0; private throwRelease = -1; private vehicleSerial = 0; private burnAge = 0;
   private revision=-1;
+  private motionTick: number | null = null;
+  private motionSteps = 0;
   private blockersById=new Map<string,WorldState['blockers'][number]>();
   private lastObjectives = new Set<string>(); private aim = new Vector3(); private legacy = { x: 0, y: 0 };
   private command: AuthorityInput = { ...emptyCommand(), seq: -1, aim: [0, 1, 0], jump: false,
@@ -136,7 +140,7 @@ export class MissionSimulation {
     this.lastSequence = frame.seq; this.command = next; return true;
   }
   neutral() { this.command = { ...this.command, ...emptyCommand(), jump: false, jumpHeld: false, highJump: false,
-    throttle: 0, steer: 0, brake: true, stickX: 0, stickY: 0 }; }
+    throttle: 0, steer: 0, brake: true, stickX: 0, stickY: 0, tick:undefined }; }
   action(action: AuthorityAction) {
     if (this.mission.state !== 'ACTIVE' || this.controller.health <= 0) return false;
     if (action.type === 'handoff') {
@@ -239,6 +243,13 @@ export class MissionSimulation {
       moveKinematic(this.body, this.controller.vx * METRES * dt * scale, this.controller.vy * METRES * dt * scale,
         dt, nearby, command.jump, command.jumpHeld, command.highJump);
     }
+    // Acknowledge only movement actually simulated, not a newly received packet.
+    // Holding an input advances the label by server-owned fixed steps, not a
+    // client-provided duration. Legacy apps may omit the optional tick label.
+    if(command.tick!==undefined){
+      if(this.motionTick===command.tick)this.motionSteps++;
+      else{this.motionTick=command.tick;this.motionSteps=1;}
+    }
     this.legacy.x = this.body.position.x / METRES; this.legacy.y = this.body.position.z / METRES;
     // Sidewalk AI runs at 15Hz, combat sweeps remain at 60Hz. No rendering or
     // per-pedestrian database writes are introduced on the server.
@@ -293,6 +304,7 @@ export class MissionSimulation {
   drainEvents() { return this.events.splice(0); }
   snapshot() {
     return { version: SIMULATION_VERSION, appearance:this.appearance,civilians:this.crowd.people.slice(0,this.crowd.active).map(p=>({x:p.x,z:p.z,yaw:p.yaw,motion:p.motion,moving:p.moving,distance:p.distance,panicUntil:p.panicUntil,health:p.health??60,hitRemaining:p.hitRemaining??0,deathAge:p.deathAge??0})), inputSequence: this.lastSequence, position: this.body.position.toArray(), vertical: this.body.vertical,
+      prediction:{ tick:this.motionTick, steps:this.motionSteps, jumpTime:this.body.jumpTime, controller:this.controller.captureMotion() },
       grounded: this.body.grounded, health: this.controller.health, maxHealth: this.controller.maxHealth, mission: this.mission.snapshot(),
       loadout: this.loadout.snapshot(), field: this.field.snapshot(), campaign: this.campaign.snapshot, pursuit: this.police.snapshot,
       vehicle: this.vehicles.snapshot, activeFlags: [...this.world.active],

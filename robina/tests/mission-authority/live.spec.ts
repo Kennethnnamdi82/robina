@@ -43,3 +43,28 @@ test('a validated handoff persists a verified result before the actual completio
   const stored=await (await request.get(`${backend}/__test/state?playerId=${playerId}`)).json();
   expect(stored.results).toHaveLength(1);expect(stored.results[0]).toMatchObject({outcome:'success',firstCompletion:true,rewardEligible:true});
 });
+
+test('the rendered soldier and entered vehicle move through real acknowledged server updates',async({page,request},info)=>{
+  const playerId=await deploy(page,request),state=page.getByTestId('three-state');
+  expect((await request.post(`${backend}/__test/motion-setup?playerId=${playerId}`)).ok()).toBeTruthy();
+  await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:30000}).toBeLessThan(9);
+  // The initial TPS camera faces +Z (yaw=-PI), so W travels down this avenue.
+  await page.keyboard.down('KeyW');
+  try{await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:45000}).toBeGreaterThan(16);}
+  finally{await page.keyboard.up('KeyW');}
+  const walking=await state.evaluate(node=>({z:Number(node.getAttribute('data-z')),combat:JSON.parse(node.getAttribute('data-combat')!)}));
+  expect(walking.combat.motion.replayedSteps).toBeGreaterThan(0);expect(walking.combat.motion.history).toBeLessThanOrEqual(120);
+  const stored=await(await request.get(`${backend}/__test/state?playerId=${playerId}`)).json();expect(stored.live.position[2]).toBeGreaterThan(12);expect(stored.results).toHaveLength(0);
+  expect((await request.post(`${backend}/__test/motion-setup?playerId=${playerId}&vehicle=true`)).ok()).toBeTruthy();
+  await expect.poll(async()=>Number(await state.getAttribute('data-x')),{timeout:30000}).toBeLessThan(6.5);
+  await page.keyboard.press('KeyF');
+  await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).driving,{timeout:30000}).toBe(true);
+  const before=Number(await state.getAttribute('data-z'));
+  await page.keyboard.down('KeyW');
+  try{await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:45000}).toBeGreaterThan(before+5);}
+  finally{await page.keyboard.up('KeyW');}
+  const driving=await state.evaluate(node=>({z:Number(node.getAttribute('data-z')),combat:JSON.parse(node.getAttribute('data-combat')!),vehicle:JSON.parse(node.getAttribute('data-vehicle')!)}));
+  expect(driving.combat.motion.replayedSteps).toBeGreaterThan(walking.combat.motion.replayedSteps);expect(driving.vehicle.health).toBeGreaterThan(0);
+  console.log('Real server/render movement audit:',JSON.stringify({walking,driving}));
+  await page.screenshot({path:info.outputPath('server-controlled-driving.png')});
+});
