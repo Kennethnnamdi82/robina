@@ -43,8 +43,9 @@ describe('production model delivery', () => {
     expect(pattern.test('/api/admin/bounties/summary')).toBe(false);
     expect(pattern.test('/.well-known/assetlinks.json')).toBe(false);
   });
-  it('routes bounty, mission and existing owner session APIs before the SPA fallback', () => {
+  it('routes the binary download, bounty, mission and owner session APIs before the SPA fallback', () => {
     expect(config.rewrites.slice(0, -1)).toEqual([
+      { source: '/download/RIVALS-RIVAL-HEIST.apk', destination: 'https://robina-1.onrender.com/api/downloads/android' },
       { source: '/api/payments/:path*', destination: '/api/bounty-relay?__bounty_route=/api/payments/:path*' },
       { source: '/api/admin/payments/:path*', destination: '/api/bounty-relay?__bounty_route=/api/admin/payments/:path*' },
       { source: '/api/admin/me', destination: '/api/admin-session?__admin_session_route=/api/admin/me' },
