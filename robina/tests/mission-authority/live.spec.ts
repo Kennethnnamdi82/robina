@@ -47,6 +47,7 @@ test('a validated handoff persists a verified result before the actual completio
 test('the rendered soldier and entered vehicle move through real acknowledged server updates',async({page,request},info)=>{
   const playerId=await deploy(page,request),state=page.getByTestId('three-state');
   await expect(page.locator('.r3-campaign-status p')).toHaveCount(0);
+  await expect(page.locator('.r3-campaign-status')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await expect(page.getByRole('img',{name:'Red direction arrow'})).toBeVisible();
   expect((await request.post(`${backend}/__test/motion-setup?playerId=${playerId}`)).ok()).toBeTruthy();
   await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:30000}).toBeLessThan(9);

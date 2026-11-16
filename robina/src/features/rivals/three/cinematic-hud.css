@@ -199,8 +199,8 @@
   color: #becdd9;
 }
 .r3-shell .r3-game .r3-campaign-status {
-  background: #0e1922bf;
-  border-color: #b7c8d03b;
+  background: transparent;
+  border: 0;
   box-shadow: none;
   color: #d5e1e8;
 }
