@@ -40,10 +40,8 @@ export function DrivingControls({runtime,disabled}:{runtime:RaidRuntime;disabled
   const held=(value:Parameters<RaidRuntime['setDriving']>[0])=>({onPointerDown:(e:React.PointerEvent<HTMLButtonElement>)=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);runtime.setDriving(value);},onPointerUp:()=>release(value),onPointerCancel:()=>release(value),onLostPointerCapture:()=>release(value)});
   return <div className="r3-driving-controls" aria-label="Driving controls">
     <TouchStick kind="drive" disabled={disabled} onMove={vector=>runtime.setDriving({stickX:vector.x,stickY:vector.y})}/>
-    <output className="r3-speed">{vehicle.speed}<small>KM/H · {vehicle.kind?.toUpperCase()} · {vehicle.health} HP</small></output>
     {vehicle.burning&&<strong className="r3-engine-warning" role="alert">ENGINE FIRE — EXIT NOW{vehicle.escapeSeconds!=null?' · '+Math.ceil(vehicle.escapeSeconds)+'s':''}</strong>}
     <div className="r3-pedals"><button aria-label="Reverse vehicle" disabled={disabled} {...held({throttle:-1})}>REVERSE</button><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button><button aria-label="Accelerate vehicle" disabled={disabled} {...held({throttle:1})}>ACCEL</button></div>
-    <span className="r3-drive-hint">POINT TO DRIVE · PULL BACK TO REVERSE</span>
     <button className="r3-exit-car" aria-label="Exit vehicle" title="Exit vehicle · F" disabled={disabled} onClick={runtime.vehicleInteract}><LogOut size={18}/><span>EXIT</span></button>
   </div>;
 }

@@ -1,4 +1,7 @@
 /* Keep the existing HUD; only FPS replaces the combined aiming joystick. */
+/* Unobstructed gameplay: guidance is the red marker, not stacked message cards.
+   Preserve vitals, ammunition, minimap, buttons and intentional modal dialogs. */
+.r3-shell .r3-game[data-status=playing] :is(.rv-objective,.r3-campaign-status,.r3-notice,.r3-alarm,.r3-social-toast,.rv-equipment-prompt,.rv-field-status,.rv-security-status,.r3-engine-warning){display:none}
 .r3-fps-look,.r3-fps-shoot{display:none}
 .r3-game[data-pov=first][data-ads=true] .r3-reticle{opacity:0}
 .r3-screen-blood{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;contain:strict;background:conic-gradient(from var(--impact-angle,0rad),transparent 70%,#6d172848 90%,transparent);mask-image:radial-gradient(ellipse,transparent 45%,black 95%)}
