@@ -114,7 +114,7 @@ describe('movement acknowledgement and replay',()=>{
       if(tick>60)worst=Math.min(worst,presented.x-previous);previous=presented.x;
       expect(Number.isFinite(presented.x)).toBe(true);
     }
-    expect(worst).toBeGreaterThan(-.035);expect(prediction.replays).toBeGreaterThan(50);
+    expect(worst).toBeGreaterThan(-1e-6);expect(prediction.replays).toBeGreaterThan(50);
     expect(client.controller.health).toBe(100);expect(server.controller.health).toBe(100);
   });
   it('bounds touch steering by speed and vehicle class rather than snapping to the stick heading',()=>{

@@ -33,7 +33,7 @@ import type {PresentationEvent} from '../authority/MissionSimulation';
 import { Loadout, EQUIPMENT, type EquipmentId } from './Loadout';
 import { FieldItems, ENEMY_DROPS, HEALTH_BOXES, meleeStrike, grenadeTarget } from './FieldItems';
 import {TRAFFIC_COUNT} from './CitySimulation';
-import {PresentationCorrection} from './PresentationCorrection';
+import {PresentationCorrection,HeadingCorrection} from './PresentationCorrection';
 import {MovementPrediction,type PredictedInput} from './MovementPrediction';
 import {aimNearDistance} from './CameraAim';
 import { FieldArt } from './FieldArt';
@@ -46,7 +46,7 @@ import {AdaptiveResolution} from './AdaptiveResolution';
 import {FrameSurface} from './FrameSurface';
 import { assignmentAt } from '../missions/assignments';
 import { addAssignmentWalls,AssignmentSite } from './AssignmentSite';
-import { VehicleController,vehicleOverlap,driveVehicle,directionalDriving } from './VehicleController';
+import { VehicleController,vehicleOverlap,driveVehicle,directionalDriving,drivenVehiclePose } from './VehicleController';
 import { PolicePursuit } from './PolicePursuit';
 import { CampaignGameplay } from './CampaignGameplay';
 import type { EnemySpawn } from '../ai/definitions';
@@ -115,6 +115,7 @@ export class RaidRuntime {
   private previousPosition=this.body.position.clone();private renderPosition=new T.Vector3();
   private correction=new PresentationCorrection();private aimStart=new T.Vector3();private aimHit=new T.Vector3();
   private prediction=new MovementPrediction();
+  private headingCorrection=new HeadingCorrection();private presentedVehicleYaw:number|undefined;
   private nearbySolids: Solid3D[] = [];
   private remoteDirty = false;
   private framePlayerTarget = new T.Vector3();
@@ -499,6 +500,7 @@ export class RaidRuntime {
     const previousHealth=this.controller.health,position=new T.Vector3().fromArray(state.position);
     const vehicleChanged=(state.vehicle.driving?state.vehicle.id:null)!==(this.vehicles?.current?.id??null);
     const before=this.body.position.clone();
+    const beforeCar=this.vehicles?.current,beforeYaw=beforeCar?Math.atan2(beforeCar.dx,beforeCar.dz):0;
     this.controller.vitality.current=state.health;
     if(state.health<previousHealth){const prior=this.session.getSnapshot().damage;this.session.update({damage:{serial:prior.serial+1,amount:previousHealth-state.health,angle:this.lastDamageAngle}});this.combatAudio.hit(true);}
     this.session.mission.applyAuthority(state.mission,Boolean(authority.result));this.elapsed=state.mission.elapsed;
@@ -510,7 +512,10 @@ export class RaidRuntime {
       if(!this.npcs.some(n=>n.model.spawn.id===row.spawn.id))this.deployOfficer(row.spawn);
       const n=this.npcs.find(n=>n.model.spawn.id===row.spawn.id);if(!n)continue;
       if(n.presentation?.dead&&row.health>0)n.presentation.restoreAlive();
-      if(row.health<n.model.health.current)n.presentation?.hit(row.angle,row.health>0);
+      if(row.health<n.model.health.current){
+        n.presentation?.hit(row.angle,row.health>0);
+        const spatial=this.spatial(n.actor.root.position);this.combatAudio.enemyHealth(n.model.health.current,row.health,spatial.distance,spatial.pan,restored);
+      }
       Object.assign(n.model,{x:row.x,y:row.y,vx:row.vx,vy:row.vy,angle:row.angle,state:row.state,shots:row.shots,hurt:row.hurt,detection:row.detection,tactic:row.tactic,sprinting:row.sprinting});
       n.model.health.current=row.health;n.collider.enabled=row.health>0;this.setBox(n.target.box,point3(row.x,row.y),.36,1.8);
     }
@@ -540,6 +545,8 @@ export class RaidRuntime {
       this.body.vertical=state.vertical;this.body.grounded=state.grounded;
     }
     this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
+    const afterCar=this.vehicles?.current;
+    this.headingCorrection.correct(beforeYaw,afterCar?Math.atan2(afterCar.dx,afterCar.dz):0,reset||!afterCar);
     if(state.campaign.handoff==='waiting'&&!this.session.blocked)this.menu(true);
     // The regular HUD clock already publishes at 10Hz. Only terminal/death
     // states bypass it; do not duplicate diagnostics/React work on every packet.
@@ -784,12 +791,13 @@ export class RaidRuntime {
     this.renderPosition.copy(active?this.previousPosition:this.body.position);if(active)this.renderPosition.lerp(this.body.position,T.MathUtils.clamp(this.accumulator/physicsStep,0,1));
     this.correction.present(this.renderPosition,dt,this.renderPosition);
     const cameraCar=this.vehicles?.current;
+    this.presentedVehicleYaw=cameraCar?this.headingCorrection.present(drivenVehiclePose(cameraCar,T.MathUtils.clamp(this.accumulator/physicsStep,0,1)).yaw,dt):undefined;
     this.cameraMotion.vx=active?(cameraCar?cameraCar.dx*cameraCar.speed:this.controller.vx*METRES):0;
     this.cameraMotion.vz=active?(cameraCar?cameraCar.dz*cameraCar.speed:this.controller.vy*METRES):0;
     this.cameraMotion.sprinting=this.controller.sprinting;
     this.cameraMotion.combat=!cameraCar&&(this.command.fire||this.controller.aiming||this.rig.ads||this.session.input.touchAiming||this.weapon.reloadRemaining>0||this.loadout.busy);
     this.cameraMotion.manual=this.drag;this.cameraMotion.paused=!active;
-    if(cameraCar){this.cameraVehicle.id=cameraCar.id;this.cameraVehicle.heading=Math.atan2(-cameraCar.dx,-cameraCar.dz);this.cameraVehicle.speed=cameraCar.speed;this.cameraVehicle.length=cameraCar.length;}
+    if(cameraCar){this.cameraVehicle.id=cameraCar.id;this.cameraVehicle.heading=this.presentedVehicleYaw!+Math.PI;this.cameraVehicle.speed=cameraCar.speed;this.cameraVehicle.length=cameraCar.length;}
     this.cameraMotion.vehicle=cameraCar?this.cameraVehicle:null;
     this.cameraLook.x=cameraCar?0:this.command.x;this.cameraLook.y=cameraCar?0:this.command.y;
     this.rig.update(this.renderPosition,this.solids,dt,this.session.getSnapshot().reducedMotion,0,this.cameraLook,this.cameraMotion);this.updateAim();this.player.root.position.copy(this.renderPosition);
@@ -835,7 +843,7 @@ export class RaidRuntime {
     }
     this.roadGuide.update(this.renderPosition,this.gps?.route??[],this.gps?.goal,this.elapsed,this.session.getSnapshot().reducedMotion,this.vehicles?.current?this.vehicles.current.length/2+1.5:1.4);
     this.fires?.draw(this.rig.camera,this.elapsed,this.body.position);if(this.carriedCase)this.carriedCase.visible=Boolean(this.campaign?.carrying)&&!this.vehicles?.current;
-    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera,active?T.MathUtils.clamp(this.accumulator/physicsStep,0,1):1);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
+    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera,active?T.MathUtils.clamp(this.accumulator/physicsStep,0,1):1,this.presentedVehicleYaw);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
     if(this.witnessArt&&this.witnessPose&&this.campaign){const w=this.witnessPose,p=this.campaign.witness;w.yaw=Math.atan2(p.x*.025-w.x,p.y*.025-w.z);w.x=p.x*.025;w.z=p.y*.025;w.moving=this.campaign.witnessMoving;w.motion=w.moving?1.5:0;this.witnessArt.draw([w],this.campaign.witnessBoarded?0:1,this.elapsed,this.rig.camera);}
     this.siteLife?.update(active?dt:0,this.elapsed,Boolean(this.pursuit?.active),this.rig.camera);
     this.socialScene?.update(this.socialClock,this.body.position,this.campaign?.handoff==='complete');
