@@ -176,18 +176,27 @@ test('failure and expiration never grant; terminal unpaid checkout releases elig
   await webhook(order,'checkout.expired');assert.equal((await StoreOrder.findById(order.id)).status,'expired');
   assert.equal((await checkout(user)).status,200);
 });
-test('only verified payment clears the bound death cooldown once; next mission admits 100 HP',async()=>{
+test('retired recovery is unavailable even with an old death cooldown and never contacts the payment provider',async()=>{
   const user=await player(),until=new Date(Date.now()+7200000);await MissionLife.create({playerId:user._id,deaths:3,recoveryUntil:until});
-  const order=(await checkout(user,'revive')).body;assert((await MissionLife.findOne({playerId:user._id})).recoveryUntil);
-  provider.paid(order);await webhook(order);assert.equal((await MissionLife.findOne({playerId:user._id})).recoveryUntil,null);
-  await MissionLife.updateOne({playerId:user._id},{$set:{deaths:4,recoveryUntil:until}});await webhook(order);
-  assert((await MissionLife.findOne({playerId:user._id})).recoveryUntil);assert.equal(await StoreLedger.countDocuments({key:'grant:'+order.id}),1);
+  const state=await service.snapshot(user._id);
+  assert.equal(state.recoveryUntil,null);
+  assert.equal(state.catalog.find(p=>p.id==='revive').enabled,false);
+  assert.equal((await checkout(user,'revive')).body.error,'product_unavailable');
+  assert.equal(provider.calls,0);assert.equal(await StoreOrder.countDocuments({playerId:user._id}),0);
 });
-test('late recovery payment cannot clear a different death or natural recovery',async()=>{
-  for(const changed of [{recoveryUntil:new Date(Date.now()-1)},{deaths:9}]){
-    const user=await player();await MissionLife.create({playerId:user._id,deaths:1,recoveryUntil:new Date(Date.now()+7200000)});
-    const order=(await checkout(user,'revive')).body;await MissionLife.updateOne({playerId:user._id},{$set:changed});provider.paid(order);await webhook(order);
-    const saved=await StoreOrder.findById(order.id);assert.equal(saved.status,'review');assert.equal(saved.issue,'recovery_expired_or_changed_refund_required');
+
+test('payments for recovery checkouts opened before retirement retain their receipt for refund review without a new grant',async()=>{
+  for(const changed of [{},{recoveryUntil:new Date(Date.now()-1)},{deaths:9}]){
+    const user=await player(),until=new Date(Date.now()+7200000);
+    await MissionLife.create({playerId:user._id,deaths:1,recoveryUntil:until});
+    const legacy=await StoreOrder.create({playerId:user._id,key:randomUUID(),sku:'revive',name:'INSTANT RECOVERY',cents:200,kind:'recovery',version:2,environment:'sandbox',recoveryDeaths:1,recoveryUntil:until});
+    const remote=await provider.createCheckout(legacy),order={id:String(legacy._id)};
+    await StoreOrder.updateOne({_id:legacy._id},{$set:{checkoutId:remote.checkout_id,checkoutUrl:remote.checkout_url,status:'pending'}});
+    assert.equal((await service.snapshot(user._id)).purchases.find(p=>p.id===order.id).checkoutUrl,null);
+    if(Object.keys(changed).length)await MissionLife.updateOne({playerId:user._id},{$set:changed});
+    provider.paid(order);await webhook(order);await webhook(order);
+    const saved=await StoreOrder.findById(order.id);assert.equal(saved.status,'review');assert.equal(saved.issue,'recovery_service_retired_refund_required');
+    assert.equal(saved.chargeId,'pay_'+order.id);assert.ok(saved.verifiedAt);
     assert.equal(await StoreLedger.countDocuments({key:'grant:'+order.id}),0);
   }
 });

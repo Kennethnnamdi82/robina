@@ -21,11 +21,12 @@ it does not claim to eliminate aim assistance or all forms of cheating.
 
 Accepted server projectile/hazard damage uses the existing invulnerability,
 dodge and damage rules. Each health event has an idempotency key scoped to the
-server connection epoch. Reaching zero atomically fails the mission and sets
-`MissionLife.recoveryUntil` two hours ahead using server time. Admission and
-death share a transactional life gate so racing mission starts cannot bypass
-recovery. The server then persists a verified failure and publishes the final
-state. Voluntary abandonment cannot overwrite that terminal transition.
+server connection epoch. Reaching zero atomically fails the mission and records
+the death once. There is no death recovery cooldown: the next mission can start
+immediately at 100 HP. Legacy recovery deadlines do not block admission and are
+cleared when another mission starts. One active mission per player remains
+enforced. The server persists a verified failure and publishes the final state.
+Voluntary abandonment cannot overwrite that terminal transition.
 
 Successful extraction must pass the existing mission prerequisites, actual
 carried item, location and police-response conditions. The server persists the
@@ -37,7 +38,7 @@ those rewards again. Phase 2 does not mint XP, coins, USDC or purchase credit.
 
 ## Persistence and reconnect
 
-MongoDB contains sessions/configuration seed, server health, life deadlines,
+MongoDB contains sessions/configuration seed, server health, death counts,
 combat-event deduplication, grenade spending, checkpoints and verified results.
 Checkpoint state includes controller cooldowns, objective sets, weapons and
 magazine/reserve ammo, enemy AI state, pickup/bomb state, cars, pursuit and
@@ -51,10 +52,10 @@ restored temporary inventory. A failed/settled mission cannot reconnect into
 an active simulation. A late interruption expires with zero rewards and no
 death penalty unless a death was already committed.
 
-Recovery-product fulfillment is an internal `consumeVerifiedLifeRecovery`
-interface. It can consume a previously verified, unexpired entitlement once;
-there is no public payment-claim or cooldown-reset route. Phase 6 must provide
-payment verification before creating those entitlements.
+Paid recovery is retired and cannot create new checkouts. A previously opened
+recovery checkout paid after retirement is retained for refund review instead
+of granting an unnecessary timer skip. Historical receipts and entitlements
+remain stored; no public payment-claim or cooldown-reset route is introduced.
 
 ## Deployment
 
@@ -74,8 +75,8 @@ clients require the new frontend deployment as well as the backend deployment.
 
 `liveMissions.test.js` uses an isolated MongoDB replica set and actual Socket.IO
 connections. A guard fixture fires through the actual AI/projectile pipeline
-to verify death, database cooldown, failure settlement and rejection of later
-starts/abandonment. An extraction checkpoint fixture verifies the real handoff
+to verify death, immediate full-health retry, failure settlement and rejection
+of attempts to overwrite the failed run. An extraction checkpoint fixture verifies the real handoff
 checks, idempotent success and replay reward eligibility. Separate cases test
 checkpoint restoration, ticket ownership/replay, strict inputs and actual
 bank/laboratory objective sequencing.
@@ -91,8 +92,8 @@ in that test script and are never registered by the production app. Set
 Owner snapshots are coalesced to the actual browser rendering cadence rather
 than accumulating HUD work on slow devices. Terminal results are delivered
 immediately, and authenticated session inspection recovers a persisted result
-if its final socket packet was lost. Client HTTP heartbeats cannot extend the
-server-controlled recovery window.
+if its final socket packet was lost. The five-minute reconnect window is
+separate from death recovery; a failed mission can be retried immediately.
 
 These are controlled integration fixtures, not a completed human playthrough
 of every mission or a physical Android device test. Renderer, aiming,

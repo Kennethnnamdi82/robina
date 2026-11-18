@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { Server } from 'socket.io';
 import { z } from 'zod';
 import { MissionSimulation, SIMULATION_STEP, SIMULATION_VERSION } from '../../generated/missionSimulation.mjs';
-import { MissionCheckpoint, MissionLife, MissionSession } from './models.js';
+import { MissionCheckpoint, MissionSession } from './models.js';
 import { User } from '../models/User.js';
 import { RevokedToken } from '../models/RevokedToken.js';
 import { applyVerifiedCombatEvent } from './trustedCombat.js';
@@ -231,8 +231,7 @@ export class LiveMissionAuthority {
             expectedEnemies: sim.campaign.assignment.security, shotsFired: sim.firearmShots, successfulHits: Math.min(sim.firearmShots, sim.firearmHits),
             optionalCompleted: sim.mission.definition.objectives.filter(o=>o.optional&&sim.mission.completed.has(o.id)).length,
             optionalTotal: sim.mission.definition.objectives.filter(o=>o.optional).length } },this.owner);
-        const life=await MissionLife.findOne({playerId:entry.playerId}).select('recoveryUntil').lean();
-        entry.socket?.emit('mission:result', { result, state: sim.snapshot(), recoveryUntil: life?.recoveryUntil??null });
+        entry.socket?.emit('mission:result', { result, state: sim.snapshot(), recoveryUntil: null });
         entry.socket?.disconnect(true);
         this.entries.delete(entry.id);
       }

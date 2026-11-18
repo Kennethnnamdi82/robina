@@ -173,7 +173,7 @@ test('mission sessions are owned, unique while active and cannot submit unverifi
   assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reactor' } })).status, 201);
   assert.equal(await MissionSession.countDocuments({ playerId: a._id, status: 'active' }), 1);
 });
-test('mission lease, recovery eligibility and unverified reports fail closed', async () => {
+test('mission leases and unverified reports stay protected while legacy death cooldowns no longer block deployment', async () => {
   const a = await player(), b = await player();
   let result = await api('/api/missions/eligibility', { cookie: cookie(a) });
   assert.equal(result.body.eligible, true);
@@ -195,10 +195,15 @@ test('mission lease, recovery eligibility and unverified reports fail closed', a
   assert.equal((await MissionSession.findById(stale)).status, 'expired');
   assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, true);
   await MissionLife.updateOne({ playerId: a._id }, { $set: { recoveryUntil: new Date(Date.now() + 7200000), deaths: 1 } }, { upsert: true });
-  assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reserve' } })).status, 403);
+  const eligible = await api('/api/missions/eligibility', { cookie: cookie(a) });
+  assert.equal(eligible.body.eligible, true); assert.equal(eligible.body.recoveryUntil, null);
+  assert.equal((await api(`/api/missions/sessions/${stale}`, { cookie: cookie(a) })).body.recoveryUntil, null);
+  const retry = await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reserve' } });
+  assert.equal(retry.status, 201); assert.equal(retry.body.session.health, 100);
+  const life = await MissionLife.findOne({ playerId: a._id });
+  assert.equal(life.recoveryUntil, null); assert.equal(life.deaths, 1);
   assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, false);
-  await MissionLife.updateOne({ playerId: a._id }, { $set: { recoveryUntil: new Date(Date.now() - 1000) } });
-  assert.equal((await api('/api/missions/eligibility', { cookie: cookie(a) })).body.eligible, true);
+  assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: cookie(a), body: { missionId: 'assignment-reactor' } })).status, 409);
 });
 test('client reports never appear on the verified leaderboard', async () => {
   const user = await player(), sessionCookie = cookie(user);
@@ -211,7 +216,7 @@ test('client reports never appear on the verified leaderboard', async () => {
   assert.equal((await api('/api/missions/leaderboard', { method: 'POST', cookie: sessionCookie, body: { score: 99999 } })).status, 404);
   assert.equal(await VerifiedMissionResult.countDocuments(), 0);
 });
-test('trusted combat ledger heals once, records death once and enforces server cooldown', async () => {
+test('trusted combat ledger heals once, records death once and permits an immediate full-health retry', async () => {
   const user = await player(), sessionCookie = cookie(user);
   const started = await api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reserve' } });
   const id = started.body.session._id;
@@ -229,12 +234,13 @@ test('trusted combat ledger heals once, records death once and enforces server c
   assert.equal((await applyVerifiedCombatEvent(id, { id: 'guard:2', kind: 'damage', amount: 60 })).applied, false);
   assert.equal((await MissionLife.findOne({ playerId: user._id })).deaths, 1);
   const eligibility = await api('/api/missions/eligibility', { cookie: sessionCookie });
-  assert.equal(eligibility.body.eligible, false);
-  const remaining = new Date(eligibility.body.recoveryUntil).getTime() - new Date(eligibility.body.serverTime).getTime();
-  assert.ok(remaining > 7_190_000 && remaining <= 7_200_000);
+  assert.equal(eligibility.body.eligible, true);
+  assert.equal(eligibility.body.recoveryUntil, null);
+  assert.equal((await MissionLife.findOne({ playerId: user._id })).recoveryUntil, null);
   assert.equal((await api(`/api/missions/sessions/${id}/abandon`, { method: 'POST', cookie: sessionCookie, body: {} })).status, 409);
   assert.equal((await api(`/api/missions/sessions/${id}/report`, { method: 'POST', cookie: sessionCookie, body: { outcome: 'success' } })).status, 409);
-  assert.equal((await api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reactor' } })).status, 403);
+  const retry = await api('/api/missions/sessions', { method: 'POST', cookie: sessionCookie, body: { missionId: 'assignment-reactor' } });
+  assert.equal(retry.status, 201); assert.equal(retry.body.session.health, 100);
   assert.equal(await VerifiedMissionResult.countDocuments(), 0);
 });
 test('trusted checkpoints retain server health and reject duplicate or rolled-back progress', async () => {

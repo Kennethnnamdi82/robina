@@ -15,6 +15,21 @@ function mount(sku='mp5',orderId?:string,identity='wallet-a'){
 beforeEach(()=>{sessionStorage.clear();vi.resetAllMocks();pending.createdAt=new Date().toISOString();pending.serverTime=new Date().toISOString();pending.expiresAt=new Date(Date.now()+600000).toISOString();snapshot.serverTime=new Date().toISOString();vi.mocked(payments.store).mockResolvedValue(snapshot);vi.mocked(payments.checkout).mockResolvedValue(pending);vi.mocked(payments.check).mockResolvedValue(pending);});
 afterEach(cleanup);
 describe('real Bachs purchase UI',()=>{
+  it('refuses recovery checkout even when a cached server catalog still offers the retired timer skip',async()=>{
+    vi.mocked(payments.store).mockResolvedValue({...snapshot,recoveryUntil:'2099-11-14T12:00:00Z',catalog:[...snapshot.catalog,{id:'revive',name:'INSTANT RECOVERY',cents:200,currency:'USD',kind:'recovery',enabled:true}]});
+    mount('revive');
+    await screen.findByText('Recovery is free. No purchase is needed to start another mission.');
+    expect(screen.getByRole('button',{name:/CONFIRM \/ CONTINUE TO BACHS/}).hasAttribute('disabled')).toBe(true);
+    expect(payments.checkout).not.toHaveBeenCalled();
+  });
+  it('allows checking a historical recovery payment without continuing an obsolete checkout',async()=>{
+    vi.mocked(payments.check).mockResolvedValue({...pending,sku:'revive',name:'INSTANT RECOVERY',cents:200});
+    mount('revive',pending.id);
+    await screen.findByText('PAYMENT STATUS / PENDING');
+    expect(screen.queryByRole('button',{name:/CONTINUE PAYMENT/})).toBeNull();
+    expect(screen.getByRole('button',{name:'CHECK PAYMENT STATUS'})).toBeTruthy();
+    expect(payments.checkout).not.toHaveBeenCalled();
+  });
   it('requires confirmation and shows pending until the server confirms fulfillment',async()=>{
     mount();expect(payments.checkout).not.toHaveBeenCalled();
     const confirm=await screen.findByRole('button',{name:/CONFIRM \/ CONTINUE TO BACHS/});await waitFor(()=>expect(confirm.hasAttribute('disabled')).toBe(false));

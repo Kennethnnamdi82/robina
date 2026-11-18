@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import {StoreOrder,StoreInventory,StoreLedger,StorePurchaseLock,StoreProduct,StoreSeasonClaim,StoreSeason} from './storeModels.js';
-import {MissionLife,MissionSession,MissionRecoveryEntitlement} from '../missions/models.js';
+import {MissionSession} from '../missions/models.js';
 import {getProduct,CATALOG_VERSION,exactDecimal,usd,paymentCatalog} from './catalog.js';
 import {safeCheckoutUrl,logProviderFailure} from './provider.js';
 import {env} from '../config/env.js';
@@ -31,7 +31,7 @@ export function orderDeadline(order){
 export const visibleOrder=(order,now=Date.now())=>Boolean(order.verifiedAt||order.chargeId)||!unpaid.has(order.status)||orderDeadline(order).getTime()>now;
 export function publicOrder(order) {
   return {id:String(order._id),sku:order.sku,name:order.name,cents:order.cents,currency:order.currency,environment:order.environment,
-    status:order.status,checkoutUrl:['pending','failed'].includes(order.status)&&orderDeadline(order).getTime()>Date.now()?safeCheckoutUrl(order.checkoutUrl):null,
+    status:order.status,checkoutUrl:order.kind!=='recovery'&&['pending','failed'].includes(order.status)&&orderDeadline(order).getTime()>Date.now()?safeCheckoutUrl(order.checkoutUrl):null,
     expiresAt:orderDeadline(order),serverTime:new Date(),
     createdAt:order.createdAt,fulfilledAt:order.fulfilledAt,issue:order.issue,chargedAmount:order.chargedAmount,chargedCurrency:order.chargedCurrency,includes:order.includes,seasonId:order.seasonId};
 }
@@ -63,13 +63,8 @@ export function createPaymentService(provider) {
         const season=product.kind==='season'?await currentSeason():null;
         if(product.kind==='season'&&!season)fail('season_not_active');
         if(season&&await StoreOrder.exists({playerId,environment:provider.environment,seasonId:season._id,status:'fulfilled'}).session(session))fail('already_owned');
-        let life;
-        if(product.kind==='recovery'){
-          life=await MissionLife.findOne({playerId,recoveryUntil:{$gt:new Date()}}).session(session);
-          if(!life)fail('recovery_not_active');
-        }
         const [created]=await StoreOrder.create([{playerId,sku,key,name:product.name,cents:product.cents,kind:product.kind,quantity:product.quantity||1,
-          includes:product.includes||[],version:CATALOG_VERSION,environment:provider.environment,seasonId:season?._id,recoveryDeaths:life?.deaths,recoveryUntil:life?.recoveryUntil}],{session});
+          includes:product.includes||[],version:CATALOG_VERSION,environment:provider.environment,seasonId:season?._id}],{session});
         if(locked(created))await StorePurchaseLock.create([{_id:lockKey(created),orderId:created._id}],{session});
         return created;
       });}catch(e){if(e.code!==11000)throw e;order=await StoreOrder.findOne({playerId,key});if(!order)fail('purchase_already_pending');}
@@ -139,11 +134,11 @@ export function createPaymentService(provider) {
       const account=await inventory(current.playerId,session,current.environment);
       if(account.spendingBlocked){current.status='review';current.issue='payment_account_under_review';await current.save({session});return;}
       if(current.kind==='recovery'){
-        const life=await MissionLife.findOneAndUpdate({playerId:current.playerId,deaths:current.recoveryDeaths,recoveryUntil:current.recoveryUntil,
-          $and:[{recoveryUntil:{$gt:new Date()}}]},{$set:{recoveryUntil:null},$inc:{admissionVersion:1}},{session,new:true});
-        if(!life){current.status='review';current.issue='recovery_expired_or_changed_refund_required';await current.save({session});return;}
-        await MissionRecoveryEntitlement.create([{playerId:current.playerId,providerReference:`bachs:${current.environment}:${payment.payment_id}`,status:'consumed',
-          verifiedAt:new Date(),consumedAt:new Date(),expiresAt:current.recoveryUntil}],{session});
+        // A checkout opened before retirement may still be paid later. Keep
+        // its verified receipt for refund review instead of charging for a
+        // recovery restriction that no longer exists.
+        current.status='review';current.issue='recovery_service_retired_refund_required';
+        await current.save({session});return;
       }else if(current.kind==='grenades'){
         if(account.grenades+current.quantity>1000000){current.status='review';current.issue='inventory_limit_refund_required';await current.save({session});return;}
         account.grenades+=current.quantity;
@@ -272,11 +267,11 @@ export function createPaymentService(provider) {
   }
   async function snapshot(playerId){
     const environment=provider?.environment??storeEnvironment();
-    const account=await inventory(playerId,undefined,environment),life=await MissionLife.findOne({playerId}).lean();
+    const account=await inventory(playerId,undefined,environment);
     const orders=await StoreOrder.find({playerId,environment}).sort({_id:-1}).limit(100).lean();
     const season=await seasonSnapshot(playerId,environment);
     return {ownedIds:account.ownedIds.filter(id=>id!=='pass'||season?.hasPass),equippedIds:[...new Set(Object.values(selectionFields).map(field=>account[field]).filter(Boolean))],appearance:appearance(account),grenadeBalance:account.grenades,
-      recoveryUntil:life?.recoveryUntil??null,serverTime:new Date(),spendingBlocked:account.spendingBlocked,
+      recoveryUntil:null,serverTime:new Date(),spendingBlocked:account.spendingBlocked,
       purchases:orders.filter(order=>visibleOrder(order)).map(publicOrder),season,catalog:paymentCatalog.map(p=>p.kind==='season'?{...p,enabled:Boolean(season),reason:season?undefined:'No active season has been published by the owner.'}:p),configured:Boolean(provider),environment:provider?.environment??null};
   }
   return {checkout,reconcile,event,equip,snapshot,ownedOrder,reverse,attachCheckout};

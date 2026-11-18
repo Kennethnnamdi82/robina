@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
 import { MissionCombatEvent, MissionLife, MissionSession } from './models.js';
 
-const COOLDOWN_MS = 2 * 60 * 60 * 1000;
-
 /**
  * Internal settlement boundary for an independently verified combat event.
  * Never call this from a route with browser-supplied hit/pickup information:
@@ -44,7 +42,7 @@ export async function applyVerifiedCombatEvent(sessionId, event,owner) {
         mission.endedAt = now;
         await MissionLife.updateOne({ playerId: mission.playerId }, {
           $inc: { deaths: 1 },
-          $max: { recoveryUntil: new Date(now.getTime() + COOLDOWN_MS) },
+          $set: { recoveryUntil: null },
           $setOnInsert: { playerId: mission.playerId },
         }, { upsert: true, session: transaction });
       }

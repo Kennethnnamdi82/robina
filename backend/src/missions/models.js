@@ -32,6 +32,8 @@ export const MissionSession = mongoose.model('MissionSession', missionSessionSch
 
 const lifeSchema = new mongoose.Schema({
   playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  // Retained for historical records / installed-client compatibility.
+  // Death no longer imposes a recovery deadline.
   recoveryUntil: { type: Date, default: null },
   deaths: { type: Number, default: 0, min: 0 },
   admissionVersion: { type: Number, default: 0 },

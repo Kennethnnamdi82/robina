@@ -40,10 +40,10 @@ function LivePurchase({product,onClose,orderId,environment,seasonId,supportCents
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[orderId,invalidate]);
   const remote=data?.catalog.find(p=>p.id===product.id),fulfilled=order?.status==='fulfilled';
-  const recoveryEligible=product.id!=='revive'||Boolean(data?.recoveryUntil&&new Date(data.recoveryUntil)>new Date(data.serverTime));
+  const recoveryEligible=product.id!=='revive';
   const eligible=Boolean(user&&data?.configured&&remote?.enabled&&!data.spendingBlocked&&recoveryEligible);
   async function openCheckout(){
-    if(!order?.checkoutUrl||expired)return;
+    if(!order?.checkoutUrl||expired||!recoveryEligible)return;
     const url=new URL(order.checkoutUrl);
     if(url.protocol!=='https:'||!(url.hostname==='bachs.io'||url.hostname.endsWith('.bachs.io')))return;
     if(isNativeAndroid()){
@@ -58,17 +58,17 @@ function LivePurchase({product,onClose,orderId,environment,seasonId,supportCents
     <div className="rs-order">{product.id!=='support'&&<ProductArt product={product}/>}<div><span>{product.subtitle}</span><h3>{order?.name??remote?.name??product.name}</h3><strong>{money((order?.cents??supportCents??remote?.cents??Math.round(product.price*100))/100)} <small>USD</small></strong></div></div>
     <div className="rs-payment"><CreditCard size={21}/> Bachs · available card and local payment methods</div>
     {(order?.includes??product.includes)?.length?<p>INCLUDED ITEMS: {(order?.includes??product.includes)!.map(id=>findProduct(id)?.name??id).join(' / ')}</p>:null}
-    {!order&&!eligible&&<p role="status">{remote?.reason??(!recoveryEligible?'Instant recovery is only available during an active death cooldown.':data&&!data.configured?'Checkout is not configured yet.':'Loading availability—sign in to purchase.')}</p>}
+    {(!order&&!eligible||!recoveryEligible&&!fulfilled)&&<p role="status">{!recoveryEligible?'Recovery is free. No purchase is needed to start another mission.':remote?.reason??(data&&!data.configured?'Checkout is not configured yet.':'Loading availability—sign in to purchase.')}</p>}
     {order&&<div className="rs-verification" role="status">{fulfilled?<CheckCircle2/>:<ShieldCheck/>}<span>{fulfilled?(product.id==='support'?'Support payment received. Your receipt is saved in payment history.':product.quantity?`${product.quantity} grenades added to your inventory.`:product.id==='revive'?'Recovery confirmed. You can deploy again.':'Item unlocked. Equip it in your field locker.'):expired?'This unpaid checkout has expired. Start a new purchase if you still want to pay.':'Not confirmed? Check this same order. Do not pay again.'}<small>ORDER {order.id}</small>{order.issue&&<small>{order.issue.replaceAll('_',' ')}</small>}</span></div>}
     {error&&<p role="alert">{error}</p>}
     {!order&&<button className="rs-primary" disabled={!eligible||busy} onClick={()=>{save();void run(()=>supportCents!==undefined?payments.support(supportCents,retry.current!.key):payments.checkout(product.id,retry.current!.key));}}>{busy?'INITIALIZING…':'CONFIRM / CONTINUE TO BACHS'}<ArrowRight size={16}/></button>}
     {order&&!fulfilled&&<>
-      {order.checkoutUrl&&!expired&&<><p role="timer" aria-label="Checkout expires in">EXPIRES IN {checkoutCountdown(deadline(order),now)}</p><button className="rs-primary" disabled={busy} onClick={()=>void openCheckout()}>CONTINUE PAYMENT <ArrowRight size={16}/></button></>}
+      {order.checkoutUrl&&!expired&&recoveryEligible&&<><p role="timer" aria-label="Checkout expires in">EXPIRES IN {checkoutCountdown(deadline(order),now)}</p><button className="rs-primary" disabled={busy} onClick={()=>void openCheckout()}>CONTINUE PAYMENT <ArrowRight size={16}/></button></>}
       <button className="rs-secondary" disabled={busy} onClick={()=>void run(()=>payments.check(order.id))}><RefreshCw size={16}/>{busy?'CHECKING…':'CHECK PAYMENT STATUS'}</button>
       {(expired||['expired','cancelled'].includes(order.status))&&<button className="rs-secondary" onClick={()=>{retry.current={key:crypto.randomUUID()};save();setOrder(undefined);}}>START A NEW PURCHASE</button>}
     </>}
     {fulfilled&&canEquip(product.category)&&<button className="rs-primary" disabled={busy} onClick={async()=>{setBusy(true);try{await payments.equip(product.id,equipmentSlot(product.category,product.id));refreshStore();onClose();}catch(e){setError(paymentError(e));}finally{setBusy(false);}}}>{product.category==='bundles'?'EQUIP PACK CONTENTS':'EQUIP FOR NEXT DEPLOYMENT'}</button>}
-    {fulfilled&&(product.quantity||product.id==='revive'&&data?.recoveryUntil)&&<button className="rs-primary" onClick={()=>{retry.current={key:crypto.randomUUID()};save();setOrder(undefined);}}>{product.quantity?'BUY ANOTHER PACK':'NEW RECOVERY REQUEST'}</button>}
+    {fulfilled&&product.quantity&&<button className="rs-primary" onClick={()=>{retry.current={key:crypto.randomUUID()};save();setOrder(undefined);}}>BUY ANOTHER PACK</button>}
     {fulfilled&&product.id==='support'&&<button className="rs-secondary" onClick={()=>{retry.current={key:crypto.randomUUID()};save();setOrder(undefined);}}>SUPPORT AGAIN</button>}
     <Dialog.Close className="rs-secondary">{fulfilled?'CONTINUE':order?'CLOSE / ORDER IS SAVED':'CANCEL'}</Dialog.Close>
   </Dialog.Content></Dialog.Portal></Dialog.Root>;

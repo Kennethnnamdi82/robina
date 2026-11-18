@@ -42,12 +42,10 @@ missionRoutes.get('/sessions/current', asyncRoute(async (req, res) => {
 missionRoutes.get('/eligibility', asyncRoute(async (req, res) => {
   const now = new Date();
   await expireInterrupted(req.missionPlayerId, now);
-  const [life, session] = await Promise.all([
-    MissionLife.findOne({ playerId: req.missionPlayerId }).lean(),
-    MissionSession.findOne({ playerId: req.missionPlayerId, status: 'active' }).lean(),
-  ]);
-  const recoveryUntil = life?.recoveryUntil && life.recoveryUntil > now ? life.recoveryUntil : null;
-  res.json({ eligible: !recoveryUntil && !session, recoveryUntil, activeSession: session, serverTime: now });
+  const session = await MissionSession.findOne({ playerId: req.missionPlayerId, status: 'active' }).lean();
+  // Keep the response shape for installed apps. Legacy recovery dates no
+  // longer prevent deployment; an existing active mission still does.
+  res.json({ eligible: !session, recoveryUntil: null, activeSession: session, serverTime: now });
 }));
 
 missionRoutes.get('/sessions', asyncRoute(async (req, res) => {
@@ -65,8 +63,8 @@ missionRoutes.get('/sessions/:id', asyncRoute(async (req, res) => {
   if (!idInput.safeParse(req.params.id).success) return res.status(400).json({ error: 'invalid_request' });
   const session = await MissionSession.findOne({ _id: req.params.id, playerId: req.missionPlayerId }).lean();
   if (!session) return res.status(404).json({ error: 'mission_not_found' });
-  const [result, life] = await Promise.all([VerifiedMissionResult.findOne({ sessionId: session._id }).lean(), MissionLife.findOne({ playerId: req.missionPlayerId }).lean()]);
-  res.json({ session, result, recoveryUntil: life?.recoveryUntil ?? null });
+  const result = await VerifiedMissionResult.findOne({ sessionId: session._id }).lean();
+  res.json({ session, result, recoveryUntil: null });
 }));
 
 // Public standings contain verified successful results only. A player cannot
@@ -93,15 +91,15 @@ missionRoutes.post('/sessions', missionWrites, asyncRoute(async (req, res) => {
   try {
     let created;
     await transaction.withTransaction(async () => {
-      const life = await MissionLife.findOneAndUpdate({ playerId: req.missionPlayerId }, { $inc: { admissionVersion: 1 } }, { upsert: true, new: true, session: transaction });
-      if (life.recoveryUntil && life.recoveryUntil > now) throw Object.assign(new Error('life_recovering'), { recoveryUntil: life.recoveryUntil });
+      await MissionLife.findOneAndUpdate({ playerId: req.missionPlayerId }, {
+        $inc: { admissionVersion: 1 }, $set: { recoveryUntil: null },
+      }, { upsert: true, new: true, session: transaction });
       [created] = await MissionSession.create([{ playerId: req.missionPlayerId, missionId: parsed.data.missionId,
         seed: parsed.data.seed ?? crypto.randomInt(0, 4294967296), authority: Boolean(authority),
         configVersion: authority ? 3 : 2, reconnectDeadline: new Date(now.getTime() + leaseMs) }], { session: transaction });
     });
     res.status(201).json({ session: created });
   } catch (error) {
-    if (error.message === 'life_recovering') return res.status(403).json({ error: 'life_recovering', recoveryUntil: error.recoveryUntil });
     if (error.code === 11000) return res.status(409).json({ error: 'mission_already_active' });
     throw error;
   } finally { await transaction.endSession(); }

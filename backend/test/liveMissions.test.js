@@ -117,7 +117,7 @@ test('trusted inventory appearance reaches gameplay and refunded items are remov
   assert.equal(entry.sim.snapshot().appearance.outfit,null);assert.equal(entry.sim.snapshot().appearance.finish,null);
 });
 
-test('live server AI damage produces one persisted death, result and two-hour cooldown', async () => {
+test('live server AI damage persists one death and result, then permits an immediate full-health retry', async () => {
   const user = await player(), mission = await start(user); assert.equal(mission.authority, true);
   const { socket, entry } = await connect(user, mission._id);
   // Trusted fixture positions one real guard on the insertion street. Damage
@@ -132,8 +132,12 @@ test('live server AI damage produces one persisted death, result and two-hour co
   assert.equal(message.result.outcome, 'failure'); assert.equal(message.state.health, 0);
   assert.equal(message.result.rewardEligible, false);
   const life = await models.MissionLife.findOne({ playerId: user._id });
-  assert.equal(life.deaths, 1); assert.ok(life.recoveryUntil.getTime() - Date.now() > 7190000);
-  assert.equal((await api(user, '/sessions', { missionId: 'assignment-reactor' })).status, 403);
+  assert.equal(life.deaths, 1); assert.equal(life.recoveryUntil, null);
+  assert.equal(message.recoveryUntil, null);
+  const eligibility = await api(user, '/eligibility');
+  assert.equal(eligibility.body.eligible, true); assert.equal(eligibility.body.recoveryUntil, null);
+  const retry = await api(user, '/sessions', { missionId: 'assignment-reactor' });
+  assert.equal(retry.status, 201); assert.equal(retry.body.session.health, 100);
   assert.equal((await api(user, `/sessions/${mission._id}/abandon`, {})).status, 409);
   assert.equal((await api(user, `/sessions/${mission._id}/report`, { outcome: 'success' })).status, 409);
   assert.equal(await models.VerifiedMissionResult.countDocuments({ sessionId: mission._id }), 1);

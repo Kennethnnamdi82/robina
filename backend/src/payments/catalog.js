@@ -5,7 +5,8 @@ export const paymentCatalog = Object.freeze([
   item('support','SUPPORT THE DEVELOPER',100,'support'),
   ...[['mp5','MP5',300],['ak47','AK-47',500],['m4a1','M4A1',700],['scar','SCAR-H',1000],['m249','M249',1500],['elite','ELITE TACTICAL RIFLE',2000]].map(([id,name,cents]) => item(id,name,cents,'weapon')),
   ...[[10,300],[20,500],[100,1000]].map(([quantity,cents]) => item(`grenades-${quantity}`,`${quantity} GRENADE PACK`,cents,'grenades',{quantity})),
-  item('revive','INSTANT RECOVERY',200,'recovery'),
+  // Keep the SKU for historical receipts, but never sell a removed timer skip.
+  item('revive','INSTANT RECOVERY',200,'recovery',{enabled:false,reason:'Recovery is free. No purchase is needed to start another mission.'}),
   ...[['urban','URBAN SOLDIER',299],['neon','NEON ASSASSIN',399],['shadow','SHADOW RAIDER',499],['cyber','CYBER PHANTOM',599],['crimson','CRIMSON ROGUE',699],['golden','GOLDEN HEIST SOLDIER',799],['midnight','MIDNIGHT OPERATOR',999],['commander','LEGENDARY PHANTOM COMMANDER',1499]].map(([id,name,cents])=>item(id,name,cents,'character')),
   ...[['desert','DESERT CAMO',200],['pulse','NEON PULSE',249],['steel','SHADOW STEEL',299],['fire','CRIMSON FIRE',349],['frost','CYBER FROST',399],['protocol','GOLD PROTOCOL',499],['diamond','DIAMOND TACTICAL',799]].map(([id,name,cents])=>item(id,name,cents,'finish')),
   ...[['salute','VICTORY SALUTE',200],['celebration','TACTICAL CELEBRATION',200],['dance','SOLDIER DANCE',200],['taunt','CHAMPION TAUNT',249],['pose','LEGENDARY VICTORY POSE',399],['trail','NEON MOVEMENT TRAIL',200],['thunder','VICTORY THUNDER',249],['entrance','PHANTOM ENTRANCE',299],['neon-celebrate','NEON CELEBRATION',299],['dissolve','SHADOW DISSOLVE',349],['extraction','GOLDEN EXTRACTION',399],['explosion','LEGENDARY VICTORY EXPLOSION',599]].map(([id,name,cents])=>item(id,name,cents,'effect')),

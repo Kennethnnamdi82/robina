@@ -98,11 +98,19 @@ describe('frontend-only premium Exchange', () => {
     const network = vi.spyOn(globalThis, 'fetch'), storage = vi.spyOn(Storage.prototype, 'setItem');
     render(<MemoryRouter><RecoveryPanel review/></MemoryRouter>);
     for (const state of RECOVERY_STATES) fireEvent.change(screen.getByLabelText('Recovery preview state'), { target: { value: state } });
-    expect(screen.getByText(/Recovery unconfirmed.*Do not assume/)).toBeTruthy();
-    expect(screen.getByText(/STATIC SAMPLE/)).toBeTruthy(); expect(screen.getByText(/gameplay is not locked/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'REVIVE NOW — $2' }));
-    expect(screen.getByText('PAYMENT PREVIEW / NO CHARGES')).toBeTruthy();
+    expect(screen.getByText('READY TO TRY AGAIN')).toBeTruthy();
+    expect(screen.getByText(/No recovery countdown or purchase is required/)).toBeTruthy();
+    expect(screen.queryByRole('timer')).toBeNull();
+    expect(screen.queryByRole('button', { name: /REVIVE NOW|DEPLOY LOCKED/ })).toBeNull();
     expect(storage).not.toHaveBeenCalled(); expect(network).not.toHaveBeenCalled();
+  });
+  it('offers immediate free retry and field first-aid without advertising a paid timer skip',()=>{
+    const network=vi.spyOn(globalThis,'fetch');at('/store/health');
+    expect(screen.getByText('NO WAIT AFTER DEFEAT')).toBeTruthy();
+    expect(screen.getByRole('button',{name:'Details for FIRST-AID KIT'})).toBeTruthy();
+    expect(screen.queryByRole('button',{name:'Details for INSTANT RECOVERY'})).toBeNull();
+    expect(screen.queryByText(/two-hour|FREE RECOVERY COUNTDOWN|INSTANT RECOVERY \/ \$2/i)).toBeNull();
+    expect(network).not.toHaveBeenCalled();
   });
   it('does not mount any WebGL contexts until an explicit 3D inspection request', () => {
     const gl = vi.spyOn(HTMLCanvasElement.prototype, 'getContext'); at('/store/characters');

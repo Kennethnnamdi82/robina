@@ -50,13 +50,6 @@ interface RaidAppProps {
 export default function RaidApp({ development = false, operation, preferences, onResult, onExit, renderWelcome, renderSettings,economy }: RaidAppProps) {
   useEffect(()=>{const timer=window.setTimeout(()=>{void preloadRaidAssets();},250);return()=>clearTimeout(timer);},[]);
   const [session,setSession] = useState(() => newSession(operation,preferences,economy)),[generation,setGeneration] = useState(0),[entered,setEntered] = useState(false);
-  const [recoveryUntil,setRecoveryUntil]=useState<string|null>(null);
-  useEffect(()=>{
-    if(development||entered||session.operation.assignment===undefined)return;
-    let active=true;
-    void missionsApi.eligibility().then(value=>{if(active)setRecoveryUntil(value.recoveryUntil);}).catch(()=>{});
-    return()=>{active=false;};
-  },[development,entered,session]);
   const resultCallback=useRef(onResult);resultCallback.current=onResult;
   const recorded=useRef(new Set<string>());
   const serverSession=useRef<string|null>(null),settlement=useRef<Promise<unknown>>(Promise.resolve());
@@ -98,8 +91,6 @@ export default function RaidApp({ development = false, operation, preferences, o
       if(session.operation.assignment!==undefined){
         await settlement.current;
         const eligibility=await missionsApi.eligibility();
-        setRecoveryUntil(eligibility.recoveryUntil);
-        if(eligibility.recoveryUntil)throw new Error('Life recovery is active until '+new Date(eligibility.recoveryUntil).toLocaleTimeString()+'.');
         if(eligibility.activeSession&&eligibility.activeSession.missionId!==session.operation.mission.id){setPreviousSession(eligibility.activeSession._id);throw new Error('Another operation is active. Abandon it before deploying this contract.');}
         const record=eligibility.activeSession??(await missionsApi.start(session.operation.mission.id,session.operation.seed)).session;
         if(!record.authority){setPreviousSession(record._id);throw new Error('This older operation must be abandoned before starting a verified mission.');}
@@ -123,13 +114,13 @@ export default function RaidApp({ development = false, operation, preferences, o
     session.dispose();capture();
     const next=newSession(nextOperationValue,preferences,economy);next.startAudio();
     if(nextOperationValue.assignment!==undefined&&!development){
-      try{await settlement.current;const eligibility=await missionsApi.eligibility();if(eligibility.recoveryUntil)throw new Error('Life recovery is active until '+new Date(eligibility.recoveryUntil).toLocaleTimeString()+'.');if(!eligibility.eligible)throw new Error('A mission is still active. Return to the briefing to resume it.');const started=await missionsApi.start(nextOperationValue.mission.id,nextOperationValue.seed);if(!started.session.authority)throw new Error('Verified operations are unavailable.');serverSession.current=started.session._id;next.authority=new MissionAuthorityClient(started.session._id);await next.authority.connect();}
+      try{await settlement.current;const eligibility=await missionsApi.eligibility();if(eligibility.activeSession)throw new Error('A mission is still active. Return to the briefing to resume it.');const started=await missionsApi.start(nextOperationValue.mission.id,nextOperationValue.seed);if(!started.session.authority)throw new Error('Verified operations are unavailable.');serverSession.current=started.session._id;next.authority=new MissionAuthorityClient(started.session._id);await next.authority.connect();}
       catch(cause){setLaunchError(cause instanceof Error?cause.message:'Could not start mission.');setEntered(false);setSession(next);setGeneration(n=>n+1);return;}
     }
     setSession(next);setGeneration(n=>n+1);setEntered(true);
   };
   if(!entered&&preparing)return <MissionLoading progress={preparation} title={session.operation.mission.name} message={preparationMessage} onCancel={()=>{launch.current++;setPreparing(false);onExit?.();}}/>;
-  if(!entered && renderWelcome)return <><MissionLifeStatus recoveryUntil={recoveryUntil}/>{renderWelcome({enter,preparing,error:launchError,abandonPrevious:previousSession?()=>{const id=previousSession;void missionsApi.abandon(id).then(()=>{setPreviousSession(null);setLaunchError('Previous operation abandoned. You can deploy now.');}).catch(()=>setLaunchError('Could not abandon the previous operation. Please retry.'));}:undefined})}</>;
+  if(!entered && renderWelcome)return renderWelcome({enter,preparing,error:launchError,abandonPrevious:previousSession?()=>{const id=previousSession;void missionsApi.abandon(id).then(()=>{setPreviousSession(null);setLaunchError('Previous operation abandoned. You can deploy now.');}).catch(()=>setLaunchError('Could not abandon the previous operation. Please retry.'));}:undefined});
   if (!entered) return <main className="r3-welcome"><span>{development ? 'RIVALS / DEVELOPMENT ONLY' : 'RIVALS / RIVAL HEIST'}</span><h1>One heist.<br/><em>Four perspectives.</em></h1><p>Enter an outdoor city with living traffic, pedestrians and four camera perspectives. Campaign cash buys meals and drinks; achievement coins fund revives. Both are fictional, saved on this device, and separate from real-money earnings.</p><GraphicsChooser value={quality} onChange={value=>{saveGraphicsQuality(value);session.setQuality(value);}}/><button disabled={preparing} aria-busy={preparing} onClick={enter}><Play size={18}/>{preparing ? 'PREPARING MISSION…' : 'ENTER 3D RAID'}</button>{preparing && <p role="status">Preparing mission assets. You can return to base while they load.</p>}{launchError && <p role="alert">{launchError}</p>}<a href={development ? "/tests/rivals/index.html" : "/gaming?engine=2d"}>PLAY CLASSIC 2D</a>{!development && <a href="/">RETURN TO BASE</a>}<small>WASD move · mouse aim/fire · 1/2/3 equip · Auto reload · G grenade · E collect · Space dodge · Tap J jump; double-tap for high jump · V cycle view · Z zoom. On mobile: left stick moves, right stick aims/fires. Swipe the playfield to look in FPS/TPS. Double-tap Jump for obstacle traversal. F enters or exits nearby vehicles.</small></main>;
   return <Raid key={generation} development={development} preferences={preferences} renderSettings={renderSettings} session={session} restart={() => restart()} next={() => restart(true)} exit={() => { session.dispose(); capture(); if(onExit){onExit();return;} setEntered(false); setSession(newSession(operation,preferences,economy)); }} />;
 }
