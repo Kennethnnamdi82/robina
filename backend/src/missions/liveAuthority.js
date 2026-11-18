@@ -12,13 +12,18 @@ import { saveVerifiedCheckpoint } from './trustedCheckpoints.js';
 import { settleVerifiedResult } from './trustedResults.js';
 import {inventory,reserveMissionGrenade,creditMissionGrenades} from '../payments/service.js';
 import {appearance} from '../payments/entitlements.js';
+import {simulationBudget} from './simulationClock.js';
 
 const unit = z.number().finite().min(-1).max(1), flag = z.boolean();
+const movementTick=z.number().int().min(0).max(Number.MAX_SAFE_INTEGER-10000);
+const movementFrame=z.tuple([movementTick,unit,unit,unit,unit,z.number().int().min(0).max(127),
+  unit,unit,unit,unit,z.number().finite().min(-100000).max(100000)]);
 export const liveInput = z.object({ seq: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), x: unit, y: unit,
   tick: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER-10000).optional(),
   aimX: unit, aimY: unit, aim: z.tuple([z.number().finite().min(-1000).max(1000), z.number().finite().min(-100).max(100), z.number().finite().min(-1000).max(1000)]),
   aiming: flag, sprint: flag, dodge: flag, interact: flag, fire: flag, reload: flag, jump: flag, jumpHeld: flag, highJump: flag,
   touchRepeat: flag, throttle: unit, steer: unit, brake: flag, stickX: unit, stickY: unit, cameraYaw: z.number().finite().min(-100000).max(100000),
+  movement:z.object({epoch:movementTick,frames:z.array(movementFrame).min(1).max(24)}).strict().optional(),
 }).strict();
 const liveAction = z.discriminatedUnion('type', [
   ...['vehicle', 'grenade', 'handoff', 'cancelHandoff', 'cancelPickup'].map(type => z.object({ type: z.literal(type) }).strict()),
@@ -31,7 +36,7 @@ const AUTHORITY_LEASE_MS = 60000;
 
 export class LiveMissionAuthority {
   entries = new Map(); tickets = new Map(); connecting=new Set();
-  owner = crypto.randomUUID(); io; timer; lastTick = performance.now();
+  owner = crypto.randomUUID(); io; timer; catchup; lastTick = performance.now();
   constructor({ origins = [], maxSessions = 4, publicOrigin = '', autoTick = true } = {}) {
     this.origins = new Set([...origins, 'https://localhost', 'capacitor://localhost']);
     this.maxSessions = Math.max(1, Math.min(200, Number(maxSessions) || 4)); this.publicOrigin = publicOrigin?new URL(publicOrigin).origin:'';
@@ -50,7 +55,7 @@ export class LiveMissionAuthority {
   }
   hasCapacity(){return this.entries.size+this.connecting.size<this.maxSessions&&(this.utilisation??0)<.8;}
   attach(httpServer) {
-    this.io = new Server(httpServer, { transports: ['websocket'], maxHttpBufferSize: 4096, pingTimeout:60000,
+    this.io = new Server(httpServer, { transports: ['websocket'], maxHttpBufferSize: 8192, pingTimeout:60000,
       cors: { origin: [...this.origins], credentials: false },
       allowRequest: (req, callback) => callback(null, !req.headers.origin || this.origins.has(req.headers.origin)),
     });
@@ -66,11 +71,11 @@ export class LiveMissionAuthority {
       socket.emit('mission:state', entry.sim.snapshot());
       socket.on('mission:ready', () => {
         if (entry.socket !== socket || entry.terminal) return;
-        entry.ready = true; entry.paused = false; entry.lastInputAt = Date.now();
+        entry.ready = true; entry.paused = false; entry.sim.movementInterrupted=false; entry.lastInputAt = Date.now();
         if(!entry.started){entry.started=true;entry.work=entry.work.then(()=>MissionSession.updateOne({_id:entry.id,status:'active',startedAt:null},{$set:{startedAt:new Date()}})).catch(error=>this.fault(entry,error));}
       });
       socket.on('mission:pause', paused => { if (typeof paused === 'boolean' && entry.socket === socket && entry.paused!==paused) {
-        entry.paused = paused; entry.sim.neutral();socket.emit('mission:state',entry.sim.snapshot());
+        entry.paused = paused; entry.accumulator=0;entry.sim.movementInterrupted=false;entry.sim.neutral();socket.emit('mission:state',entry.sim.snapshot());
       } });
       socket.on('mission:input', input => {
         if (entry.socket !== socket || entry.terminal) return;
@@ -157,7 +162,8 @@ export class LiveMissionAuthority {
     }finally{this.connecting.delete(ticket.sessionId);}
   }
   tick() {
-    const now = performance.now(), delta = Math.min(.1, Math.max(0, (now - this.lastTick) / 1000)); this.lastTick = now;
+    const now = performance.now(), delta = Math.max(0, (now - this.lastTick) / 1000); this.lastTick = now;
+    let behind=false;
     if(!this.measuredAt||now-this.measuredAt>1000){const usage=performance.eventLoopUtilization();this.utilisation=performance.eventLoopUtilization(usage,this.lastUtilisation).utilization;this.lastUtilisation=usage;this.measuredAt=now;}
     for (const entry of this.entries.values()) {
       if (entry.terminal) { if(entry.faulted&&entry.disconnectAt&&Date.now()-entry.disconnectAt>FIVE_MINUTES)this.entries.delete(entry.id);continue; }
@@ -165,8 +171,19 @@ export class LiveMissionAuthority {
       if (!entry.socket) { if (entry.disconnectAt && Date.now() - entry.disconnectAt > FIVE_MINUTES) { this.entries.delete(entry.id); void MissionSession.updateOne({ _id: entry.id, status: 'active' }, { $set: { status: 'expired', endedAt: new Date() } }); } continue; }
       if (entry.ready && !entry.paused && !entry.inventoryBusy) {
         if (Date.now() - entry.lastInputAt > 300) entry.sim.neutral();
-        entry.accumulator = (entry.accumulator ?? 0) + delta;
-        let steps = 0; while (entry.accumulator >= SIMULATION_STEP && steps++ < 6) { entry.sim.step(); entry.accumulator -= SIMULATION_STEP; if (entry.sim.mission.state !== 'ACTIVE') break; }
+        const budget=simulationBudget(entry.accumulator,delta,SIMULATION_STEP);entry.accumulator=budget.remaining;
+        if(budget.interrupted){
+          // Recover a long outage through the existing pause/resume flow.
+          entry.paused=true;entry.sim.neutral();entry.sim.movementInterrupted=true;
+          entry.socket.emit('mission:state',entry.sim.snapshot());
+          // Installed legacy apps do not understand the new pause marker.
+          // Their existing reconnect flow opens the pause menu instead.
+          if(entry.sim.lastSequence>=0&&!entry.sim.snapshot().prediction.stream.active){
+            entry.socket.emit('mission:error',{error:'mission_sync_interrupted'});entry.socket.disconnect(true);
+          }
+        }
+        for(let i=0;i<budget.steps;i++){entry.sim.step();if(entry.sim.mission.state!=='ACTIVE')break;}
+        if(entry.sim.mission.state==='ACTIVE'&&entry.accumulator+1e-9>=SIMULATION_STEP)behind=true;
         this.flush(entry);
       }
       if(entry.ready&&!entry.paused&&(!entry.lastSnapshot||Date.now()-entry.lastSnapshot>=100)){entry.lastSnapshot=Date.now();entry.socket.emit('mission:state', entry.sim.snapshot());}
@@ -188,7 +205,9 @@ export class LiveMissionAuthority {
         }).catch(error => this.fault(entry, error));
       }
     }
+    if(behind)this.scheduleCatchup();
   }
+  scheduleCatchup(){if(!this.catchup){this.catchup=setImmediate(()=>{this.catchup=undefined;this.tick();});this.catchup.unref();}}
   flush(entry) {
     const events = entry.sim.drainEvents(), terminal = entry.sim.mission.state !== 'ACTIVE';
     // Capture a milestone now, before the live simulation can advance again.
@@ -240,5 +259,5 @@ export class LiveMissionAuthority {
     const result = await MissionSession.updateOne({ _id: sessionId, playerId, status: 'active', $or: [{ authorityOwner: this.owner }, { authorityOwner: null }, { authorityLeaseUntil: { $lte: new Date() } }] }, { $set: { status: 'abandoned', endedAt: new Date() } });
     return result.modifiedCount > 0;
   }
-  async close() { clearInterval(this.timer); for (const entry of this.entries.values()) entry.socket?.disconnect(true); await Promise.allSettled([...this.entries.values()].map(e => e.work)); await new Promise(resolve => this.io ? this.io.close(resolve) : resolve()); this.entries.clear(); }
+  async close() { clearInterval(this.timer);clearImmediate(this.catchup); for (const entry of this.entries.values()) entry.socket?.disconnect(true); await Promise.allSettled([...this.entries.values()].map(e => e.work)); await new Promise(resolve => this.io ? this.io.close(resolve) : resolve()); this.entries.clear(); }
 }

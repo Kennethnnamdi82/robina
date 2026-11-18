@@ -23,6 +23,7 @@ import { CampaignGameplay } from '../three/CampaignGameplay';
 import { dodgeMotionScale } from '../three/dodgeMotion';
 import {PedestrianSimulation} from '../three/PedestrianSimulation';
 import {authoritativeMuzzle} from '../three/WeaponGeometry';
+import {MovementStream,type MovementBatch} from './MovementStream';
 
 export const SIMULATION_VERSION = 3;
 export const SIMULATION_STEP = 1 / 60;
@@ -30,6 +31,7 @@ export interface AuthorityInput extends PlayerCommand {
   seq: number; aim: [number, number, number]; jump: boolean; jumpHeld: boolean; highJump: boolean;
   /** Echoed prediction label only; never determines server time or travel. */
   tick?: number;
+  movement?: MovementBatch;
   touchRepeat: boolean; throttle: number; steer: number; brake: boolean; stickX: number; stickY: number; cameraYaw: number;
 }
 export type AuthorityAction = { type: 'vehicle' | 'grenade' | 'handoff' | 'cancelHandoff' | 'cancelPickup' }
@@ -74,6 +76,7 @@ function hydrate(target: State, state: State) {
 }
 
 export class MissionSimulation {
+  movementInterrupted=false;
   appearance:{outfit:string|null;finish:string|null;emote:string|null;effect:string|null;identity:string|null;trail?:string|null;entrance?:string|null}={outfit:null,finish:null,emote:null,effect:null,identity:null,trail:null,entrance:null};
   readonly operation; readonly world; readonly mission; readonly controller = new CharacterController(true);
   readonly loadout = new Loadout(); readonly field = new FieldItems(); readonly pool = new Projectile3D();
@@ -87,6 +90,7 @@ export class MissionSimulation {
   private revision=-1;
   private motionTick: number | null = null;
   private motionSteps = 0;
+  private movement = new MovementStream();
   private blockersById=new Map<string,WorldState['blockers'][number]>();
   private lastObjectives = new Set<string>(); private aim = new Vector3(); private legacy = { x: 0, y: 0 };
   private command: AuthorityInput = { ...emptyCommand(), seq: -1, aim: [0, 1, 0], jump: false,
@@ -136,10 +140,11 @@ export class MissionSimulation {
   }
   input(frame: AuthorityInput) {
     if (frame.seq <= this.lastSequence) return false;
+    if(frame.movement)this.movement.accept(frame.movement);
     const next={...frame};for(const key of ['dodge','interact','reload','jump','highJump'] as const)next[key]=Boolean(next[key]||this.command[key]);
     this.lastSequence = frame.seq; this.command = next; return true;
   }
-  neutral() { this.command = { ...this.command, ...emptyCommand(), jump: false, jumpHeld: false, highJump: false,
+  neutral() { this.movement.reset();this.command = { ...this.command, ...emptyCommand(), jump: false, jumpHeld: false, highJump: false,
     throttle: 0, steer: 0, brake: true, stickX: 0, stickY: 0, tick:undefined }; }
   action(action: AuthorityAction) {
     if (this.mission.state !== 'ACTIVE' || this.controller.health <= 0) return false;
@@ -157,9 +162,10 @@ export class MissionSimulation {
     }
     if (action.type === 'vehicle') {
       this.controller.stop();
-      if (this.vehicles.current) return this.vehicles.exit(this.body.position, this.solids);
+      if (this.vehicles.current) {const exited=this.vehicles.exit(this.body.position,this.solids);if(exited)this.movement.reset();return exited;}
       this.vehicles.scan(this.body.position, 28);
-      return !!this.vehicles.nearby && this.vehicles.enter(this.vehicles.nearby, this.body.position, this.solids,car=>{this.crowd.ejectDriver(car);this.crowd.combat.sync(this.crowd.active);});
+      const entered=!!this.vehicles.nearby && this.vehicles.enter(this.vehicles.nearby, this.body.position, this.solids,car=>{this.crowd.ejectDriver(car);this.crowd.combat.sync(this.crowd.active);});
+      if(entered)this.movement.reset();return entered;
     }
     return false;
   }
@@ -222,6 +228,7 @@ export class MissionSimulation {
     if (dt !== SIMULATION_STEP) throw new Error('fixed_step_required');
     if (this.mission.state !== 'ACTIVE') return;
     const command = { ...this.command }; this.command.interact = this.command.dodge = this.command.jump = this.command.highJump = this.command.reload = false;
+    if(this.movement.enabled)Object.assign(command,this.movement.step());
     this.aim.fromArray(command.aim); this.legacy.x = this.body.position.x / METRES; this.legacy.y = this.body.position.z / METRES;
     this.syncGeometry();
     if (this.vehicles.current) this.controller.stepMounted(dt);
@@ -304,7 +311,8 @@ export class MissionSimulation {
   drainEvents() { return this.events.splice(0); }
   snapshot() {
     return { version: SIMULATION_VERSION, appearance:this.appearance,civilians:this.crowd.people.slice(0,this.crowd.active).map(p=>({x:p.x,z:p.z,yaw:p.yaw,motion:p.motion,moving:p.moving,distance:p.distance,panicUntil:p.panicUntil,health:p.health??60,hitRemaining:p.hitRemaining??0,deathAge:p.deathAge??0})), inputSequence: this.lastSequence, position: this.body.position.toArray(), vertical: this.body.vertical,
-      prediction:{ tick:this.motionTick, steps:this.motionSteps, jumpTime:this.body.jumpTime, controller:this.controller.captureMotion() },
+      movementInterrupted:this.movementInterrupted,
+      prediction:{ tick:this.motionTick, steps:this.motionSteps, stream:this.movement.snapshot, jumpTime:this.body.jumpTime, controller:this.controller.captureMotion() },
       grounded: this.body.grounded, health: this.controller.health, maxHealth: this.controller.maxHealth, mission: this.mission.snapshot(),
       loadout: this.loadout.snapshot(), field: this.field.snapshot(), campaign: this.campaign.snapshot, pursuit: this.police.snapshot,
       vehicle: this.vehicles.snapshot, activeFlags: [...this.world.active],

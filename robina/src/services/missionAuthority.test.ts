@@ -14,6 +14,39 @@ function transport(){
   fakes.io.mockReturnValue(socket);fakes.connectApi.mockResolvedValue({origin:'https://api.example.com',ticket:'one-use-ticket'});return socket;
 }
 describe('live mission client',()=>{
+  it('bounds prediction during a snapshot outage and gives a resumed connection time to recover',async()=>{
+    transport();const client=new MissionAuthorityClient('session');await client.connect();
+    let now=100;vi.spyOn(performance,'now').mockImplementation(()=>now);client.ready();
+    fakes.handlers.get('mission:state')?.({prediction:{stream:{version:1,active:true,epoch:0}}});
+    now=1100;expect(client.movementStalled).toBe(false);now=1101;expect(client.movementStalled).toBe(true);
+    client.pause(true);expect(client.movementStalled).toBe(false);client.pause(false);expect(client.movementStalled).toBe(false);
+    now=2102;expect(client.movementStalled).toBe(true);fakes.handlers.get('mission:state')?.({prediction:{stream:{version:1,active:true,epoch:1}}});
+    expect(client.movementStalled).toBe(false);client.dispose();
+  });
+  it('batches every fixed movement step at the end of a slow frame without dropping trigger taps',()=>{
+    const client=new MissionAuthorityClient('isolated'),emit=vi.fn();
+    Object.assign(client,{socket:{emit},connection:'connected',latest:{prediction:{stream:{version:1,epoch:0,ack:null,active:false}}}});
+    let now=100;vi.spyOn(performance,'now').mockImplementation(()=>now);
+    const frame={...emptyCommand(),aim:[0,1,-10],jump:false,jumpHeld:false,highJump:false,touchRepeat:false,throttle:0,steer:0,brake:false,stickX:0,stickY:0,cameraYaw:0} as Omit<AuthorityInput,'seq'>;
+    for(let tick=1;tick<=8;tick++)client.submit({...frame,tick,x:tick<=4?1:-1,fire:tick===2,jump:tick===3});
+    expect(emit).not.toHaveBeenCalled();client.flushMovement();
+    const packet=emit.mock.lastCall![1];expect(packet.movement.frames.map((f:number[])=>f[0])).toEqual([1,2,3,4,5,6,7,8]);
+    expect(packet.movement.frames.map((f:number[])=>f[1])).toEqual([1,1,1,1,-1,-1,-1,-1]);
+    expect(packet.fire).toBe(true);expect(packet.movement.frames.filter((f:number[])=>(f[5]&8)!==0)).toHaveLength(1);
+    now=160;client.submit({...frame,tick:9});client.flushMovement();expect(emit.mock.lastCall![1].fire).toBe(false);
+    expect(emit.mock.lastCall![1].movement.frames).toHaveLength(1);
+  });
+  it('drops buffered movement from an earlier generation and while paused',()=>{
+    const client=new MissionAuthorityClient('isolated'),emit=vi.fn();
+    Object.assign(client,{socket:{emit},connection:'connected',latest:{prediction:{stream:{version:1,epoch:0}}}});
+    vi.spyOn(performance,'now').mockReturnValue(100);
+    const frame={...emptyCommand(),aim:[0,1,-10],jump:false,jumpHeld:false,highJump:false,touchRepeat:false,throttle:0,steer:0,brake:false,stickX:0,stickY:0,cameraYaw:0} as Omit<AuthorityInput,'seq'>;
+    client.submit({...frame,tick:20,x:1});client.pause(true);client.submit({...frame,tick:21,x:1});client.flushMovement();
+    expect(emit.mock.calls.filter(c=>c[0]==='mission:input')).toHaveLength(0);
+    client.pause(false);Object.assign(client,{latest:{prediction:{stream:{version:1,epoch:1}}}});
+    client.submit({...frame,tick:1,x:-1});client.flushMovement();
+    expect(emit.mock.lastCall![1].movement).toMatchObject({epoch:1,frames:[[1,-1,0,0,1,0,0,0,0,0,0]]});
+  });
   it('sends optional movement labels only after the backend advertises replay support',()=>{
     const client=new MissionAuthorityClient('isolated'),emit=vi.fn();Object.assign(client,{socket:{emit},connection:'connected'});
     let now=100;vi.spyOn(performance,'now').mockImplementation(()=>now);

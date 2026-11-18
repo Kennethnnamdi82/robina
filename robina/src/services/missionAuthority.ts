@@ -1,6 +1,7 @@
 import { io, type Socket } from 'socket.io-client';
 import { missionsApi } from './missions';
 import type { AuthorityAction, AuthorityInput, AuthoritySnapshot, SimulationEvent,PresentationEvent } from '@/features/rivals/authority/MissionSimulation';
+import {packMovement,type MovementFrame} from '@/features/rivals/authority/MovementStream';
 
 export interface VerifiedGameResult { _id: string; outcome: 'success' | 'failure'; score: number; durationSeconds: number;
   firstCompletion: boolean; rewardEligible: boolean; verifiedAt: string; remainingHealth?: number }
@@ -16,6 +17,12 @@ export class MissionAuthorityClient {
   private requestedReady = false; private paused = false; private retry?: ReturnType<typeof setTimeout>;
   private lastSent = 0; private sequence = 0; private pending: Partial<AuthorityInput> = {}; private reconnectStarted = 0;
   private stateFrame?: number;
+  private movementFrames:MovementFrame[]=[];
+  private movementEpoch?:number;
+  private latestInput?:Omit<AuthorityInput,'seq'>;
+  private lastStateAt=0;
+  get movementStalled(){return this.requestedReady&&!this.paused&&this.connection==='connected'&&
+    this.latest?.prediction?.stream?.active&&performance.now()-this.lastStateAt>1000;}
   /** Network sequence is not the movement acknowledgement; the server may
    * receive a packet just before publishing an older simulated position. */
   constructor(readonly sessionId: string) {}
@@ -34,6 +41,7 @@ export class MissionAuthorityClient {
       socket.on('mission:state', (state: AuthoritySnapshot) => {
         if(this.result||this.closed)return;
         this.latest = state;
+        this.lastStateAt=performance.now();
         // Coalesce owner snapshots to the renderer's actual cadence. A slow
         // phone must not accumulate expensive HUD/scene updates at network rate.
         if(this.stateFrame===undefined)this.stateFrame=requestAnimationFrame(()=>{this.stateFrame=undefined;this.notify();});
@@ -53,7 +61,7 @@ export class MissionAuthorityClient {
         this.notify(); resolve();
       });
       socket.on('disconnect', () => {
-        this.pending={};
+        this.pending={};this.clearMovement();
         if (this.closed || this.result) return;
         this.connection = 'reconnecting'; this.notify(); this.scheduleReconnect();
       });
@@ -80,16 +88,36 @@ export class MissionAuthorityClient {
       });
     }, 1000);
   }
-  ready() { this.requestedReady = true; this.socket?.emit('mission:ready'); this.socket?.emit('mission:pause', this.paused); }
-  pause(value: boolean) { if(this.paused===value)return;this.paused = value;if(value)this.pending={}; this.socket?.emit('mission:pause', value); }
+  ready() { this.requestedReady = true;this.lastStateAt=performance.now(); this.socket?.emit('mission:ready'); this.socket?.emit('mission:pause', this.paused); }
+  pause(value: boolean) { if(this.paused===value)return;this.paused = value;if(value){this.pending={};this.clearMovement();}else this.lastStateAt=performance.now(); this.socket?.emit('mission:pause', value); }
+  private clearMovement(){this.movementFrames=[];this.latestInput=undefined;this.movementEpoch=undefined;}
   submit(frame: Omit<AuthorityInput, 'seq'>) {
+    if(this.connection!=='connected'||this.paused)return;
     for (const key of ['dodge', 'interact', 'reload', 'jump', 'highJump','fire'] as const) this.pending[key] = Boolean(this.pending[key] || frame[key]);
+    const stream=this.latest?.prediction?.stream;
+    if(stream?.version===1&&frame.tick!==undefined){
+      if(this.movementEpoch!==stream.epoch){this.movementFrames=[];this.movementEpoch=stream.epoch;}
+      this.movementFrames.push(packMovement(frame.tick,frame));
+      // At most one renderer catch-up window. A suspended tab never sends a
+      // burst of old movement on return. The server also bounds its queue.
+      if(this.movementFrames.length>24)this.movementFrames.shift();
+      this.latestInput=frame;
+      return; // Flush after ALL fixed steps in this render frame have run.
+    }
     if (performance.now() - this.lastSent < 50 || this.connection !== 'connected') return;
     this.lastSent = performance.now();
     const {tick,...legacy}=frame;
     this.socket?.emit('mission:input', { ...legacy, ...this.pending,
       ...(this.latest?.prediction&&tick!==undefined?{tick}:{}),seq: ++this.sequence }); this.pending = {};
   }
+  flushMovement(){
+    if(!this.latestInput||!this.movementFrames.length||this.paused||this.connection!=='connected'||performance.now()-this.lastSent<50)return;
+    this.lastSent=performance.now();
+    const {movement:_movement,...frame}=this.latestInput;
+    this.socket?.emit('mission:input',{...frame,...this.pending,seq:++this.sequence,
+      movement:{epoch:this.movementEpoch!,frames:this.movementFrames}});
+    this.pending={};this.movementFrames=[];this.latestInput=undefined;
+  }
   action(action: AuthorityAction) { if (this.connection === 'connected') this.socket?.emit('mission:action', action); }
-  dispose() { this.closed = true; this.connection = 'closed'; clearTimeout(this.retry); if(this.stateFrame!==undefined)cancelAnimationFrame(this.stateFrame);this.socket?.disconnect();this.socket?.removeAllListeners();this.onShot=this.onEffect=this.onDamage=undefined;this.pending={}; this.listeners.clear(); }
+  dispose() { this.closed = true; this.connection = 'closed'; clearTimeout(this.retry); if(this.stateFrame!==undefined)cancelAnimationFrame(this.stateFrame);this.socket?.disconnect();this.socket?.removeAllListeners();this.onShot=this.onEffect=this.onDamage=undefined;this.pending={};this.clearMovement(); this.listeners.clear(); }
 }

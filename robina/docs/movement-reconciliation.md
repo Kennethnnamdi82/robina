@@ -11,11 +11,40 @@ The optional input `tick` is a prediction label, **not elapsed time**. It cannot
 advance the server clock, grant travel, or claim a position or result. Strict
 input validation and existing session authorization/rate limits remain enabled.
 
+## Ordered movement stream (pullback repair)
+
+New servers advertise `prediction.stream.version = 1`. The client records every
+60 Hz movement step and sends the complete pending batch after the render frame's
+physics work, at most once per 50 ms. A slow frame no longer sends only its first
+step and discards the rest. Batches carry movement only; firing, reload,
+interaction, damage, inventory and mission settlement retain their existing path.
+
+The server consumes one ordered movement command per authoritative fixed step.
+Its acknowledgement identifies the exact consumed tick, rather than inferring a
+tick from the newest packet label plus a held-input count. A small initial input
+cushion absorbs the send cadence and slow frames. Local prediction stays immediate.
+Missing commands hold locomotion without repeating jump/dodge edges; late and
+duplicate ticks are ignored. Each queue is bounded to 120 ticks and each packet
+to 24 movement frames / 8 KiB. Client ticks cannot allocate simulation time.
+
+Pause, stale input, and successful vehicle transitions invalidate the movement
+generation. The client discards the old generation's history and queued packets.
+Car collision boxes refresh immediately after a snapshot, before movement replay,
+instead of waiting until rendering. Physics no longer uses the previous frame's
+car positions during reconciliation.
+
+The server retains elapsed time through ordinary scheduling stalls and drains it
+in slices of at most six fixed steps, yielding to socket processing between
+slices. More than one second of simulation debt triggers the existing pause and
+resume flow. The client also pauses prediction after a one-second snapshot
+outage. These bounds prevent unbounded catch-up or endless slow-motion correction;
+they cannot make an overloaded server or a frozen browser render smoothly.
+
 ## Reconciliation
 
-Snapshots include the label of the last input actually simulated, how many
-fixed ticks it was held, movement-controller state and jump state. Receiving a
-packet alone does not acknowledge movement that has not happened yet.
+Snapshots include the exact stream acknowledgement, movement-controller state
+and jump state. The older label/held-step fields remain for installed legacy
+clients. Receiving a packet alone does not acknowledge unsimulated movement.
 
 The client restores that movement state and replays only the newer locally
 recorded movement steps. It retains at most 120 fixed steps (two seconds).
@@ -49,6 +78,19 @@ instead of its former 6-radian/second heading shortcut.
 
 ## Verification
 
+- `MovementNetwork.test.ts`: actual transport, controller, runtime movement,
+  server simulation and bounded scheduler at 8/15/30/60/120 FPS, 0/200/400 ms RTT,
+  variable frames, ordered delivery jitter, 250 ms server stalls, turns, walls,
+  jumping, dodging and stopping. Compares with an independent offline motion
+  reference; steady walking/running must have no backward frames, no recurring
+  correction, and the expected speed. Deliberate backward dodges must match the
+  reference exactly.
+- `MovementStream.test.ts`, `missionAuthority.test.ts`: generation resets,
+  batching, edge preservation, stale/duplicate/future input and outage recovery.
+- `backend/test/simulationClock.test.js`, `backend/test/liveMissions.test.js`:
+  real socket validation, fixed-step time accounting, bounded catch-up and long
+  outage recovery without changing health or settling a mission.
+
 - `MovementPrediction.test.ts`: delayed/jittery snapshots, actual walking and
   vehicle physics, all four camera views, bounded history, acknowledgement order
   and preservation of health.
@@ -66,3 +108,16 @@ instead of its former 6-radian/second heading shortcut.
 These checks do not substitute for a physical-phone playtest or promise a
 particular frame rate on every device. Rendering throughput and connectivity
 still determine how frequently new frames can be displayed.
+
+## Rollout
+
+Deploy the backend built with `npm run build:missions` before the frontend.
+New clients negotiate the stream; old clients and servers retain their existing
+protocol during rollout. Checkpoint version stays 3 because persistent mission
+state is unchanged. Deploy both components to activate the full repair.
+
+Android bundles the frontend locally. Run `npm run android:sync` and issue an
+updated APK through the existing signed release workflow; publishing the website
+alone cannot update already installed apps. Existing old APKs remain compatible
+but do not gain the new movement batching until updated. No production deployment
+or public APK publication is performed by the movement tests.

@@ -15,6 +15,14 @@ const input=(x=1):PredictedInput=>({...emptyCommand(),x,aim:[0,1,20],jump:false,
 const snapshot=(tick:number|null,steps=1)=>({prediction:{tick,steps}} as AuthoritySnapshot);
 
 describe('movement acknowledgement and replay',()=>{
+  it('restarts the movement timeline after a server generation change without replaying stale inputs',()=>{
+    const prediction=new MovementPrediction(),replayed:number[]=[];
+    const state=(epoch:number,ack:number|null)=>({prediction:{tick:999,steps:99,stream:{version:1,active:true,epoch,ack}}} as AuthoritySnapshot);
+    for(let i=0;i<12;i++)prediction.record(input());
+    prediction.reconcile(state(0,4),()=>{},cmd=>replayed.push(cmd.tick!));expect(replayed).toEqual([5,6,7,8,9,10,11,12]);
+    replayed.length=0;prediction.reconcile(state(1,null),()=>{},cmd=>replayed.push(cmd.tick!));
+    expect(replayed).toEqual([]);expect(prediction.size).toBe(0);expect(prediction.record(input()).tick).toBe(1);
+  });
   it('acknowledges simulated movement, not a packet that has only just arrived',()=>{
     const sim=new MissionSimulation('assignment-reserve',42,'prediction');
     sim.input({...input(),tick:20,seq:1});expect(sim.snapshot().prediction.tick).toBeNull();

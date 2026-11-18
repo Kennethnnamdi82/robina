@@ -58,6 +58,46 @@ async function start(user) {
 }
 const action = (socket, input) => new Promise(resolve => socket.emit('mission:action', input, resolve));
 
+test('ordered movement batches survive the real socket and acknowledge only server-owned steps',async()=>{
+  const user=await player(),mission=await start(user),{socket,entry}=await connect(user,mission._id);
+  const frame={seq:1,tick:24,x:1,y:0,aimX:1,aimY:0,aim:[20,1,20],aiming:false,sprint:false,dodge:false,
+    interact:false,fire:false,reload:false,jump:false,jumpHeld:false,highJump:false,touchRepeat:false,
+    throttle:0,steer:0,brake:false,stickX:0,stickY:0,cameraYaw:0,
+    movement:{epoch:0,frames:Array.from({length:24},(_,i)=>[i+1,1,0,1,0,0,0,0,0,0,0])}};
+  const received=once(entry.socket,'mission:input');socket.emit('mission:input',frame);await received;
+  assert.equal(entry.sim.snapshot().prediction.stream.ack,null);
+  entry.sim.solids.length=0;entry.sim.enemies.forEach(e=>e.health.current=0);
+  const startX=entry.sim.body.position.x;
+  for(let i=0;i<15;i++)entry.sim.step();
+  assert.equal(entry.sim.snapshot().prediction.stream.ack,15);
+  assert.ok(entry.sim.body.position.x>startX);assert.ok(entry.sim.body.position.x-startX<=5.875/4);
+  const elapsed=entry.sim.mission.elapsed,position=entry.sim.body.position.toArray();
+  const duplicate=once(entry.socket,'mission:input');socket.emit('mission:input',frame);await duplicate;
+  assert.equal(entry.sim.mission.elapsed,elapsed);assert.deepEqual(entry.sim.body.position.toArray(),position);
+  entry.sim.neutral();const epoch=entry.sim.snapshot().prediction.stream.epoch;
+  const stale=once(entry.socket,'mission:input');socket.emit('mission:input',{...frame,seq:2});await stale;
+  entry.sim.step();assert.equal(entry.sim.snapshot().prediction.stream.epoch,epoch);assert.equal(entry.sim.snapshot().prediction.stream.ack,null);
+  assert.equal(entry.sim.firearmShots,0);assert.equal(entry.sim.controller.health,100);
+  assert.equal(liveInput.safeParse({...frame,movement:{epoch,frames:[...frame.movement.frames,frame.movement.frames[0]]}}).success,false);
+  assert.equal(liveInput.safeParse({...frame,movement:{epoch,frames:[[1,20,0,1,0,0,0,0,0,0,0]]}}).success,false);
+  assert.equal(liveInput.safeParse({...frame,movement:{...frame.movement,health:100}}).success,false);
+});
+
+test('the live scheduler drains a short stall and pauses a long outage without changing health',async()=>{
+  const user=await player(),mission=await start(user),{entry}=await connect(user,mission._id);
+  entry.ready=true;entry.sim.enemies.forEach(e=>e.health.current=0);entry.lastInputAt=Date.now();
+  const elapsed=entry.sim.mission.elapsed;authority.lastTick=performance.now()-250;authority.tick();
+  // Catch-up must yield, then consume the remaining debt on the event loop.
+  assert.ok(entry.sim.mission.elapsed-elapsed<=.100001);
+  for(let i=0;i<20&&entry.sim.mission.elapsed-elapsed<.249;i++)await new Promise(resolve=>setImmediate(resolve));
+  assert.ok(entry.sim.mission.elapsed-elapsed>=.249);assert.equal(entry.paused,false);
+  clearImmediate(authority.catchup);authority.catchup=undefined;
+  const before=entry.sim.mission.elapsed;authority.lastTick=performance.now()-1500;authority.tick();
+  assert.equal(entry.paused,true);assert.equal(entry.sim.snapshot().movementInterrupted,true);
+  assert.equal(entry.sim.mission.elapsed,before);assert.equal(entry.sim.controller.health,100);
+  assert.equal(await models.VerifiedMissionResult.countDocuments({sessionId:mission._id}),0);
+});
+
 test('confirmed impacts are delivered through the authenticated mission socket, not inferred from client projectiles',async()=>{
   const user=await player(),mission=await start(user),{socket,entry}=await connect(user,mission._id),p=entry.sim.crowd.people[0];
   const origin=entry.sim.body.position.clone().set(p.x,.9,p.z+.7),direction=origin.clone().set(0,0,-1);

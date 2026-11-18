@@ -494,6 +494,7 @@ export class RaidRuntime {
     const state=authority.latest;if(!state||state===this.authorityLast)return;
     const restored=Boolean(this.authorityLast&&state.inputSequence<this.authorityLast.inputSequence);
     this.authorityLast=state;
+    if(state.movementInterrupted&&this.session.getSnapshot().status==='playing')this.session.pause();
     if(state.civilians)this.art.city?.crowd.applyAuthority(state.civilians);
     void this.updateOutfit(state.appearance?.outfit??null);
     for(const [id,model]of [...this.playerModels,...this.viewModels])if(id!=='knife'&&id!=='pistol')this.weaponFinish.apply(model,state.appearance?.finish??null);
@@ -521,6 +522,7 @@ export class RaidRuntime {
     }
     for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=!state.prediction&&car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,row);if(predict)Object.assign(car,motion);}}
     if(this.art.city)this.art.city.traffic.simulation.time=state.trafficTime;
+    this.art.city?.traffic.syncColliders(position);
     if(this.vehicles)this.vehicles.current=state.vehicle.driving?this.vehicles.cars.find(c=>c.id===state.vehicle.id)??null:null;
     if(this.pursuit){this.pursuit.active=state.pursuit.active;this.pursuit.lost=state.pursuit.lost;this.pursuit.quiet=state.pursuit.evading;}
     if(this.campaign){const {witness,...campaign}=state.campaign;Object.assign(this.campaign,campaign);if(witness)Object.assign(this.campaign.witness,{x:witness.x,y:witness.y});}
@@ -766,6 +768,7 @@ export class RaidRuntime {
     this.cameraFeedback.restore();if(!this.rig.transitioning)this.rig.refreshLook();
     const wallDt=this.last?Math.max(0,(now-this.last)/1000):0;
     const {delta:dt,step:physicsStep}=frameTiming(wallDt); this.last = now;
+    if(this.session.authority?.movementStalled&&this.session.getSnapshot().status==='playing')this.session.pause();
     const active = this.modelsReady && this.session.getSnapshot().status === 'playing' && !this.session.getSnapshot().hack && !this.session.blocked&&!this.session.revivePending;
     if(!active)this.prediction.clear();
     // The fire stick owns weapon aim only. Camera look remains a separate
@@ -774,6 +777,7 @@ export class RaidRuntime {
     // first rendered frame even on a slow device. Pause freezes these clocks.
     if (active){this.effects?.age(dt);this.screenBlood?.update(dt);}
     if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator+1e-9 >= physicsStep && steps++ < 12) { this.step(physicsStep); this.accumulator = Math.max(0,this.accumulator-physicsStep); if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
+    this.session.authority?.flushMovement();
     if(this.socialNoticeRemaining>0){this.socialNoticeRemaining=Math.max(0,this.socialNoticeRemaining-dt);if(!this.socialNoticeRemaining&&!this.socialRemaining){this.socialNotice='';this.needsDraw=true;}}
     if(this.socialRemaining>0){this.socialRemaining=Math.max(0,this.socialRemaining-dt);if(!this.socialRemaining){this.socialHeld?.removeFromParent();this.socialHeld=undefined;this.socialGesture='idle';this.socialNotice='';}}
     const storyOpen=Boolean(this.socialMenu)||this.campaign?.handoff==='waiting';

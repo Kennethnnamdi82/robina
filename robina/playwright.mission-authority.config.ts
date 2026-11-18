@@ -6,5 +6,8 @@ export default defineConfig({
     {command:'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 8086 --strictPort',url:'http://127.0.0.1:8086/tests/mission-authority/index.html',timeout:120000,reuseExistingServer:false,env:{VITE_API_URL:'http://127.0.0.1:4106'}},
   ],
   use:{baseURL:'http://127.0.0.1:8086',viewport:{width:960,height:540},actionTimeout:15000,screenshot:'only-on-failure',trace:{mode:'retain-on-failure',screenshots:false},
+    // Keep CPU-only WebGL verification viable on development laptops. Layout,
+    // physics, input and networking are identical; only raster resolution drops.
+    deviceScaleFactor:process.env.RIVALS_SOFTWARE_RENDERER==='1'?.5:1,
     launchOptions:{executablePath:process.env.PLAYWRIGHT_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',args:process.env.RIVALS_SOFTWARE_RENDERER==='1'?['--use-angle=swiftshader','--enable-unsafe-swiftshader']:[]}},
 });

@@ -35,7 +35,20 @@ export class CityTrafficArt {
     for(const car of this.simulation.cars)this.colliders.push({id:'city-traffic-'+car.id,kind:'cover',enabled:true,box:new T.Box3(),oriented:{center:new T.Vector3(),half:new T.Vector3(),yaw:0}});
     this.headlights=new T.InstancedMesh(this.lampGeometry,this.lightMaterial,72);this.brakes=new T.InstancedMesh(this.lampGeometry,this.brakeMaterial,72);this.doors=new T.InstancedMesh(this.doorGeometry,this.doorMaterial,this.simulation.cars.length);this.doors.frustumCulled=false;this.headlights.frustumCulled=this.brakes.frustumCulled=false;this.root.add(this.headlights,this.brakes,this.doors);this.draw(new T.Vector3(8,0,8),false);
   }
+  /** Refresh physics immediately after a network snapshot, before replay.
+   * Waiting for draw() leaves the soldier colliding with last frame's cars. */
+  syncColliders(player:T.Vector3){
+    for(const car of this.simulation.cars){
+      const collider=this.colliders[car.id],collision=vehicleCollisionDimensions(car.kind);
+      collider.enabled=carActive(car,this.active)&&Math.hypot(car.x-player.x,car.z-player.z)<105;
+      const halfX=Math.abs(car.dx)*car.length/2+Math.abs(car.dz)*collision.width/2,
+        halfZ=Math.abs(car.dz)*car.length/2+Math.abs(car.dx)*collision.width/2;
+      collider.box.min.set(car.x-halfX,0,car.z-halfZ);collider.box.max.set(car.x+halfX,collision.height,car.z+halfZ);
+      collider.oriented!.center.set(car.x,collision.height/2,car.z);collider.oriented!.half.set(collision.width/2,collision.height/2,car.length/2);collider.oriented!.yaw=Math.atan2(car.dx,car.dz);
+    }
+  }
   draw(player:T.Vector3,night:boolean,camera?:T.Camera,alpha=1,vehicleYaw?:number) {
+    this.syncColliders(player);
     for(const car of this.simulation.cars)this.renderYaw.set(car.id,car.mode==='player'?(vehicleYaw??drivenVehiclePose(car,alpha).yaw):Math.atan2(car.dx,car.dz));
     const visible=(car:CityCar)=>carActive(car,this.active)&&Math.hypot(car.x-player.x,car.z-player.z)<105;
     if(camera){camera.updateMatrixWorld(true);this.view.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.view);}
@@ -46,10 +59,7 @@ export class CityTrafficArt {
     }batch.mesh.count=slot;batch.mesh.instanceMatrix.needsUpdate=true;if(batch.mesh.instanceColor)batch.mesh.instanceColor.needsUpdate=true;}
     let n=0,doors=0,beacons=0;
     for(const car of this.simulation.cars) {
-      const collider=this.colliders[car.id];collider.enabled=visible(car);
-      const dimensions=this.dimensions.get(car.kind)!,collision=vehicleCollisionDimensions(car.kind),halfX=Math.abs(car.dx)*car.length/2+Math.abs(car.dz)*collision.width/2,halfZ=Math.abs(car.dz)*car.length/2+Math.abs(car.dx)*collision.width/2;
-      collider.box.min.set(car.x-halfX,0,car.z-halfZ);collider.box.max.set(car.x+halfX,collision.height,car.z+halfZ);
-      collider.oriented!.center.set(car.x,collision.height/2,car.z);collider.oriented!.half.set(collision.width/2,collision.height/2,car.length/2);collider.oriented!.yaw=Math.atan2(car.dx,car.dz);
+      const dimensions=this.dimensions.get(car.kind)!;
       const viewX=car.mode==='player'?player.x:car.x,viewZ=car.mode==='player'?player.z:car.z;
       if(visible(car)&&car.kind==='police'&&car.mode==='pursuit')for(const side of [-1,1]){this.dummy.position.set(car.x+car.dz*side*.3,dimensions.height+.1,car.z-car.dx*side*.3);this.dummy.rotation.set(0,Math.atan2(car.dx,car.dz),0);this.dummy.scale.setScalar(1);this.dummy.updateMatrix();this.beacons.setMatrixAt(beacons,this.dummy.matrix);this.beacons.setColorAt(beacons++,new T.Color(side<0?0x469bff:0xff493d).multiplyScalar(Math.floor(this.simulation.time*7+(side>0?1:0))%2?1.8:.15));}
       if(visible(car)&&(car.door??0)>0){const yaw=this.renderYaw.get(car.id)!,open=(car.door??0)*1.15;this.dummy.position.set(viewX-Math.cos(yaw)*(dimensions.width/2+.28),.9,viewZ+Math.sin(yaw)*(dimensions.width/2+.28));this.dummy.rotation.set(0,yaw-open,0);this.dummy.scale.set(1,1,1);this.dummy.updateMatrix();this.doors.setMatrixAt(doors++,this.dummy.matrix);}
