@@ -34,11 +34,20 @@ describe('production 3D entry lifecycle', () => {
     expect(runtime.created).toBe(0);expect(missionsApi.start).not.toHaveBeenCalled();
     expect(screen.getByRole('button',{name:'ENTER 3D RAID'}).hasAttribute('disabled')).toBe(false);
   });
-  it('loads the persisted recovery deadline again when reopening the briefing',async()=>{
+  it('allows deployment despite a legacy recovery deadline when no mission is active',async()=>{
+    vi.spyOn(SandboxSession.prototype,'startAudio').mockImplementation(()=>{});
+    const operation=createAssignmentOperation(0,42);
     vi.spyOn(missionsApi,'eligibility').mockResolvedValue({eligible:false,recoveryUntil:new Date(Date.now()+7200000).toISOString(),activeSession:null,serverTime:new Date().toISOString()});
-    render(<RaidApp operation={createAssignmentOperation(0,42)} renderWelcome={({enter})=><button onClick={enter}>DEPLOY HEIST</button>}/>);
-    expect(await screen.findByText(/OPERATIVE RECOVERING/)).toBeTruthy();
+    vi.spyOn(missionsApi,'start').mockResolvedValue({session:{_id:'0123456789abcdef01234567',missionId:operation.mission.id,seed:operation.seed,authority:true,status:'active',integrity:'unverified',reconnectDeadline:new Date(Date.now()+300000).toISOString()}});
+    vi.spyOn(MissionAuthorityClient.prototype,'connect').mockResolvedValue();
+    render(<RaidApp operation={operation} renderWelcome={({enter})=><button onClick={enter}>DEPLOY HEIST</button>}/>);
+    expect(screen.queryByText(/OPERATIVE RECOVERING/)).toBeNull();
     expect(runtime.created).toBe(0);
+    await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'DEPLOY HEIST'}));});
+    expect(missionsApi.start).toHaveBeenCalledWith(operation.mission.id,operation.seed);
+    expect(runtime.created).toBe(1);
+    expect(runtime.session?.authority).toBeTruthy();
+    expect(screen.getByLabelText('RIVALS 3D raid')).toBeTruthy();
   });
   it('records an assignment outcome only after server verification and never mints browser rewards',async()=>{
     vi.spyOn(SandboxSession.prototype,'startAudio').mockImplementation(()=>{});
