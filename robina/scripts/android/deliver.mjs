@@ -8,10 +8,10 @@ if(repository!=='Kennethnnamdi82/rivals-heist-android')throw Error('Unexpected p
 if(!process.env.ANDROID_DISTRIBUTION_SSH_KEY)throw Error('The distribution deploy key is missing');
 const directory=await mkdtemp(path.join(process.env.RUNNER_TEMP,'rivals-delivery-')),keyFile=path.join(directory,'key'),hosts=path.join(directory,'known_hosts'),work=path.join(directory,'repository');
 await writeFile(keyFile,process.env.ANDROID_DISTRIBUTION_SSH_KEY,{mode:0o600});await chmod(keyFile,0o600);
-const keys=await(await fetch('https://api.github.com/meta',{headers:{Accept:'application/vnd.github+json'},signal:AbortSignal.timeout(15000)})).json();
-if(!Array.isArray(keys.ssh_keys)||!keys.ssh_keys.length)throw Error('Could not verify GitHub SSH host keys');
-await writeFile(hosts,keys.ssh_keys.map(key=>'github.com '+key).join('\n')+'\n');
-const env={...process.env,GIT_SSH_COMMAND:`ssh -i "${keyFile}" -o UserKnownHostsFile="${hosts}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes`};
+// GitHub's published Ed25519 host key. Update the pin when GitHub rotates it.
+// https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+await writeFile(hosts,'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n');
+const env={...process.env,GIT_SSH_COMMAND:`ssh -i "${keyFile}" -o UserKnownHostsFile="${hosts}" -o HostKeyAlgorithms=ssh-ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes`};
 function git(args,cwd=directory){const result=spawnSync('git',args,{cwd,env,encoding:'utf8'});if(result.status!==0)throw Error('Distribution Git operation failed: '+args[0]+' '+result.stderr);return result.stdout.trim();}
 try{
  git(['clone','--depth','1','git@github.com:'+repository+'.git',work]);
