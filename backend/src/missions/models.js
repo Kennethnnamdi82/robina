@@ -6,6 +6,8 @@ const missionSessionSchema = new mongoose.Schema({
   configVersion: { type: Number, required: true },
   seed: { type: Number, min: 0, max: 4294967295, default: 0 },
   authority: { type: Boolean, default: false },
+  verificationSource: { type: String, enum: ['live','replay'], default: 'live' },
+  proofDigest: { type: String, match: /^[a-f0-9]{64}$/ },
   startedAt: { type: Date, default: null },
   authorityOwner: { type: String, default: null },
   authorityLeaseUntil: { type: Date, default: null },

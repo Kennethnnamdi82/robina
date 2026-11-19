@@ -103,7 +103,7 @@ export class RaidRuntime {
   readonly body: Body3D = { position: point3(288,288),vertical: 0,grounded: true };
   readonly solids: Solid3D[]; readonly navigation: NavigationGrid; readonly boss: BossController;
   private art: WorldArt; private player = createActor('player'); private bossActor = createActor('boss'); private npcs: NPC[] = [];
-  private outfitId:string|null=null;private cosmeticGeneration=0;private cosmeticEffects=new CollectionEffects();private weaponFinish=new WeaponFinish();
+  private outfitId:string|null=null;private cosmeticGeneration=0;private cosmeticEffects=new CollectionEffects();private weaponFinish=new WeaponFinish();private finishedModels=new WeakMap<T.Object3D,string|null>();
   private trailEffects=new CollectionEffects();private entranceEffects=new CollectionEffects();
   private cosmeticClock=0;private victoryAge=0;
   private atmosphere:CityAtmosphere;
@@ -217,12 +217,13 @@ export class RaidRuntime {
     if(session.authority){this.authorityUnsubscribe=session.authority.subscribe(()=>{this.remoteDirty=true;});session.authority.onShot=shot=>{
       if(!this.modelsReady||shot.owner==='operative')return;
       const origin=new T.Vector3().fromArray(shot.origin),direction=new T.Vector3().fromArray(shot.direction);
-      this.pool.fire(origin,direction,shot.speed,shot.life,shot.range,0,shot.owner,'security');this.effects?.muzzle(origin,true);
+      if(!session.authority?.localSimulation)this.pool.fire(origin,direction,shot.speed,shot.life,shot.range,0,shot.owner,'security');this.effects?.muzzle(origin,true);
       const npc=this.npcs.find(n=>n.model.spawn.id===shot.owner);npc?.presentation?.weapon.fire();this.securityFlashes.get(shot.owner)?.fire();
       const s=this.spatial(origin);this.combatAudio.shot('smg',s.distance,s.pan);
     };
       session.authority.onEffect=event=>this.confirmedEffect(event);
       session.authority.onDamage=(amount,angle)=>{this.lastDamageAngle=angle;this.screenBlood?.hurt(angle+this.rig.yaw,amount);};
+      if(session.authority.localSimulation)session.authority.localSimulation.onProjectileTravelled=bullet=>{if(this.modelsReady)this.effects?.trace(bullet);};
     }
     this.aim.copy(this.body.position).add(new T.Vector3(0,1,-10));
     this.raf = requestAnimationFrame(this.frame);
@@ -279,6 +280,8 @@ export class RaidRuntime {
       this.art.attachAssets(this.assets); this.art.setQuality(this.quality);
       if(this.art.city){
         this.art.city.serverTraffic=Boolean(this.session.authority);
+        const local=this.session.authority?.localSimulation;
+        if(local)this.art.city.traffic.simulation.cars.splice(0,this.art.city.traffic.simulation.cars.length,...local.traffic.cars);
         this.vehicles=new VehicleController(this.art.city.traffic.simulation.cars);
         this.art.city.traffic.simulation.blocked=car=>this.solids.some(s=>!s.id.startsWith('city-traffic-')&&vehicleOverlap(car,car.x,car.z,Math.atan2(car.dx,car.dz),s));
         this.vehicleTargets=this.vehicles.cars.map(car=>({id:'vehicle-'+car.id,team:'security',box:this.art.city!.traffic.colliders[car.id].box,alive:()=>(car.health??200)>0,damage:event=>this.vehicles!.damage(car,event.amount)}));this.targets.push(...this.vehicleTargets);
@@ -496,15 +499,16 @@ export class RaidRuntime {
     this.authorityLast=state;
     if(state.movementInterrupted&&this.session.getSnapshot().status==='playing')this.session.pause();
     if(state.civilians)this.art.city?.crowd.applyAuthority(state.civilians);
-    void this.updateOutfit(state.appearance?.outfit??null);
-    for(const [id,model]of [...this.playerModels,...this.viewModels])if(id!=='knife'&&id!=='pistol')this.weaponFinish.apply(model,state.appearance?.finish??null);
+    const outfit=state.appearance?.outfit??null,finish=state.appearance?.finish??null;
+    if(outfit!==this.outfitId)void this.updateOutfit(outfit);
+    for(const models of [this.playerModels,this.viewModels])for(const [id,model]of models)if(id!=='knife'&&id!=='pistol'&&this.finishedModels.get(model)!==finish){this.weaponFinish.apply(model,finish);this.finishedModels.set(model,finish);}
     const previousHealth=this.controller.health,position=new T.Vector3().fromArray(state.position);
     const vehicleChanged=(state.vehicle.driving?state.vehicle.id:null)!==(this.vehicles?.current?.id??null);
     const before=this.body.position.clone();
     const beforeCar=this.vehicles?.current,beforeYaw=beforeCar?Math.atan2(beforeCar.dx,beforeCar.dz):0;
     this.controller.vitality.current=state.health;
     if(state.health<previousHealth){const prior=this.session.getSnapshot().damage;this.session.update({damage:{serial:prior.serial+1,amount:previousHealth-state.health,angle:this.lastDamageAngle}});this.combatAudio.hit(true);}
-    this.session.mission.applyAuthority(state.mission,Boolean(authority.result));this.elapsed=state.mission.elapsed;
+    this.session.mission.applyAuthority(state.mission,Boolean(authority.result||authority.localSimulation));this.elapsed=state.mission.elapsed;
     const flagsChanged=this.world.active.size!==state.activeFlags.length||state.activeFlags.some(id=>!this.world.active.has(id));
     this.world.active.clear();state.activeFlags.forEach(id=>this.world.active.add(id));this.world.extracted=state.mission.state==='SUCCESS';
     const door=this.world.blockers.find(b=>b.id==='mission-vault-door');if(door)door.enabled=!state.mission.objectives.some(o=>o.id==='task-1'&&o.state==='COMPLETED');
@@ -520,7 +524,7 @@ export class RaidRuntime {
       Object.assign(n.model,{x:row.x,y:row.y,vx:row.vx,vy:row.vy,angle:row.angle,state:row.state,shots:row.shots,hurt:row.hurt,detection:row.detection,tactic:row.tactic,sprinting:row.sprinting});
       n.model.health.current=row.health;n.collider.enabled=row.health>0;this.setBox(n.target.box,point3(row.x,row.y),.36,1.8);
     }
-    for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=!state.prediction&&car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,row);if(predict)Object.assign(car,motion);}}
+    for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=!state.prediction&&car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,authority.localSimulation?.traffic.cars.find(c=>c.id===row.id)??row);if(predict)Object.assign(car,motion);}}
     if(this.art.city)this.art.city.traffic.simulation.time=state.trafficTime;
     this.art.city?.traffic.syncColliders(position);
     if(this.vehicles)this.vehicles.current=state.vehicle.driving?this.vehicles.cars.find(c=>c.id===state.vehicle.id)??null:null;
@@ -533,11 +537,16 @@ export class RaidRuntime {
     this.field.bombs.forEach(b=>{b.active=false;});state.field.bombs.forEach((b,i)=>{const local=this.field.bombs[i];if(local){local.active=true;local.serial=b.serial;local.life=b.life;local.position.fromArray(b.position);}});
     if(restored)this.pool.clear();
     const reset=restored||vehicleChanged||state.health<=0||state.mission.state!=='ACTIVE'||this.session.getSnapshot().status!=='playing'||this.session.blocked;
-    const reconciled=this.prediction.reconcile(state,()=>{
+    const reconciled=authority.localSimulation?false:this.prediction.reconcile(state,()=>{
       this.body.position.copy(position);this.body.vertical=state.vertical;this.body.grounded=state.grounded;
       this.body.jumpTime=state.prediction.jumpTime;this.controller.restoreMotion(state.prediction.controller);
     },input=>this.predictMotion(input,1/60,true),reset);
-    if(reconciled){
+    if(authority.localSimulation){
+      // Browser-owned movement has no remote acknowledgement or correction.
+      this.body.position.copy(position);this.body.vertical=state.vertical;this.body.grounded=state.grounded;
+      this.body.jumpTime=state.prediction.jumpTime;this.controller.restoreMotion(state.prediction.controller);
+      if(vehicleChanged)this.previousPosition.copy(position);
+    }else if(reconciled){
       this.previousPosition.add(this.body.position).sub(before);
       if(reset)this.previousPosition.copy(this.body.position);
       this.correction.correct(before,this.body.position,reset);
@@ -548,7 +557,7 @@ export class RaidRuntime {
     }
     this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
     const afterCar=this.vehicles?.current;
-    this.headingCorrection.correct(beforeYaw,afterCar?Math.atan2(afterCar.dx,afterCar.dz):0,reset||!afterCar);
+    this.headingCorrection.correct(beforeYaw,afterCar?Math.atan2(afterCar.dx,afterCar.dz):0,Boolean(authority.localSimulation)||reset||!afterCar);
     if(state.campaign.handoff==='waiting'&&!this.session.blocked)this.menu(true);
     // The regular HUD clock already publishes at 10Hz. Only terminal/death
     // states bypass it; do not duplicate diagnostics/React work on every packet.
@@ -565,9 +574,11 @@ export class RaidRuntime {
     if(this.rig.pov==='first'&&!this.vehicles?.current)command.aiming=true;
     if(command.aiming){command.aimX=aimDirection.x;command.aimY=aimDirection.z;}
     command.dodge=command.dodge&&this.body.grounded&&!this.loadout.busy;
-    const predicted=this.prediction.record({...command,aim:this.aim.toArray() as [number,number,number],jump:this.jump,jumpHeld:this.jumpHeld,highJump:this.highJump,
+    const input={...command,aim:this.aim.toArray() as [number,number,number],jump:this.jump,jumpHeld:this.jumpHeld,highJump:this.highJump,
       touchRepeat:this.session.input.touchAiming,throttle:-raw.y||this.drivingInput.throttle,steer:raw.x||this.drivingInput.steer,
-      brake:this.drivingInput.brake||command.dodge,stickX:this.drivingInput.stickX,stickY:this.drivingInput.stickY,cameraYaw:drivingYaw});
+      brake:this.drivingInput.brake||command.dodge,stickX:this.drivingInput.stickX,stickY:this.drivingInput.stickY,cameraYaw:drivingYaw};
+    if(authority.localSimulation){this.stepBrowser(input,dt);return;}
+    const predicted=this.prediction.record(input);
     authority.submit(predicted);
     if(authority.connection!=='connected'||this.controller.health<=0)return;
     this.previousPosition.copy(this.body.position);const before=this.body.position.clone();
@@ -588,6 +599,28 @@ export class RaidRuntime {
     this.assignmentSite?.update(dt,this.body.position,this.campaign?.holdActive?this.campaign.holdProgress:0);
     const objective=this.session.mission.snapshot(),goal=this.socialGoal??this.campaign?.destination??objective.objectives.find(o=>o.id===objective.activeId)?.marker;
     this.gps?.update(dt,this.legacy,goal,Boolean(this.vehicles?.current));this.fires?.step(dt,this.vehicles?.cars??[]);
+  }
+  private stepBrowser(input:PredictedInput,dt:number){
+    const authority=this.session.authority!,sim=authority.localSimulation!;
+    const before=this.body.position.clone(),shots=sim.loadout.shots,reload=sim.loadout.current.controller.reloadRemaining;
+    this.previousPosition.copy(this.body.position);authority.submit(input);
+    this.body.position.copy(sim.body.position);this.body.vertical=sim.body.vertical;this.body.grounded=sim.body.grounded;
+    this.controller.restoreMotion(sim.controller.captureMotion());this.jump=this.highJump=false;
+    this.legacy.x=this.body.position.x/METRES;this.legacy.y=this.body.position.z/METRES;
+    this.humanoidFrame.vx=(this.body.position.x-before.x)/dt;this.humanoidFrame.vz=(this.body.position.z-before.z)/dt;
+    this.combatAudio.walk(before.distanceTo(this.body.position),!sim.vehicles.current&&this.body.grounded,this.controller.sprinting);
+    if(!reload&&sim.loadout.current.controller.reloadRemaining)this.combatAudio.reload();
+    if(reload&&!sim.loadout.current.controller.reloadRemaining)this.combatAudio.reload(true);
+    if(sim.loadout.shots>shots&&sim.loadout.definition.kind==='firearm'){
+      this.origin.copy(this.body.position).y+=1.23;this.firingMuzzle(this.socketPoint);safeMuzzleOrigin(this.origin,this.socketPoint,this.solids,this.origin);
+      this.gun?.fire();this.viewGun?.fire();this.flash?.fire();this.viewFlash?.fire();this.effects?.muzzle(this.origin);
+      this.combatAudio.shot(sim.loadout.definition.model as 'rifle'|'pistol'|'smg');this.cameraFeedback.fire(this.rig.ads,1);
+    }
+    // The simulation's projectile observer presents each swept segment once.
+    this.assignmentSite?.update(dt,this.body.position,sim.campaign.holdActive?sim.campaign.holdProgress:0);
+    const objective=sim.mission.snapshot(),goal=this.socialGoal??sim.campaign.destination??objective.objectives.find(o=>o.id===objective.activeId)?.marker;
+    this.gps?.update(dt,this.legacy,goal,Boolean(sim.vehicles.current));this.fires?.step(dt,sim.vehicles.cars);
+    if(sim.mission.state!=='ACTIVE'){authority.flushMovement();this.applyRemote();}
   }
   /** Replaying movement must never replay collisions' damage, inventory,
    * weapon triggers, audio or mission events. Only the server settles those. */
@@ -771,13 +804,13 @@ export class RaidRuntime {
     if(this.session.authority?.movementStalled&&this.session.getSnapshot().status==='playing')this.session.pause();
     const active = this.modelsReady && this.session.getSnapshot().status === 'playing' && !this.session.getSnapshot().hack && !this.session.blocked&&!this.session.revivePending;
     if(!active)this.prediction.clear();
-    // The fire stick owns weapon aim only. Camera look remains a separate
-    // playfield swipe; locomotion remains exclusively the left stick/keys.
+    // Touch fire-drag and playfield swipes aim the camera independently of movement.
     // Age existing effects before simulation so new short flashes survive their
     // first rendered frame even on a slow device. Pause freezes these clocks.
     if (active){this.effects?.age(dt);this.screenBlood?.update(dt);}
     if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator+1e-9 >= physicsStep && steps++ < 12) { this.step(physicsStep); this.accumulator = Math.max(0,this.accumulator-physicsStep); if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
     this.session.authority?.flushMovement();
+    if(this.session.authority?.localSimulation&&this.remoteDirty){this.remoteDirty=false;this.applyRemote();}
     if(this.socialNoticeRemaining>0){this.socialNoticeRemaining=Math.max(0,this.socialNoticeRemaining-dt);if(!this.socialNoticeRemaining&&!this.socialRemaining){this.socialNotice='';this.needsDraw=true;}}
     if(this.socialRemaining>0){this.socialRemaining=Math.max(0,this.socialRemaining-dt);if(!this.socialRemaining){this.socialHeld?.removeFromParent();this.socialHeld=undefined;this.socialGesture='idle';this.socialNotice='';}}
     const storyOpen=Boolean(this.socialMenu)||this.campaign?.handoff==='waiting';
@@ -858,7 +891,7 @@ export class RaidRuntime {
     const feedbackEnabled=!this.vehicles?.current&&settings.cameraShake&&!this.session.getSnapshot().reducedMotion&&['first','third'].includes(this.rig.pov);
     this.cameraFeedback.update(active?dt:0,feedbackEnabled,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz),this.rig.ads);if(feedbackEnabled)this.cameraFeedback.apply(this.rig.camera);
     this.shadowClock+=active?dt:0;const shadowPeriod=this.post.budgetLimited?1/12:this.quality==='high'?1/30:this.quality==='balanced'?1/20:1/12;
-    if(this.shadowClock>=shadowPeriod||this.needsDraw){this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;}
+    if(this.shadowClock>=shadowPeriod){this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;}
     if(active&&this.art.city){
       const cars=this.art.city.traffic.simulation.cars.slice(0,this.art.city.traffic.active);
       const nearest=cars.reduce((a,b)=>Math.hypot(a.x-this.body.position.x,a.z-this.body.position.z)<Math.hypot(b.x-this.body.position.x,b.z-this.body.position.z)?a:b),driving=this.vehicles?.current;
@@ -868,7 +901,7 @@ export class RaidRuntime {
     }
     this.renderer.info.reset();this.post.render(this.rig.camera,this.elapsed);
     if (this.rig.pov === 'first' && this.viewGun&&!this.vehicles?.current&&this.socialRemaining<=0) {
-      this.viewCamera.aspect = this.rig.perspective.aspect; this.viewCamera.fov = this.rig.perspective.fov; this.viewCamera.updateProjectionMatrix();
+      if(this.viewCamera.aspect!==this.rig.perspective.aspect||this.viewCamera.fov!==this.rig.perspective.fov){this.viewCamera.aspect=this.rig.perspective.aspect;this.viewCamera.fov=this.rig.perspective.fov;this.viewCamera.updateProjectionMatrix();}
       this.renderer.autoClear = false; this.renderer.clearDepth(); this.renderer.render(this.viewScene,this.viewCamera); this.renderer.autoClear = true;
     }
     this.needsDraw = false;

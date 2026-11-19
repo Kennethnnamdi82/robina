@@ -65,6 +65,12 @@ public class NativeSessionPolicyTest {
     }
     @Test public void missionsPermitOnlyPlayerLifecycleRequests() {
         String id="0123456789abcdef01234567";
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/permits", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/completions", "POST"));
+        assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/completions/"+id, "GET"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/missions/completions/"+id, "POST"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/missions/permits", "GET"));
+        assertFalse(NativeSessionPolicy.allowedClientRequest("/api/missions/completions?player=other", "POST"));
         assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/eligibility", "GET"));
         assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions", "POST"));
         assertTrue(NativeSessionPolicy.allowedClientRequest("/api/missions/sessions/"+id+"/heartbeat", "POST"));

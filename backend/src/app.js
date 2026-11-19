@@ -13,6 +13,7 @@ import { notFound, errorHandler } from "./middleware/error.js";
 import { createBountyRoutes } from './bounties/routes.js';
 import { createLegacyBaseVerifier } from './bounties/baseTreasury.js';
 import { createMissionRoutes } from './missions/routes.js';
+import {MissionCompletions} from './missions/completions.js';
 import { createBachsWebhookRoutes } from './payments/bachsWebhook.js';
 import {createBachsProvider} from './payments/provider.js';
 import {createPaymentService} from './payments/service.js';
@@ -23,6 +24,7 @@ import {createAndroidDownloadRoutes} from './downloads/android.js';
 
 export function createApp(isReady = () => mongoose.connection.readyState === 1, options = {}) {
 const app = express();
+app.locals.missionCompletions=options.missionCompletions??new MissionCompletions();
 const payments=createPaymentService(options.paymentProvider===undefined?createBachsProvider():options.paymentProvider);
 
 app.disable("x-powered-by");
@@ -113,7 +115,7 @@ app.use("/api/admin", adminAuthRoutes);
 const bountyRoutes = createBountyRoutes(options.bountyChain ?? createLegacyBaseVerifier());
 app.use('/api/bounties', bountyRoutes.player);
 app.use('/api/admin/bounties', bountyRoutes.admin);
-app.use('/api/missions', createMissionRoutes(options.missionAuthority, { allowUnverified: options.allowUnverifiedMissions === true }));
+app.use('/api/missions', createMissionRoutes(options.missionAuthority, { allowUnverified: options.allowUnverifiedMissions === true,completions:app.locals.missionCompletions }));
 const paymentRoutes=createPaymentRoutes(payments);
 app.use('/api/payments',paymentRoutes.player);
 app.use('/api/admin/payments',paymentRoutes.admin);

@@ -1,104 +1,54 @@
-# Mission authority integration
+﻿# Mission gameplay and completed-run verification
 
-## Data ownership
+## Current web and Android clients
 
-`MissionSimulation.ts` imports the repository's actual assignment definitions,
-CharacterController, TacticalEnemy, Health, Loadout, Projectile3D, FieldItems,
-WorldState, collision rules, VehicleController, PolicePursuit and
-CampaignGameplay. The backend bundles these rules without WebGL, DOM assets,
-audio or renderer construction. The client renderer uses owner snapshots and
-local movement/shot presentation prediction. Downloaded vehicle art no longer
-defines a different collision size from the server.
+`LocalMission` runs the shared `MissionSimulation` at a fixed 60 Hz in the browser/WebView. Soldier movement, vehicle physics, AI, health, weapons, projectiles and objectives share this clock. The renderer follows local state. There is no gameplay socket, position reconciliation, heartbeat, health write, mission checkpoint or database call while an attempt is active.
 
-The client cannot submit health, damage, kills, world position, checkpoint
-snapshots or successful results as authoritative evidence. Its input schema
-only permits movement/aim/trigger intent and bounded discrete interactions.
-Unknown fields, duplicate input sequences, out-of-range actions and forged
-completion reports are rejected or ignored. This protects stored results;
-it does not claim to eliminate aim assistance or all forms of cheating.
+One authenticated `POST /api/missions/permits` before insertion reads equipment and signs the mission ID, seed, initial inventory, simulation version and unique run ID. It creates no mission record. The permit lasts seven days. Gameplay continues through connection loss; ordinary pause and application backgrounding still pause the local clock. Closing an unfinished run discards it.
 
-## Death and results
+Input intent and discrete actions remain in memory during play. Only after success does the client gzip the recording into an account-scoped IndexedDB outbox, then upload 40,000-character chunks through the authenticated web relay or Android bridge. Requests fit the existing 64 KiB body limit. Failed and abandoned attempts create no mission or inventory writes.
 
-Accepted server projectile/hazard damage uses the existing invulnerability,
-dodge and damage rules. Each health event has an idempotency key scoped to the
-server connection epoch. Reaching zero atomically fails the mission and records
-the death once. There is no death recovery cooldown: the next mission can start
-immediately at 100 HP. Legacy recovery deadlines do not block admission and are
-cleared when another mission starts. One active mission per player remains
-enforced. The server persists a verified failure and publishes the final state.
-Voluntary abandonment cannot overwrite that terminal transition.
+## Verification and settlement
 
-Successful extraction must pass the existing mission prerequisites, actual
-carried item, location and police-response conditions. The server persists the
-verified result before publishing `mission:result`. Timing begins at the first
-ready signal and includes subsequent pauses/disconnections. Scores use the
-25/25/20/15/15 weights, with a versioned 0–10,000 scale. First successful
-completion is eligible for Phase 4 rewards. Replays may rank but cannot earn
-those rewards again. Phase 2 does not mint XP, coins, USDC or purchase credit.
+The backend authenticates the permit owner and signature, validates replay bounds, then replays inputs using the same mission/combat code in a worker thread. Success must satisfy the actual objectives, survival, handoff, location and police conditions. Client positions, health, damage counters and victory flags are never accepted as evidence. Input replay does not eliminate aim assistance or automation.
 
-## Persistence and reconnect
+Only successful verification opens a database transaction. It creates one terminal MissionSession and VerifiedMissionResult and settles net grenade inventory changes using current inventory. Unique database keys protect run settlement and first-completion eligibility. Duplicate chunks, retries and concurrent deliveries cannot award the same run twice. A new successful attempt can rank but cannot repeat first-completion rewards.
 
-MongoDB contains sessions/configuration seed, server health, death counts,
-combat-event deduplication, grenade spending, checkpoints and verified results.
-Checkpoint state includes controller cooldowns, objective sets, weapons and
-magazine/reserve ammo, enemy AI state, pickup/bomb state, cars, pursuit and
-mission counters. Snapshots are captured on insertion and objective progress.
-Movement frames are not stored in MongoDB.
+Score weights and weapon/damage rules are unchanged. Replay results use score version 2 because duration counts active fixed simulation time instead of loading, menus or network outages. Historical live results retain version 1.
 
-The simulation pauses on disconnect. A newly authenticated connection within
-five minutes restores the last checkpoint and resets later stats/enemy/pickup
-changes. Grenades spent after that checkpoint are deducted again from the
-restored temporary inventory. A failed/settled mission cannot reconnect into
-an active simulation. A late interruption expires with zero rewards and no
-death penalty unless a death was already committed.
+Pending completed runs survive reload and retry from the hub or completion screen. Verification failures never award rewards. Verified history restores successful mission history after a local-storage interruption. The completion screen distinguishes local victory from a verified save. Completed recordings can retry until their permit expires.
 
-Paid recovery is retired and cannot create new checkouts. A previously opened
-recovery checkout paid after retirement is retained for refund review instead
-of granting an unnecessary timer skip. Historical receipts and entitlements
-remain stored; no public payment-claim or cooldown-reset route is introduced.
+Performance points and the mission achievement appear immediately on success,
+marked as awaiting confirmation. The browser and server share the score formula;
+the server independently reconstructs its inputs through replay. Leaderboard and
+season eligibility remain unconfirmed until settlement. Saving starts immediately,
+retries brief connection failures after 1–5 seconds, and refreshes hub history on
+confirmation instead of waiting for a periodic minute-long refresh. Device storage
+denial does not block an online save; if both storage and network fail, the screen
+explicitly asks the player to keep it open until the completed run is saved.
 
-## Deployment
+Replay limits: two hours at 60 Hz, 20,000 actions, 24 million base64 characters and 64 MiB decompressed JSON. One worker runs at a time with a 256 MiB heap limit and 120-second deadline. The queue allows eight active jobs, at most two per account, with 24 million buffered characters in total. Idle partial uploads expire after two minutes. Rejected proofs cannot fill active queue slots. Uploads have per-account rate limits. Upload/verification jobs are memory-only; a backend restart causes the durable client outbox to resend.
 
-Deploy the repository with both `backend` and `robina/src` present. The backend
-prestart build reads the shared source from the sibling frontend directory.
-Run a single always-on Render instance. Set `MISSION_SOCKET_ORIGIN` to its
-HTTPS origin when `RENDER_EXTERNAL_URL` is absent. Existing frontend
-`VITE_API_URL` still configures the authenticated HTTP relay/native backend.
-Socket origins allow the existing configured frontend origins and Capacitor's
-`https://localhost` origin. Tickets contain no treasury or session-cookie data.
+## Rendering and touch controls
 
-Existing APKs do not acquire new bundled JavaScript through a Vercel deploy:
-build/sync/package a new APK for this client/native policy change. Browser
-clients require the new frontend deployment as well as the backend deployment.
+Projectile collision/damage rules run once. The renderer observes swept segments for tracers and presents hit/muzzle/audio events without a second projectile simulation. Shadows retain the graphics-budget cadence instead of rerendering with every HUD notification. View projection matrices update only when aspect or FOV changes.
 
-## Verification boundaries
+Dragging the captured fire finger turns the FPS/TPS camera while the other finger moves. Pointer ownership, cancellation, capture loss, backgrounding and blur release controls. Camera input updates refs and the rig directly, without React state updates per pointer movement. Movement pauses during handoff/pickup menus while their choices remain usable.
 
-`liveMissions.test.js` uses an isolated MongoDB replica set and actual Socket.IO
-connections. A guard fixture fires through the actual AI/projectile pipeline
-to verify death, immediate full-health retry, failure settlement and rejection
-of attempts to overwrite the failed run. An extraction checkpoint fixture verifies the real handoff
-checks, idempotent success and replay reward eligibility. Separate cases test
-checkpoint restoration, ticket ownership/replay, strict inputs and actual
-bank/laboratory objective sequencing.
+## Installed-client compatibility and deployment
 
-Run `npm test` from `backend` to rebuild the shared rules and execute the
-isolated database/transport tests. From `robina`, run `npm run typecheck` and
-`npm run test:e2e:missions` for the real React/Three.js client with a local,
-isolated replica set. The browser fixture's `/__test/*` endpoints exist only
-in that test script and are never registered by the production app. Set
-`PLAYWRIGHT_CHROME_PATH` for a different installed Chrome executable, or
-`RIVALS_SOFTWARE_RENDERER=1` if the test host needs SwiftShader.
+Legacy `/sessions` and Socket.IO remain available for previously installed APKs. Those clients still use live simulation, checkpoints, health events and the five-minute reconnect window. New clients never open those sessions. Death cooldown and new paid recovery purchases remain retired. Historical sessions, receipts and entitlements are retained.
 
-Owner snapshots are coalesced to the actual browser rendering cadence rather
-than accumulating HUD work on slow devices. Terminal results are delivered
-immediately, and authenticated session inspection recovers a persisted result
-if its final socket packet was lost. The five-minute reconnect window is
-separate from death recovery; a failed mission can be retried immediately.
+Deploy both backend and frontend, with the backend first. Backend prestart bundles shared source from the sibling frontend directory. A new signed APK is required: Vercel cannot update bundled Android JavaScript or bridge policy. Existing single-instance Render configuration is supported. Multiple verification instances can settle idempotently, but chunk routing requires sticky sessions or a shared upload queue.
 
-These are controlled integration fixtures, not a completed human playthrough
-of every mission or a physical Android device test. Renderer, aiming,
-prediction/reconciliation and latency must also be play-tested on desktop and
-phone before a broad release. Street civilians and social venue presentation
-remain client presentation; local venue currency is not accepted as verified
-health or a production revival entitlement. Venue reward/purchase settlement
-requires the later progression/economy integration.
+Simulation version 3 and replay format version 1 define this verifier. Retain a verifier for still-valid permits when changing gameplay rules; pending recordings must not be silently replayed under different physics/combat rules.
+
+## Verification
+
+`missionCompletions.test.js` uses an isolated MongoDB replica set and an actual successful recorded mission played with ordinary controls, combat and extraction. Tests reject unfinished/forged runs, verify exact final health, prove no in-play writes, and check idempotent settlement and first-completion rewards. Regenerate the fixture with `node scripts/record-replay-fixture.mjs` after `npm run build:missions` when intentionally changing compatible rules.
+
+`localMission.test.ts` compares browser simulation with an independent replay and checks connection gaps, pause and recording bounds. Completion tests cover gzip, retry durability and request sizes. Touch tests cover simultaneous movement/fire/look and pointer interruptions. Legacy live tests continue protecting older installed clients.
+
+Run `npm test` in `backend`. In `robina`, run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build`. `npm run test:e2e:missions` exercises React/Three.js offline and completion retry against an isolated backend. Its `/__test/*` endpoints never exist in production. Use `RIVALS_SOFTWARE_RENDERER=1` for CPU-only development Chrome.
+
+These checks do not replace physical-phone profiling or human playthroughs of every mission. Local ownership removes network pullback; GPU cost, thermal throttling and long browser frames still require device-specific measurement.

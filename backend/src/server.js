@@ -21,6 +21,7 @@ async function shutdown(signal, exitCode = 0) {
   deadline.unref();
   try {
     await missionAuthority.close();
+    await app.locals.missionCompletions.close();
     await Promise.all([
       server?.listening ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve())) : Promise.resolve(),
     ]);

@@ -20,12 +20,14 @@ vi.mock('./RaidRuntime', () => ({ RaidRuntime: class {
   dispose() { runtime.disposed++; this.session.dispose(); }
 } }));
 import RaidApp from './RaidApp';
+const permitFor=(operation:ReturnType<typeof createAssignmentOperation>)=>({id:'0123456789abcdef01234567',missionId:operation.mission.id,seed:operation.seed,issuedAt:Date.now(),simulationVersion:3,maxTicks:432000,token:'test-permit',initial:{grenades:5,ownedIds:[],weapon:null,appearance:{outfit:null,finish:null,emote:null,effect:null,identity:null}}});
+
 
 afterEach(async () => { cleanup(); await act(async () => {}); vi.restoreAllMocks(); runtime.created = runtime.disposed = 0; });
 describe('production 3D entry lifecycle', () => {
   it('explains an unavailable mission backend instead of entering the renderer or hanging at 10%',async()=>{
     vi.spyOn(SandboxSession.prototype,'startAudio').mockImplementation(()=>{});
-    vi.spyOn(missionsApi,'eligibility').mockRejectedValue(Object.assign(new Error('not_found'),{status:404}));
+    vi.spyOn(missionsApi,'permit').mockRejectedValue(Object.assign(new Error('not_found'),{status:404}));
     vi.spyOn(missionsApi,'start');
     render(<RaidApp operation={createAssignmentOperation(0,42)}/>);
     await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'ENTER 3D RAID'}));});
@@ -38,13 +40,13 @@ describe('production 3D entry lifecycle', () => {
     vi.spyOn(SandboxSession.prototype,'startAudio').mockImplementation(()=>{});
     const operation=createAssignmentOperation(0,42);
     vi.spyOn(missionsApi,'eligibility').mockResolvedValue({eligible:false,recoveryUntil:new Date(Date.now()+7200000).toISOString(),activeSession:null,serverTime:new Date().toISOString()});
-    vi.spyOn(missionsApi,'start').mockResolvedValue({session:{_id:'0123456789abcdef01234567',missionId:operation.mission.id,seed:operation.seed,authority:true,status:'active',integrity:'unverified',reconnectDeadline:new Date(Date.now()+300000).toISOString()}});
+    vi.spyOn(missionsApi,'permit').mockResolvedValue({permit:permitFor(operation)});
     vi.spyOn(MissionAuthorityClient.prototype,'connect').mockResolvedValue();
     render(<RaidApp operation={operation} renderWelcome={({enter})=><button onClick={enter}>DEPLOY HEIST</button>}/>);
     expect(screen.queryByText(/OPERATIVE RECOVERING/)).toBeNull();
     expect(runtime.created).toBe(0);
     await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'DEPLOY HEIST'}));});
-    expect(missionsApi.start).toHaveBeenCalledWith(operation.mission.id,operation.seed);
+    expect(missionsApi.permit).toHaveBeenCalledWith(operation.mission.id,operation.seed);expect(missionsApi.eligibility).not.toHaveBeenCalled();
     expect(runtime.created).toBe(1);
     expect(runtime.session?.authority).toBeTruthy();
     expect(screen.getByLabelText('RIVALS 3D raid')).toBeTruthy();
@@ -53,7 +55,7 @@ describe('production 3D entry lifecycle', () => {
     vi.spyOn(SandboxSession.prototype,'startAudio').mockImplementation(()=>{});
     const operation=createAssignmentOperation(0,42),economy=createPlayerEconomy(null),onResult=vi.fn();
     vi.spyOn(missionsApi,'eligibility').mockResolvedValue({eligible:true,recoveryUntil:null,activeSession:null,serverTime:new Date().toISOString()});
-    vi.spyOn(missionsApi,'start').mockResolvedValue({session:{_id:'0123456789abcdef01234567',missionId:operation.mission.id,seed:operation.seed,authority:true,status:'active',integrity:'unverified',reconnectDeadline:new Date(Date.now()+300000).toISOString()}});
+    vi.spyOn(missionsApi,'permit').mockResolvedValue({permit:permitFor(operation)});
     vi.spyOn(MissionAuthorityClient.prototype,'connect').mockResolvedValue();
     render(<RaidApp operation={operation} economy={economy} onResult={onResult}/>);
     await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'ENTER 3D RAID'}));});

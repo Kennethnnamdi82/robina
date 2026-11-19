@@ -1,11 +1,12 @@
 import { io, type Socket } from 'socket.io-client';
 import { missionsApi } from './missions';
-import type { AuthorityAction, AuthorityInput, AuthoritySnapshot, SimulationEvent,PresentationEvent } from '@/features/rivals/authority/MissionSimulation';
+import type { MissionSimulation, AuthorityAction, AuthorityInput, AuthoritySnapshot, SimulationEvent,PresentationEvent } from '@/features/rivals/authority/MissionSimulation';
 import {packMovement,type MovementFrame} from '@/features/rivals/authority/MovementStream';
 
 export interface VerifiedGameResult { _id: string; outcome: 'success' | 'failure'; score: number; durationSeconds: number;
   firstCompletion: boolean; rewardEligible: boolean; verifiedAt: string; remainingHealth?: number }
 export class MissionAuthorityClient {
+  readonly localSimulation?: MissionSimulation;
   latest: AuthoritySnapshot | null = null;
   result: VerifiedGameResult | null = null;
   recoveryUntil: string | null = null;
@@ -27,7 +28,7 @@ export class MissionAuthorityClient {
    * receive a packet just before publishing an older simulated position. */
   constructor(readonly sessionId: string) {}
   subscribe(listener: () => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
-  private notify() { this.listeners.forEach(listener => listener()); }
+  protected notify() { this.listeners.forEach(listener => listener()); }
   async connect() {
     const credentials = await missionsApi.connect(this.sessionId);
     const origin = new URL(credentials.origin);

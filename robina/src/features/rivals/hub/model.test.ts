@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MissionEngine } from '../missions/MissionEngine';
 import { launchMission } from '../missions/definitions';
-import { addRecord, cleanPreferences, dossierStats, emptyDossier, readDossier, readPreferences, runScore, saveDossier, savePreferences, type Dossier } from './model';
+import { addRecord, cleanPreferences, dossierStats, emptyDossier, mergeVerifiedMissions, readDossier, readPreferences, runScore, saveDossier, savePreferences, type Dossier } from './model';
 
 export function completedMission(id='run-one',seconds=180) {
   const engine=new MissionEngine(launchMission(),id);engine.prepare();engine.start();engine.step(seconds);engine.sample(100,65,8);
@@ -10,6 +10,11 @@ export function completedMission(id='run-one',seconds=180) {
 }
 beforeEach(()=>{localStorage.clear();vi.restoreAllMocks();});
 describe('browser-only heist dossier',()=>{
+  it('restores verified successes without duplicates, failures or unknown missions',()=>{
+    const result={sessionId:'completed-run',missionId:'assignment-reserve',outcome:'success' as const,score:8000,durationSeconds:49,verifiedAt:new Date().toISOString(),firstCompletion:true,rewardEligible:true,enemiesDefeated:5,shotsFired:60,successfulHits:30};
+    const dossier=mergeVerifiedMissions(emptyDossier(),[result,{...result,sessionId:'failed',outcome:'failure'},{...result,sessionId:'unknown',missionId:'invented'}]);
+    expect(dossier.records).toHaveLength(1);expect(dossier.records[0]).toMatchObject({runId:'completed-run',venue:0,state:'SUCCESS',seconds:49,kills:5,shots:60,hits:30});expect(mergeVerifiedMissions(dossier,[result])).toBe(dossier);
+  });
   it('records actual completed objectives, mission venue, time and combat stats once',()=>{
     const mission=completedMission(),dossier=addRecord(emptyDossier(),mission,0);
     expect(dossier.records).toHaveLength(1);expect(dossier.records[0]).toMatchObject({venue:0,state:'SUCCESS',seconds:180,completed:10,hits:65,shots:100});

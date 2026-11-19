@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addRecord, emptyDossier, readDossier, readPreferences, saveDossier } from './model';
 import { MissionEngine } from '../missions/MissionEngine';
 import { launchMission } from '../missions/definitions';
+import {missionsApi} from '@/services/missions';
+import {pendingMissions} from '@/services/missionCompletion';
 const auth=vi.hoisted(()=>({baseUser:{wallet:'local-test-player'},signOut:vi.fn()}));
 vi.mock('@/context/AuthContext',()=>({useAuth:()=>auth}));
 vi.mock('./PlayPage',()=>({default:()=> <h1>3D deployment</h1>}));
@@ -12,7 +14,7 @@ vi.mock('@/services/payments',async importOriginal=>{
 });
 import GameHub from './GameHub';
 function at(path='/'){return render(<MemoryRouter initialEntries={[path]}><GameHub/></MemoryRouter>);}
-beforeEach(()=>{localStorage.clear();auth.baseUser.wallet='local-test-player';vi.spyOn(window,'scrollTo').mockImplementation(()=>{});});
+beforeEach(()=>{localStorage.clear();auth.baseUser.wallet='local-test-player';vi.spyOn(window,'scrollTo').mockImplementation(()=>{});vi.spyOn(missionsApi,'results').mockResolvedValue({items:[]});vi.spyOn(pendingMissions,'list').mockResolvedValue([]);});
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 describe('frontend-only game hub',()=>{
   it('matches the requested navigation and keeps graphics controls out of the lobby',()=>{

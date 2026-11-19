@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { web3Middleware } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { MissionLife, MissionSession, VerifiedMissionResult } from './models.js';
+import { MissionCompletions } from './completions.js';
 
 // Exact existing assignment identifiers from the 3D game's assignments.ts.
 // This is an allowlist, not a second mission configuration or gameplay engine.
@@ -22,7 +23,7 @@ async function expireInterrupted(playerId, now = new Date()) {
   );
 }
 
-export function createMissionRoutes(authority = null, { allowUnverified = false } = {}) {
+export function createMissionRoutes(authority = null, { allowUnverified = false, completions = new MissionCompletions() } = {}) {
 const missionRoutes = Router();
 const missionWrites=rateLimit({windowMs:60000,limit:30,keyGenerator:req=>String(req.missionPlayerId),standardHeaders:'draft-7',legacyHeaders:false,message:{error:'mission_rate_limited'}});
 missionRoutes.use(web3Middleware, asyncRoute(async (req, res, next) => {
@@ -31,6 +32,21 @@ missionRoutes.use(web3Middleware, asyncRoute(async (req, res, next) => {
   req.missionPlayerId = player._id;
   res.set('Cache-Control', 'no-store');
   next();
+}));
+
+missionRoutes.post('/permits',missionWrites,asyncRoute(async(req,res)=>{
+  const parsed=startInput.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'invalid_mission'});
+  res.json({permit:await completions.permit(req.missionPlayerId,parsed.data)});
+}));
+const uploads=rateLimit({windowMs:60000,limit:600,keyGenerator:req=>String(req.missionPlayerId),standardHeaders:'draft-7',legacyHeaders:false});
+missionRoutes.post('/completions',uploads,asyncRoute(async(req,res)=>{
+  const parsed=z.object({permit:z.string().min(1).max(16000),index:z.number().int(),count:z.number().int(),chunk:z.string().max(40000)}).strict().safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_mission_replay'});
+  const state=await completions.receive(req.missionPlayerId,parsed.data);res.status(state.status==='verified'?200:202).json(state);
+}));
+missionRoutes.get('/completions/:id',asyncRoute(async(req,res)=>{
+  if(!idInput.safeParse(req.params.id).success)return res.status(400).json({error:'invalid_request'});
+  res.json(await completions.status(req.missionPlayerId,req.params.id));
 }));
 
 missionRoutes.get('/sessions/current', asyncRoute(async (req, res) => {

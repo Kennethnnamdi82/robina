@@ -13,9 +13,17 @@ export class NavigationGrid {
     this.free = new Uint8Array(size); this.seen = new Int32Array(size); this.parent = new Int32Array(size); this.queue = new Int32Array(size); this.rebuild();
   }
   rebuild() {
-    for (let y = 0; y < this.height; y++) for (let x = 0; x < this.width; x++) {
-      const px = (x + .5) * this.tile, py = (y + .5) * this.tile;
-      this.free[y * this.width + x] = Number(!this.blockers.some(box => box.enabled && segmentBox(px, py, 0, 0, box, this.radius) === 0));
+    this.free.fill(1);
+    // Paint only cells within each expanded box instead of testing every city
+    // cell against every wall on each police repath. The original exact test
+    // still decides occupancy, including cells touching a boundary.
+    for (const box of this.blockers) {
+      if (!box.enabled) continue;
+      const left=Math.max(0,Math.floor((box.x-box.width/2-this.radius)/this.tile)-1),right=Math.min(this.width-1,Math.ceil((box.x+box.width/2+this.radius)/this.tile));
+      const top=Math.max(0,Math.floor((box.y-box.height/2-this.radius)/this.tile)-1),bottom=Math.min(this.height-1,Math.ceil((box.y+box.height/2+this.radius)/this.tile));
+      for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
+        if(segmentBox((x+.5)*this.tile,(y+.5)*this.tile,0,0,box,this.radius)===0)this.free[y*this.width+x]=0;
+      }
     }
   }
   private cell(point: Point) {

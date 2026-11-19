@@ -10,5 +10,5 @@ it('ignores recovery dates left by an older server and never displays a death co
 it('preserves the separate reconnect message without imposing a death wait',()=>{
   render(<MissionLifeStatus recoveryUntil="2099-11-14T12:00:00Z" reconnecting/>);
   expect(screen.getByRole('status')).toHaveTextContent('Reconnecting to your operation.');
-  expect(screen.getByRole('status')).toHaveTextContent('five minutes from your last checkpoint');
+  expect(screen.getByRole('status')).not.toHaveTextContent('five minutes');
 });

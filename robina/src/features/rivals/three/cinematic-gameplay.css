@@ -9,6 +9,7 @@
 .r3-screen-blood[data-kind=close]{background:none}
 @media(prefers-reduced-motion:reduce){.r3-screen-blood{background:none}}
 @media(pointer:coarse),(max-width:900px){
+  .r3-game .rv-controls.r3-soldier-controls[data-pov=third] .rv-action-buttons>.rv-fire-control{display:flex}
   .r3-game .r3-fps-look{display:block;position:absolute;pointer-events:auto;touch-action:none;left:45%;right:0;top:24%;bottom:0;z-index:0}
   .r3-game .r3-fps-shoot{display:flex;position:absolute;right:var(--safe-r,20px);bottom:var(--safe-b,20px);width:88px;height:88px;align-items:center;justify-content:center;flex-direction:column;gap:5px;border:1px solid #dae5e8a0;border-radius:50%;color:#f5f8fa;background:#13232b90;pointer-events:auto;touch-action:none;z-index:2}
   .r3-game .r3-fps-shoot span{font:10px monospace;letter-spacing:.1em}

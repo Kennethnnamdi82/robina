@@ -6,6 +6,7 @@ import { TouchStick } from '../ui/TouchStick';
 import { press } from './controlPress';
 import {useEffect,useState} from 'react';
 import {FpsTouchControls} from './FpsTouchControls';
+import {useFireLook} from './useFireLook';
 
 function EquipmentGlyph({ id }: { id: string }) {
   return <svg className="r3-equipment-glyph" viewBox="0 0 88 30" aria-hidden="true" fill="currentColor">
@@ -16,6 +17,7 @@ export function SoldierControls({ session,runtime,pov }: { session: SandboxSessi
   const state = useArenaValue(session,s => s.soldier),status = useArenaValue(session,s => s.status),cooldown = useArenaValue(session,s => s.dodgeCooldown),nearby = useArenaValue(session,s => s.nearby),sprint = useArenaValue(session,s => s.mobileSprint);
   const disabled = status !== 'playing' || Boolean(state?.blocked);
   const driving=Boolean(runtime?.vehicles?.current);
+  const fire=useFireLook(session,runtime,disabled,pov==='first'||pov==='third');
   const [ads,setAds]=useState(false);
   useEffect(()=>{setAds(false);if(runtime)runtime.rig.ads=false;},[pov,disabled,runtime,driving,state?.active]);
   if(runtime?.vehicles?.current)return <DrivingControls runtime={runtime} disabled={disabled}/>;
@@ -27,7 +29,7 @@ export function SoldierControls({ session,runtime,pov }: { session: SandboxSessi
       <button className="r3-reload" aria-label="Reload weapon" disabled={disabled||Boolean(state?.slots[state.active]?.kind==='melee')} {...press(session.reload)}><span>↻</span><span>RELOAD</span></button>
       <button className="rv-dodge-control" aria-label="Dodge" disabled={disabled || cooldown > .01} {...press(session.dodge)}><Zap size={20}/><span>{cooldown > .01 ? cooldown.toFixed(1) + 's' : 'EVADE'}</span></button>
       <button className="rv-interact-control" aria-label="Inspect nearby equipment" disabled={disabled || !nearby} {...press(session.interact)}><Crosshair size={19}/><span>COLLECT</span></button>
-      <button className="rv-fire-control" aria-label="Fire weapon" disabled={disabled} onClick={e => { if (e.detail === 0) { session.input.setFire(true); session.input.setFire(false); } }} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); session.input.setFire(true); }} onPointerUp={() => session.input.setFire(false)} onPointerCancel={() => session.input.setFire(false)} onLostPointerCapture={() => session.input.setFire(false)}><Crosshair size={22}/><span>FIRE</span></button>
+      <button className="rv-fire-control" aria-label="Fire weapon" disabled={disabled} {...fire}><Crosshair size={22}/><span>FIRE</span></button>
       <button className="r3-bomb" aria-label="Throw bomb" disabled={disabled || !state?.canThrow} {...press(() => runtime?.throwBomb())}><Bomb size={20}/><b>{state?.bombs ?? 0}</b><span>GRENADE</span></button>
       <button className="r3-jump" aria-label="Jump" disabled={disabled} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); runtime?.holdJump(true); }} onPointerUp={() => runtime?.holdJump(false)} onPointerCancel={() => runtime?.holdJump(false)} onLostPointerCapture={() => runtime?.holdJump(false)} onClick={e => { if (e.detail === 0) runtime?.requestJump(); }}><ArrowUp size={20}/><span>HOLD JUMP</span></button>
       {(pov === 'first' || pov === 'third') && <button className="r3-ads" aria-label="Aim down sights" aria-pressed={ads} disabled={disabled || state?.slots[state.active]?.kind === 'melee'} {...press(()=>{if(runtime){runtime.rig.ads=!runtime.rig.ads;setAds(runtime.rig.ads);}})}><Crosshair size={19}/><span>{ads?'SIGHTS ON':'SIGHTS'}</span></button>}

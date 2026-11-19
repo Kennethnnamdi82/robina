@@ -28,6 +28,8 @@ final class NativeSessionPolicy {
                 return "POST".equals(method) && (route.equals("/api/payments/checkout") || route.equals("/api/payments/season/claim") || route.matches("/api/payments/orders/[a-fA-F0-9]{24}/check"));
             }
             if (query == null && route != null && route.startsWith("/api/missions/")) {
+                if ("POST".equals(method) && (route.equals("/api/missions/permits") || route.equals("/api/missions/completions"))) return true;
+                if ("GET".equals(method) && route.matches("/api/missions/completions/[a-fA-F0-9]{24}")) return true;
                 if ("GET".equals(method)) return route.matches("/api/missions/(eligibility|leaderboard|results|sessions|sessions/current)") || route.matches("/api/missions/sessions/[a-fA-F0-9]{24}");
                 return "POST".equals(method) && (route.equals("/api/missions/sessions")
                     || route.matches("/api/missions/sessions/[a-fA-F0-9]{24}/(heartbeat|abandon|report|connect)"));

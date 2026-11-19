@@ -3,7 +3,8 @@ import { readGraphicsQuality, saveGraphicsQuality } from '../three/GraphicsChoos
 import type { POV } from '../three/CameraRig';
 import type { CityWeather } from '../three/LivingCityPlan';
 import type { MissionSnapshot } from '../missions/types';
-import { ASSIGNMENTS } from '../missions/assignments';
+import { ASSIGNMENTS,assignmentMission } from '../missions/assignments';
+import type {SavedMissionResult} from '@/services/missions';
 
 export const OPERATIONS = ASSIGNMENTS.map((a,venue)=>({...a,venue,code:a.id.toUpperCase(),accent:'ice'}));
 export type OperationId = typeof OPERATIONS[number]['id'];
@@ -67,6 +68,18 @@ export function addRecord(dossier: Dossier, mission: MissionSnapshot, venue: num
     kills: mission.stats.enemiesDefeated, shots: mission.stats.shots, hits: mission.stats.hits };
   if (!validRecord(record) || dossier.records.some(r => r.runId === record.runId)) return dossier;
   return { ...dossier, unlocked:[...new Set([...(dossier.unlocked??[]),...(record.state==='SUCCESS'&&OPERATIONS[venue+1]?[OPERATIONS[venue+1].id]:[])])],records: [record, ...dossier.records].slice(0, 200) };
+}
+export function mergeVerifiedMissions(dossier:Dossier,results:SavedMissionResult[]):Dossier{
+  const ids=new Set(dossier.records.map(record=>record.runId)),records:HeistRecord[]=[];
+  for(const result of results){
+    const venue=ASSIGNMENTS.findIndex(a=>'assignment-'+a.id===result.missionId);
+    if(result.outcome!=='success'||venue<0||ids.has(result.sessionId))continue;
+    const objectives=assignmentMission(ASSIGNMENTS[venue]).objectives.filter(o=>!o.optional);
+    const record:HeistRecord={runId:result.sessionId,venue,state:'SUCCESS',seconds:result.durationSeconds,finishedAt:Date.parse(result.verifiedAt),
+      completed:objectives.length,mandatory:objectives.length,objectives:objectives.map(o=>o.title),kills:result.enemiesDefeated,shots:result.shotsFired,hits:result.successfulHits};
+    if(validRecord(record)){ids.add(record.runId);records.push(record);}
+  }
+  return records.length?{...dossier,records:[...records,...dossier.records].sort((a,b)=>b.finishedAt-a.finishedAt).slice(0,200)}:dossier;
 }
 export const isAssignmentUnlocked=(_dossier:Dossier,index:number)=>Number.isInteger(index)&&index>=0&&index<OPERATIONS.length;
 // The existing engine's hit count includes melee. Never present that count as

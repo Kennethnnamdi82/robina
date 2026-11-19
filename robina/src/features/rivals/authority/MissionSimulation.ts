@@ -13,7 +13,7 @@ import type { DamageEvent } from '../combat/Health';
 import { emptyCommand, type PlayerCommand } from '../input/InputBuffer';
 import { moveKinematic, traceSolids, horizontalContact } from '../three/physics3d';
 import { convertSolids, point3, METRES, type Solid3D } from '../three/world3d';
-import { Projectile3D, type Target3D } from '../three/Projectile3D';
+import { Projectile3D, type Target3D, type Bullet3D } from '../three/Projectile3D';
 import { FieldItems, ENEMY_DROPS, HEALTH_BOXES, meleeStrike, grenadeTarget } from '../three/FieldItems';
 import { Loadout } from '../three/Loadout';
 import { CitySimulation, TRAFFIC_COUNT, carActive, VEHICLE_LENGTH, vehicleCollisionDimensions } from '../three/CitySimulation';
@@ -76,6 +76,8 @@ function hydrate(target: State, state: State) {
 }
 
 export class MissionSimulation {
+  /** Optional presentation observer; never participates in hit/damage rules. */
+  onProjectileTravelled?:(bullet:Bullet3D)=>void;
   movementInterrupted=false;
   appearance:{outfit:string|null;finish:string|null;emote:string|null;effect:string|null;identity:string|null;trail?:string|null;entrance?:string|null}={outfit:null,finish:null,emote:null,effect:null,identity:null,trail:null,entrance:null};
   readonly operation; readonly world; readonly mission; readonly controller = new CharacterController(true);
@@ -292,7 +294,7 @@ export class MissionSimulation {
     this.pool.step(dt, this.solids, this.targets, (p, damage, owner,target,direction) => {
       if (damage > 0 && owner === 'operative') { this.hits++; this.firearmHits++; }
       this.events.push({type:'impact',point:p.toArray(),direction:direction?.toArray()??[0,0,0],body:damage>0&&Boolean(target)&&!target!.id.startsWith('vehicle-'),damage,owner});
-    });
+    },bullet=>this.onProjectileTravelled?.(bullet));
     for (const event of this.vehicles.drainEvents()) {
       this.police.alert(); if (event.kind !== 'explosion') continue;
       const point = new Vector3(event.car.x, .65, event.car.z); this.vehicles.blast(point, 4.5, 75,this.solids);

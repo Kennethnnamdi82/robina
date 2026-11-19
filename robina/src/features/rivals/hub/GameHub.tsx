@@ -17,6 +17,9 @@ import { createPlayerEconomy, gameMoney } from '../progression/PlayerEconomy';
 import { usePlayerEconomy } from '../progression/usePlayerEconomy';
 import {StoreIdentity} from '../store/StoreIdentity';
 import FounderIdentity from '../store/FounderIdentity';
+import {isFinalCompletionError,pendingMissions,sendCompletion} from '@/services/missionCompletion';
+import {missionsApi} from '@/services/missions';
+import {mergeVerifiedMissions} from './model';
 
 const PlayPage = lazy(() => import('./PlayPage'));
 const StorePage = lazy(() => import('../store/StorePage'));
@@ -52,17 +55,56 @@ function Hub({ identity }: { identity: string }) {
   const latest = useRef(dossier);
   const { pathname } = useLocation();
   const title = useRef<HTMLDivElement>(null);
+  const [syncMessage,setSyncMessage]=useState('');
   useEffect(() => { title.current?.querySelector<HTMLElement>('h1')?.focus(); window.scrollTo?.(0,0); }, [pathname]);
   const updateDossier = useCallback((update: (old: Dossier) => Dossier) => {
     const next = update(latest.current); latest.current = next;
     setSaved(saveDossier(identity, next)); setDossier(next);
   }, [identity]);
   const record = useCallback((mission: MissionSnapshot, venue: number) => updateDossier(old => addRecord(old, mission, venue)), [updateDossier]);
+  useEffect(()=>{
+    if(pathname==='/play'||identity==='local-device')return;
+    let cancelled=false,busy=false,refreshRequested=false,timer:number|undefined;
+    const sync=async()=>{
+      if(busy||cancelled)return;busy=true;
+      let pendingRetry=false,rejected=false;
+      try{
+        try{
+          const pending=await pendingMissions.list(identity);
+          for(const entry of pending){
+            if(cancelled)return;
+            if(entry.rejection){rejected=true;continue;}
+            setSyncMessage('SYNCING COMPLETED MISSION…');
+            try{await sendCompletion(entry);}catch(error){
+              if(error instanceof Error&&isFinalCompletionError(error.message))rejected=true;
+              else pendingRetry=true;
+            }
+          }
+        }catch{/* Verified history remains available without device storage. */}
+        if(cancelled)return;
+        // Verified history can still restore progress if local storage is unavailable.
+        const results=await missionsApi.results();if(!cancelled)updateDossier(old=>mergeVerifiedMissions(old,results.items));
+      }catch{/* Retry verified history on the next sync. */}
+      finally{
+        busy=false;
+        if(!cancelled){
+          setSyncMessage(pendingRetry?'Completed missions will retry automatically.':rejected?'A completed run could not be verified.':'');
+          clearTimeout(timer);
+          if(refreshRequested){refreshRequested=false;void sync();}
+          else timer=window.setTimeout(sync,pendingRetry?2000:60000);
+        }
+      }
+    };
+    const saved=(event:Event)=>{if((event as CustomEvent<{owner:string}>).detail?.owner===identity){refreshRequested=true;void sync();}};
+    void sync();window.addEventListener('online',sync);window.addEventListener('rivals:mission-saved',saved);
+    return()=>{cancelled=true;clearTimeout(timer);window.removeEventListener('online',sync);window.removeEventListener('rivals:mission-saved',saved);};
+  },[identity,pathname,updateDossier]);
   const updateSettings = (patch: Partial<HubPreferences>) => setPreferences(old => { const next = { ...old, ...patch }; setSaved(savePreferences(next)); return next; });
   const stats = dossierStats(dossier);
   const settings = (back?: () => void) => <HubSettings value={preferences} onChange={updateSettings} saved={saved} onBack={back}/>;
   if (pathname === '/play') return <Suspense fallback={<main className="rh-loading" role="status">PREPARING INSERTION…</main>}><PlayPage dossier={dossier} preferences={preferences} economy={economy} onResult={record} renderSettings={settings}/></Suspense>;
   return <div className="rh-app" data-emblem={dossier.emblem} data-contrast={preferences.highContrast} data-reduced={preferences.motion === 'reduce'}>
+    {syncMessage&&<p role="status">{syncMessage}</p>}
     <a className="rh-skip" href="#rh-content">Skip to content</a>
     <header className="rh-topbar"><Link to="/" className="rh-brand" aria-label="RIVALS lobby"><span className="rh-crest"><Swords size={24}/></span><span><strong>RIVALS</strong><small>RIVAL HEIST</small></span></Link><span className="rh-status"><i/> SOLO OPERATIONS</span><div className="rh-campaign-wallet" aria-label="Campaign balances"><span>REVIVE COINS<strong>{balances.coins.toLocaleString()}</strong></span><span>MISSION CASH<strong>{gameMoney(balances.cash)}</strong></span></div><Link to="/profile" className="rh-header-profile"><span className="rh-mini-emblem"><Shield size={18}/></span><span><strong>{dossier.callsign}</strong><small>{stats.rank.name} · DEVICE PROFILE</small></span></Link><button className="rh-icon-button" aria-label="Exit game menu" onClick={() => setExitOpen(true)}><LogOut size={18}/></button></header>
     {pathname !== '/' && <nav className="rh-subnav" aria-label="Game navigation">{NAV.map(({to,label,icon:Icon}) => <NavLink key={to} end={to==='/'} to={to}><Icon size={14}/>{label}</NavLink>)}</nav>}
