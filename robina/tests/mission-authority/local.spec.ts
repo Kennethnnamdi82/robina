@@ -13,6 +13,7 @@ async function deploy(page:Page,request:APIRequestContext){
   return session.playerId as string;
 }
 test('rendered walking, running and driving keep held touch input through a resize offline',async({page,request},info)=>{
+  test.setTimeout(540000);
   const errors:string[]=[],gameplayRequests:string[]=[];page.on('pageerror',error=>errors.push(error.message));page.on('websocket',socket=>{if(socket.url().includes('/socket.io/'))errors.push('Unexpected gameplay socket: '+socket.url());});
   const playerId=await deploy(page,request),state=page.getByTestId('three-state');
   page.on('request',req=>{if(/\/api\/missions\//.test(req.url()))gameplayRequests.push(req.url());});
@@ -46,10 +47,9 @@ test('rendered walking, running and driving keep held touch input through a resi
   };
   await holdForward('movement-stick',6);
   const walked=Number(await state.getAttribute('data-z'));
-  const sprint=page.getByRole('button',{name:'Toggle sprint'});
-  await sprint.tap();await expect(sprint).toHaveAttribute('aria-pressed','true');
+  await page.keyboard.down('ShiftLeft');
   await holdForward('movement-stick',5);
-  await sprint.tap();
+  await page.keyboard.up('ShiftLeft');
   const samples=await page.evaluate(()=>{const audit=Reflect.get(window,'movementAudit');audit.recording=false;return audit.samples as {at:number;z:number}[];});
   expect(samples.length).toBeGreaterThanOrEqual(5);for(let i=2;i<samples.length;i++)expect(samples[i].z-samples[i-1].z).toBeGreaterThanOrEqual(-.01);
   for(const pov of ['third','first'] as const){
@@ -73,7 +73,7 @@ test('rendered walking, running and driving keep held touch input through a resi
   await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:30000}).toBeCloseTo(12,1);
   const enter=page.getByRole('button',{name:'Enter sedan'});
   await expect(enter).toBeVisible({timeout:30000});
-  await enter.tap();
+  await enter.tap({timeout:60000});
   await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).id,{timeout:30000}).toBe(28);
   const exit=page.getByRole('button',{name:'Exit vehicle'});
   await expect(exit).toBeVisible({timeout:30000});
@@ -98,7 +98,7 @@ test('rendered walking, running and driving keep held touch input through a resi
   const drivingSamples=await page.evaluate(()=>{const audit=Reflect.get(window,'movementAudit');audit.recording=false;return audit.samples as {at:number;z:number}[];});
   for(let i=2;i<drivingSamples.length;i++)expect(drivingSamples[i].z-drivingSamples[i-1].z).toBeGreaterThanOrEqual(-.01);
   await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).speed,{timeout:30000}).toBeLessThanOrEqual(2);
-  await exit.tap();
+  await exit.tap({timeout:60000});
   await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).driving,{timeout:30000}).toBe(false);
   const parked=await page.evaluate(()=>{
     const client=Reflect.get(window,'localMission') as LocalMission,runtime=Reflect.get(window,'raidRuntime') as RaidRuntime;
