@@ -23,6 +23,18 @@ describe('responsive owned analog sticks',()=>{
     fireEvent.pointerDown(stick,{clientX:80,clientY:30});fireEvent.blur(window);expect(move).toHaveBeenLastCalledWith({x:0,y:0});
     fireEvent.pointerDown(stick,{clientX:80,clientY:30});view.rerender(<TouchStick kind="drive" disabled onMove={move}/>);expect(move).toHaveBeenLastCalledWith({x:0,y:0});view.unmount();expect(move).toHaveBeenLastCalledWith({x:0,y:0});
   });
+  it.each(['move','drive'] as const)('keeps the held %s stick active when the viewport resizes',kind=>{
+    const move=vi.fn();render(<TouchStick kind={kind} disabled={false} onMove={move}/>);
+    const stick=screen.getByTestId(kind==='move'?'movement-stick':'driving-stick');
+    fireEvent.pointerDown(stick,{pointerId:1,clientX:60,clientY:24});
+    expect(move.mock.lastCall?.[0].y).toBe(-1);
+    fireEvent.resize(window);
+    expect(move).toHaveBeenCalledTimes(1);
+    fireEvent.pointerMove(stick,{pointerId:1,clientX:60,clientY:25});
+    expect(move.mock.lastCall?.[0].y).toBe(-1);
+    fireEvent.pointerUp(stick,{pointerId:1});
+    expect(move).toHaveBeenLastCalledWith({x:0,y:0});
+  });
   it('steers independently of the acceleration, reverse and brake pedals',()=>{
     const runtime={vehicles:{snapshot:{speed:0,kind:'sedan',health:200}},setDriving:vi.fn(),vehicleInteract:vi.fn()} as unknown as RaidRuntime;
     render(<DrivingControls runtime={runtime} disabled={false}/>);expect(screen.queryByRole('button',{name:'Steer left'})).toBeNull();expect(screen.queryByRole('button',{name:'Steer right'})).toBeNull();

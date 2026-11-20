@@ -28,4 +28,4 @@ PresentationCorrection.prototype.present=function(position,dt,out){
   if(movementAudit.recording)movementAudit.samples.push({at:performance.now(),z:result.z});
   return result;
 };
-createRoot(document.getElementById('root')!).render(<RaidApp operation={createAssignmentOperation(0,42)} preferences={{...defaultHubPreferences(),quality:'low',muted:true}}/>);
+createRoot(document.getElementById('root')!).render(<RaidApp operation={createAssignmentOperation(0,42)} preferences={{...defaultHubPreferences(),muted:true}}/>);

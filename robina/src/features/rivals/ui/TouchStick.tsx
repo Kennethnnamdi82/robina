@@ -16,8 +16,10 @@ export function TouchStick({ onMove, onPress, disabled, kind = 'move' }: { onMov
   useEffect(() => { if (disabled) reset(); return reset; }, [disabled, reset]);
   useEffect(() => {
     const hidden = () => { if (document.hidden) reset(); };
-    window.addEventListener('blur', reset); window.addEventListener('resize', reset); document.addEventListener('visibilitychange', hidden);
-    return () => { window.removeEventListener('blur', reset); window.removeEventListener('resize', reset); document.removeEventListener('visibilitychange', hidden); };
+    // Mobile browser chrome can resize the viewport while the thumb is still
+    // down. The captured gesture keeps its original anchor until release.
+    window.addEventListener('blur', reset); document.addEventListener('visibilitychange', hidden);
+    return () => { window.removeEventListener('blur', reset); document.removeEventListener('visibilitychange', hidden); };
   }, [reset]);
   const move = (event: PointerEvent<HTMLDivElement>) => {
     const rect = bounds.current ?? event.currentTarget.getBoundingClientRect(), radius = Math.min(38, rect.width * .28);

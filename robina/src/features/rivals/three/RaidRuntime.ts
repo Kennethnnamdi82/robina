@@ -113,6 +113,7 @@ export class RaidRuntime {
   private combatAudio: CombatAudio; private viewScene = new T.Scene(); private viewCamera = new T.PerspectiveCamera(72,1,.025,8);
   private flash?: MuzzleFlash; private viewFlash?: MuzzleFlash; private securityFlashes = new Map<string,MuzzleFlash>(); private cameraFeedback=new CameraFeedback();private resolution=new AdaptiveResolution(1,1);private shadowClock=1;
   private previousPosition=this.body.position.clone();private renderPosition=new T.Vector3();
+  private hasMotionInterval=false;
   private previousOperativePose?:T.Vector3;
   private correction=new PresentationCorrection();private aimStart=new T.Vector3();private aimHit=new T.Vector3();
   private prediction=new MovementPrediction();
@@ -213,7 +214,7 @@ export class RaidRuntime {
     this.listen(host,'pointermove',e => { const p = e as PointerEvent; if (this.drag && p.pointerId === this.lookPointer && session.canControl()) { this.rig.rotate(this.touchLook ? p.clientX - this.lookX : p.movementX,this.touchLook ? p.clientY - this.lookY : p.movementY); this.lookX = p.clientX; this.lookY = p.clientY; } });
     this.listen(this.renderer.domElement,'webglcontextlost',e => { e.preventDefault(); session.fail('The 3D graphics context was lost. Restart this sandbox or use Phaser fallback.'); });
     this.resizeObserver = new ResizeObserver(() => this.resize()); this.resizeObserver.observe(host); this.setQuality(this.quality); this.resize();
-    session.attach({ pause: () => { this.last = 0; this.accumulator = 0; this.audio.pause(true); this.combatAudio.pause(true);session.cityAudio?.pause(true); this.needsDraw = true; },resume: () => { this.last = 0; this.audio.pause(false); this.combatAudio.pause(false);session.cityAudio?.pause(false); this.needsDraw = true; },mute: () => { this.audio.configure(session.getSnapshot().settings); this.combatAudio.configure(session.getSnapshot().settings);session.cityAudio?.configure(session.getSnapshot().settings); },settings: settings => { this.audio.configure(settings); this.combatAudio.configure(settings);session.cityAudio?.configure(settings); },quality: q => this.setQuality(q),stopMovement: () => { this.drivingInput={throttle:0,steer:0,brake:false,stickX:0,stickY:0};this.controller.stop(); this.jump = false; this.jumpHeld = false; this.drag = false; this.lookPointer = null; this.rig.ads = false; },interact: () => session.input.queueInteract(),hackPad: this.hackPad,hackRetry: this.hackRetry,hackClose: this.closeHack,skipBossIntro: () => this.boss.skipIntro() });
+    session.attach({ pause: () => { this.resetPresentationClock(); this.audio.pause(true); this.combatAudio.pause(true);session.cityAudio?.pause(true); this.needsDraw = true; },resume: () => { this.resetPresentationClock(); this.audio.pause(false); this.combatAudio.pause(false);session.cityAudio?.pause(false); this.needsDraw = true; },mute: () => { this.audio.configure(session.getSnapshot().settings); this.combatAudio.configure(session.getSnapshot().settings);session.cityAudio?.configure(session.getSnapshot().settings); },settings: settings => { this.audio.configure(settings); this.combatAudio.configure(settings);session.cityAudio?.configure(settings); },quality: q => this.setQuality(q),stopMovement: () => { this.drivingInput={throttle:0,steer:0,brake:false,stickX:0,stickY:0};this.controller.stop(); this.jump = false; this.jumpHeld = false; this.drag = false; this.lookPointer = null; this.rig.ads = false; },interact: () => session.input.queueInteract(),hackPad: this.hackPad,hackRetry: this.hackRetry,hackClose: this.closeHack,skipBossIntro: () => this.boss.skipIntro() });
     this.unsubscribe = session.subscribe(() => { this.needsDraw = true; if(session.authority&&['playing','paused'].includes(session.getSnapshot().status))session.authority.pause(session.getSnapshot().status==='paused'||session.blocked); });
     if(session.authority){this.authorityUnsubscribe=session.authority.subscribe(()=>{this.remoteDirty=true;});session.authority.onShot=shot=>{
       if(!this.modelsReady||shot.owner==='operative')return;
@@ -280,7 +281,7 @@ export class RaidRuntime {
       for (const n of this.npcs) this.securityFlashes.set(n.model.spawn.id,new MuzzleFlash(n.presentation!.weapon.muzzle,this.assets.textures.get('combat-flash')!));
       this.securityFlashes.set('vault-guardian',new MuzzleFlash(this.bossPresentation.weapon.muzzle,this.assets.textures.get('combat-flash')!));
       const local=this.session.authority?.localSimulation;
-      this.art.attachAssets(this.assets,local?.traffic); this.art.setQuality(this.quality);
+      this.art.attachAssets(this.assets,local?.traffic);
       if(this.art.city){
         this.art.city.serverTraffic=Boolean(this.session.authority);
         this.vehicles=local?.vehicles??new VehicleController(this.art.city.traffic.simulation.cars);
@@ -292,15 +293,16 @@ export class RaidRuntime {
           this.pursuit=new PolicePursuit(this.vehicles.cars,new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers,46),this.solids,a.response,this.deployOfficer,this.shootFromVehicle,this.vehicles.collision);
           this.campaign=new CampaignGameplay(this.session.operation.assignment,this.session.mission,this.world,this.vehicles,this.pursuit,this.navigation);
           this.field.add('site-first-aid',new T.Vector3(a.site.x+7,0,a.site.z+2),{kind:'health',amount:HEALTH_BOXES.medium});
-          if(a.id==='reserve'||a.id==='reactor'){this.siteLife=new SiteLife(a,this.assets.city.humanoid!,this.navigation);this.siteLife.setQuality(this.quality);this.siteLife.combat.onCrime=()=>this.pursuit?.alert(true);this.scene.add(this.siteLife.root);this.targets.push(...this.siteLife.combat.targets);}
-          if(a.hostage){this.witnessArt=new CityPeople(this.assets.city.humanoid!);this.witnessArt.setQuality(this.quality);this.scene.add(this.witnessArt.root);this.witnessPose={x:a.site.x,z:a.site.z-2,route:[],target:0,speed:0,yaw:0,crossing:false,panicUntil:0,idleUntil:0,distance:0,moving:false,motion:0};}
+          if(a.id==='reserve'||a.id==='reactor'){this.siteLife=new SiteLife(a,this.assets.city.humanoid!,this.navigation);this.siteLife.combat.onCrime=()=>this.pursuit?.alert(true);this.scene.add(this.siteLife.root);this.targets.push(...this.siteLife.combat.targets);}
+          if(a.hostage){this.witnessArt=new CityPeople(this.assets.city.humanoid!);this.scene.add(this.witnessArt.root);this.witnessPose={x:a.site.x,z:a.site.z-2,route:[],target:0,speed:0,yaw:0,crossing:false,panicUntil:0,idleUntil:0,distance:0,moving:false,motion:0};}
         }
       }
       this.gps=new MissionNavigation(this.navigation,new NavigationGrid(this.world.level.width,this.world.level.height,64,this.world.blockers,46));
       this.scene.add(this.roadGuide.root);
       this.art.city?.setLighting(this.atmosphere.preset);
-      this.effects = new CombatEffects({ flash: this.assets.textures.get('combat-flash')!,smoke: this.assets.textures.get('combat-smoke')!,blast: this.assets.textures.get('combat-blast')! }); this.effects.setQuality(this.quality); this.scene.add(this.effects.root);
-      this.fires=new WorldFires({smoke:this.assets.textures.get('combat-smoke')!,blast:this.assets.textures.get('combat-blast')!});this.fires.setQuality(this.quality);this.scene.add(this.fires.root);
+      this.effects = new CombatEffects({ flash: this.assets.textures.get('combat-flash')!,smoke: this.assets.textures.get('combat-smoke')!,blast: this.assets.textures.get('combat-blast')! }); this.scene.add(this.effects.root);
+      this.fires=new WorldFires({smoke:this.assets.textures.get('combat-smoke')!,blast:this.assets.textures.get('combat-blast')!});this.scene.add(this.fires.root);
+      this.applyRenderQuality(this.resolution.quality(this.quality));
       const caseModel=this.art.devices.get('cargo-recovered')?.getObjectByName('recovery-hard-case');if(caseModel&&this.campaign&&!this.campaign.assignment.hostage){this.carriedCase=caseModel.clone(true);this.carriedCase.position.set(.02,-.22,-.08);this.carriedCase.scale.setScalar(.8);this.carriedCase.visible=false;this.humanoid.sockets.leftHand.add(this.carriedCase);}
       this.viewScene.add(this.viewCamera,new T.HemisphereLight(0xb9e3ff,0x233346,2.5));
       const viewLight = new T.DirectionalLight(0xffffff,2); viewLight.position.set(2,3,2); this.viewScene.add(viewLight);
@@ -336,7 +338,11 @@ export class RaidRuntime {
   }
   switchWeapon = (index?: number) => { if (this.vehicles?.current||!this.session.canControl() || !this.controller.canAttack) return; if(this.session.authority){this.session.authority.action({type:'weapon',slot:index??(this.loadout.active+1)%3});return;} const changed = index === undefined ? this.loadout.cycle(true) : this.loadout.switchTo(index,true); if (changed) { this.equip(); this.publish(); } };
   throwBomb = () => { if (this.vehicles?.current||!this.session.canControl() || !this.controller.canAttack || this.loadout.busy || this.weapon.reloadRemaining > 0 || this.field.quantity <= 0) return; if(this.session.authority){this.session.authority.action({type:'grenade'});return;} this.loadout.start('throw',.55); this.throwRelease = .18; this.publish(); };
-  menu(open: boolean) { this.session.block(open); this.last = 0; this.accumulator = 0; const silent = open || this.session.getSnapshot().status !== 'playing'; this.audio.pause(silent); this.combatAudio.pause(silent); this.needsDraw = true; this.publish(); }
+  private resetPresentationClock() {
+    this.last=0;this.accumulator=0;this.hasMotionInterval=false;
+    this.previousPosition.copy(this.body.position);
+  }
+  menu(open: boolean) { this.session.block(open); this.resetPresentationClock(); const silent = open || this.session.getSnapshot().status !== 'playing'; this.audio.pause(silent); this.combatAudio.pause(silent); this.needsDraw = true; this.publish(); }
   replacePickup = (index?: number) => {
     if(this.session.authority){this.session.authority.action(index===undefined?{type:'cancelPickup'}:{type:'pickup',slot:index});this.menu(false);return;}
     const item = this.field.pickups.find(p => p.id === this.field.pending); if (!item) return;
@@ -358,7 +364,21 @@ export class RaidRuntime {
     if (event.code === 'KeyF') {event.preventDefault();this.vehicleInteract();}
     if (['Digit1','Digit2','Digit3'].includes(event.code)) this.switchWeapon(Number(event.code.slice(-1)) - 1);
   };
-  private setQuality(quality:QualityId){this.quality=quality;this.art?.setQuality(quality);this.siteLife?.setQuality(quality);this.witnessArt?.setQuality(quality);this.effects?.setQuality(quality);this.fires?.setQuality(quality);this.atmosphere.quality(quality);this.post.quality(quality);this.dpr=Math.min(devicePixelRatio,quality==='low'?1:quality==='balanced'?1.25:2);this.resolution=new AdaptiveResolution(this.dpr,this.dpr,Math.min(quality==='high'?1:.75,this.dpr));this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.autoUpdate=false;this.renderer.shadowMap.needsUpdate=true;this.shadowClock=1;this.resize();if(this.modelsReady)this.publish();}
+  private renderQuality:QualityId='balanced';
+  private applyRenderQuality(quality:QualityId){
+    this.renderQuality=quality;
+    this.art?.setQuality(quality);this.siteLife?.setQuality(quality);this.witnessArt?.setQuality(quality);
+    this.effects?.setQuality(quality);this.fires?.setQuality(quality);this.atmosphere.quality(quality);this.post.quality(quality);
+    this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;
+  }
+  private setQuality(quality:QualityId){
+    this.quality=quality;
+    const ceiling=Math.min(devicePixelRatio,quality==='low'?1:quality==='balanced'?1.25:2);
+    this.resolution=new AdaptiveResolution(Math.min(ceiling,1.25),ceiling,Math.min(.75,ceiling));
+    this.dpr=this.resolution.scale;
+    this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.autoUpdate=false;
+    this.applyRenderQuality(this.resolution.quality(quality));this.resize();if(this.modelsReady)this.publish();
+  }
   setEnvironmentLighting(preset:CityWeather) { this.atmosphere.set(preset);this.art.city?.setLighting(preset);this.needsDraw=true;if(this.modelsReady)this.publish(); }
   // Queue only. Writing canvas dimensions here could clear the last image
   // between animation frames (including a paused frame).
@@ -565,7 +585,7 @@ export class RaidRuntime {
       // Browser-owned movement has no remote acknowledgement or correction.
       this.body.position.copy(position);this.body.vertical=state.vertical;this.body.grounded=state.grounded;
       this.body.jumpTime=state.prediction.jumpTime;this.controller.restoreMotion(state.prediction.controller);
-      if(vehicleChanged)this.previousPosition.copy(position);
+      if(vehicleChanged){this.previousPosition.copy(position);this.hasMotionInterval=false;}
     }else if(reconciled){
       this.previousPosition.add(this.body.position).sub(before);
       if(reset)this.previousPosition.copy(this.body.position);
@@ -825,7 +845,7 @@ export class RaidRuntime {
     const {delta:dt,step:physicsStep}=frameTiming(wallDt); this.last = now;
     if(this.session.authority?.movementStalled&&this.session.getSnapshot().status==='playing')this.session.pause();
     const active = this.modelsReady && this.session.getSnapshot().status === 'playing' && !this.session.getSnapshot().hack && !this.session.blocked&&!this.session.revivePending;
-    if(!active)this.prediction.clear();
+    if(!active){this.prediction.clear();this.hasMotionInterval=false;}
     // Touch fire-drag and playfield swipes aim the camera independently of movement.
     // Age existing effects before simulation so new short flashes survive their
     // first rendered frame even on a slow device. Pause freezes these clocks.
@@ -834,9 +854,10 @@ export class RaidRuntime {
     if (active) {
       this.accumulator += dt;
       while (this.accumulator+1e-9 >= physicsStep && simulated < 12) {
+        this.hasMotionInterval=true;
         this.step(physicsStep); simulated++;
         this.accumulator = Math.max(0,this.accumulator-physicsStep);
-        if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; }
+        if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack || this.session.blocked) { this.accumulator = 0; this.hasMotionInterval=false; break; }
       }
       this.frames.record(now); this.fpsClock += Math.min(1,wallDt);
     }
@@ -861,18 +882,21 @@ export class RaidRuntime {
     if(finished&&this.session.mission.state==='FAILED'&&!this.session.authority)this.recoverEvidence(dt);
     if (!active && !settling && !storyOpen && !this.needsDraw && !this.rig.settling) return;
     if(active){
-      const scale=this.resolution.sample(wallDt);
-      if(scale!==undefined)this.dpr=scale;
+      this.resolution.sample(wallDt);
+      const quality=this.resolution.quality(this.quality);
+      if(quality!==this.renderQuality)this.applyRenderQuality(quality);
+      this.dpr=Math.min(this.resolution.scale,quality==='low'?1:quality==='balanced'?1.25:2);
       this.post.budget(this.resolution.effectsLimited?.75:this.resolution.scale/this.resolution.ceiling);
     }
     const presented=this.surface.present(this.host.clientWidth,this.host.clientHeight,this.dpr,()=>{
     // Skin/weapon/camera presentation shares the render clock. Advancing skin
     // only on physics ticks made it freeze every other frame on 120Hz screens.
     const animationDelta = active||finished||storyOpen ? dt : 0;
-    this.renderPosition.copy(active?this.previousPosition:this.body.position);if(active)this.renderPosition.lerp(this.body.position,T.MathUtils.clamp(this.accumulator/physicsStep,0,1));
+    const alpha=active&&this.hasMotionInterval?T.MathUtils.clamp(this.accumulator/physicsStep,0,1):1;
+    this.renderPosition.lerpVectors(this.previousPosition,this.body.position,alpha);
     this.correction.present(this.renderPosition,dt,this.renderPosition);
     const cameraCar=this.vehicles?.current;
-    this.presentedVehicleYaw=cameraCar?this.headingCorrection.present(drivenVehiclePose(cameraCar,T.MathUtils.clamp(this.accumulator/physicsStep,0,1)).yaw,dt):undefined;
+    this.presentedVehicleYaw=cameraCar?this.headingCorrection.present(drivenVehiclePose(cameraCar,alpha).yaw,dt):undefined;
     this.cameraMotion.vx=active?(cameraCar?cameraCar.dx*cameraCar.speed:this.controller.vx*METRES):0;
     this.cameraMotion.vz=active?(cameraCar?cameraCar.dz*cameraCar.speed:this.controller.vy*METRES):0;
     this.cameraMotion.sprinting=this.controller.sprinting;
@@ -934,7 +958,7 @@ export class RaidRuntime {
     }
     this.roadGuide.update(this.renderPosition,this.gps?.route??[],this.gps?.goal,this.elapsed,this.session.getSnapshot().reducedMotion,this.vehicles?.current?this.vehicles.current.length/2+1.5:1.4);
     this.fires?.draw(this.rig.camera,this.elapsed,this.body.position);if(this.carriedCase)this.carriedCase.visible=Boolean(this.campaign?.carrying)&&!this.vehicles?.current;
-    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera,active?T.MathUtils.clamp(this.accumulator/physicsStep,0,1):1,this.presentedVehicleYaw);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
+    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera,alpha,this.presentedVehicleYaw);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
     if(this.witnessArt&&this.witnessPose&&this.campaign){const w=this.witnessPose,p=this.campaign.witness;w.yaw=Math.atan2(p.x*.025-w.x,p.y*.025-w.z);w.x=p.x*.025;w.z=p.y*.025;w.moving=this.campaign.witnessMoving;w.motion=w.moving?1.5:0;this.witnessArt.draw([w],this.campaign.witnessBoarded?0:1,this.elapsed,this.rig.camera);}
     this.siteLife?.update(active?dt:0,this.elapsed,Boolean(this.pursuit?.active),this.rig.camera);
     this.socialScene?.update(this.socialClock,this.body.position,this.campaign?.handoff==='complete');
@@ -944,7 +968,7 @@ export class RaidRuntime {
     const settings = this.session.getSnapshot().settings;
     const feedbackEnabled=!this.vehicles?.current&&settings.cameraShake&&!this.session.getSnapshot().reducedMotion&&['first','third'].includes(this.rig.pov);
     this.cameraFeedback.update(active?dt:0,feedbackEnabled,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz),this.rig.ads);if(feedbackEnabled)this.cameraFeedback.apply(this.rig.camera);
-    this.shadowClock+=active?dt:0;const shadowPeriod=this.post.budgetLimited?1/10:this.quality==='high'?1/24:this.quality==='balanced'?1/16:1/12;
+    this.shadowClock+=active?dt:0;const shadowPeriod=this.renderQuality==='high'?1/24:this.renderQuality==='balanced'?1/16:1/8;
     if(this.shadowClock>=shadowPeriod){this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;}
     if(active&&this.art.city){
       const cars=this.art.city.traffic.simulation.cars.slice(0,this.art.city.traffic.active);
