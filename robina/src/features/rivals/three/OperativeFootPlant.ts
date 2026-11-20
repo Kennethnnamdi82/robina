@@ -33,7 +33,7 @@ class LegContact {
     this.corrected=false;
   }
 
-  update(clip:string,phase:number,window:readonly [number,number]|undefined){
+  update(clip:string,phase:number,window:readonly [number,number]|undefined,weight:number){
     if(!window||phase<=window[0]||phase>=window[1]){
       this.clip='';
       return;
@@ -42,7 +42,7 @@ class LegContact {
     foot.getWorldPosition(this.position);
     if(this.clip!==clip||phase<this.priorPhase)this.anchor.copy(this.position);
     this.clip=clip;this.priorPhase=phase;
-    const blend=MathUtils.smoothstep(phase,window[0],window[0]+.035)*(1-MathUtils.smoothstep(phase,window[1]-.035,window[1]));
+    const blend=weight*MathUtils.smoothstep(phase,window[0],window[0]+.042)*(1-MathUtils.smoothstep(phase,window[1]-.042,window[1]));
     // Keep the correction small so retargeted outfits and uneven terrain
     // can release the stance naturally instead of overextending a knee.
     this.offset.subVectors(this.anchor,this.position).clampLength(0,.17).multiplyScalar(blend);
@@ -65,8 +65,8 @@ export class OperativeFootPlant {
     });
   }
   restore(){this.legs.forEach(leg=>leg?.restore());}
-  update(clip:string,phase:number,eligible:boolean){
-    const intervals=eligible?stance[clip]:undefined;
-    this.legs.forEach((leg,i)=>leg?.update(clip,phase,intervals?.[i]));
+  update(clip:string,phase:number,weight:number){
+    const intervals=weight>0?stance[clip]:undefined;
+    this.legs.forEach((leg,i)=>leg?.update(clip,phase,intervals?.[i],weight));
   }
 }

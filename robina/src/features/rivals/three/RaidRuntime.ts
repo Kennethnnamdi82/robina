@@ -217,8 +217,9 @@ export class RaidRuntime {
     this.unsubscribe = session.subscribe(() => { this.needsDraw = true; if(session.authority&&['playing','paused'].includes(session.getSnapshot().status))session.authority.pause(session.getSnapshot().status==='paused'||session.blocked); });
     if(session.authority){this.authorityUnsubscribe=session.authority.subscribe(()=>{this.remoteDirty=true;});session.authority.onShot=shot=>{
       if(!this.modelsReady||shot.owner==='operative')return;
-      const origin=new T.Vector3().fromArray(shot.origin),direction=new T.Vector3().fromArray(shot.direction);
-      if(!session.authority?.localSimulation)this.pool.fire(origin,direction,shot.speed,shot.life,shot.range,0,shot.owner,'security');this.effects?.muzzle(origin,true);
+      const origin=new T.Vector3().fromArray(shot.origin);
+      if(!session.authority?.localSimulation)this.pool.fire(origin,new T.Vector3().fromArray(shot.direction),shot.speed,shot.life,shot.range,0,shot.owner,'security');
+      this.effects?.muzzle(origin,true);
       const npc=this.npcs.find(n=>n.model.spawn.id===shot.owner);npc?.presentation?.weapon.fire();this.securityFlashes.get(shot.owner)?.fire();
       const s=this.spatial(origin);this.combatAudio.shot('smg',s.distance,s.pan);
     };
@@ -235,7 +236,7 @@ export class RaidRuntime {
     if(this.disposed||!this.modelsReady)return;
     const point=new T.Vector3().fromArray(event.point),spatial=this.spatial(point);
     if(event.type==='blast'){
-      this.effects?.blast(point,event.radius,this.solids);this.fires?.blast(point,event.radius,this.solids);this.cameraFeedback.blast(spatial.distance);this.combatAudio.blast(spatial.distance,spatial.pan);
+      this.effects?.blast(point,event.radius,this.solids);this.fires?.blast(point,event.radius,this.solids);this.combatAudio.blast(spatial.distance,spatial.pan);
     }else{
       this.effects?.impact(point,event.body,new T.Vector3().fromArray(event.direction),this.solids);this.combatAudio.hit(event.body,spatial.distance,spatial.pan);
       if(event.body&&event.owner==='operative'){this.hits++;this.hitSerial++;if(spatial.distance<2.7)this.screenBlood?.closeHit();}
@@ -387,7 +388,7 @@ export class RaidRuntime {
       const point=new T.Vector3(event.car.x,.65,event.car.z),spatial=this.spatial(point);
       if(event.kind==='crash'){this.session.cityAudio?.crash(event.speed,spatial.distance,spatial.pan);this.pursuit?.alert();continue;}
       this.effects?.blast(point,5,this.solids);this.fires?.blast(point,5,this.solids);this.combatAudio.blast(spatial.distance,spatial.pan);this.art.city?.threat(point);
-      this.cameraFeedback.blast(spatial.distance);vehicles.blast(point,4.5,75,this.solids);
+      vehicles.blast(point,4.5,75,this.solids);
       const trapped=vehicles.current===event.car,distance=Math.hypot(point.x-this.body.position.x,point.z-this.body.position.z);
       if(trapped||distance<5&&traceSolids(point,new T.Vector3().subVectors(this.body.position,point).normalize(),this.solids.filter(s=>s.id!=='city-traffic-'+event.car.id),distance)>=distance-.1){
         if(trapped)this.controller.vitality.invulnerable=0;
@@ -635,10 +636,6 @@ export class RaidRuntime {
       this.gun?.fire();this.viewGun?.fire();this.flash?.fire();this.viewFlash?.fire();this.effects?.muzzle(this.origin);
       this.combatAudio.shot(sim.loadout.definition.model as 'rifle'|'pistol'|'smg');this.cameraFeedback.fire(this.rig.ads,1);
     }
-    // The simulation's projectile observer presents each swept segment once.
-    this.assignmentSite?.update(dt,this.body.position,sim.campaign.holdActive?sim.campaign.holdProgress:0);
-    const objective=sim.mission.snapshot(),goal=this.socialGoal??sim.campaign.destination??objective.objectives.find(o=>o.id===objective.activeId)?.marker;
-    this.gps?.update(dt,this.legacy,goal,Boolean(sim.vehicles.current));this.fires?.step(dt,sim.vehicles.cars);
     if(sim.mission.state!=='ACTIVE'){authority.flushMovement();this.applyRemote();}
   }
   /** Replaying movement must never replay collisions' damage, inventory,
@@ -730,7 +727,7 @@ export class RaidRuntime {
     }
     this.setBox(this.bossBox,point3(this.boss.x,this.boss.y),.55,2.7); this.occupants[this.occupants.length - 1].enabled = this.boss.active;
     if (this.throwRelease >= 0) { this.throwRelease -= dt; if (this.throwRelease <= 0) { if (this.controller.health > 0) this.field.throw(this.body.position,grenadeTarget(this.body.position,this.aim,this.controller.aimAngle,this.controller.aiming),true); this.throwRelease = -1; } }
-    this.field.step(dt,this.solids,this.targets.filter(t=>!t.id.startsWith('vehicle-')),(p,radius) => { const s = this.spatial(p); this.effects?.blast(p,radius,this.solids);this.fires?.blast(p,radius,this.solids);this.vehicles?.blast(p,radius,150,this.solids);this.cameraFeedback.blast(s.distance);this.pursuit?.alert(); this.art.city?.threat(p);this.combatAudio.blast(s.distance,s.pan); });
+    this.field.step(dt,this.solids,this.targets.filter(t=>!t.id.startsWith('vehicle-')),(p,radius) => { const s = this.spatial(p); this.effects?.blast(p,radius,this.solids);this.fires?.blast(p,radius,this.solids);this.vehicles?.blast(p,radius,150,this.solids);this.pursuit?.alert(); this.art.city?.threat(p);this.combatAudio.blast(s.distance,s.pan); });
     this.fires?.step(dt,this.vehicles?.cars??[]);
     const previousReload = this.weapon.reloadRemaining,empty = this.weapon.ammo === 0;
     const fired = this.loadout.step(dt,command.fire,command.reload,this.controller.canAttack && !interaction,this.session.input.touchAiming);
@@ -799,10 +796,9 @@ export class RaidRuntime {
     if (this.rig.pov === 'tactical' || this.rig.pov === 'side') {
       if (input.touchAiming) { const length=Math.hypot(input.touchAimX,input.touchAimY),c={x:input.touchAimX/length,y:input.touchAimY/length};this.aim.copy(this.body.position).add(new T.Vector3(c.x * 12,this.rig.pov === 'side' ? 1.1 - c.y * 10 : 1.1,this.rig.pov === 'side' ? 0 : c.y * 12)); return; }
       if (!input.mouseActive) { this.aim.copy(this.body.position).add(new T.Vector3(Math.cos(this.controller.aimAngle) * 12,1.23,Math.sin(this.controller.aimAngle) * 12)); return; }
-      const rect=this.renderer.domElement.getBoundingClientRect();this.mouse.set((input.mouseClientX - rect.left) / rect.width * 2 - 1,-(input.mouseClientY - rect.top) / rect.height * 2 + 1);
+      const rect=this.aimViewport??=this.renderer.domElement.getBoundingClientRect();
+      this.mouse.set((input.mouseClientX - rect.left) / Math.max(1,rect.width) * 2 - 1,-(input.mouseClientY - rect.top) / Math.max(1,rect.height) * 2 + 1);
     } else this.mouse.set(this.rig.pov!=='first'&&input.touchAiming ? input.touchAimX*.72 : 0,this.rig.pov!=='first'&&input.touchAiming ? -input.touchAimY*.65 : 0);
-    this.host.parentElement?.style.setProperty('--r3-aim-x',`${(this.mouse.x + 1) * 50}%`);
-    this.host.parentElement?.style.setProperty('--r3-aim-y',`${(1 - this.mouse.y) * 50}%`);
     this.ray.setFromCamera(this.mouse,this.rig.camera);
     const near=this.rig.pov==='third'||this.rig.pov==='first'?aimNearDistance(this.ray.ray,this.body.position):0;
     this.aimStart.copy(this.ray.ray.origin).addScaledVector(this.ray.ray.direction,near);
@@ -815,9 +811,12 @@ export class RaidRuntime {
     }
     this.aim.copy(this.ray.ray.origin).addScaledVector(this.ray.ray.direction,nearest);
   }
+  private aimViewport?:DOMRect;
+  private displayedAim=new T.Vector2(Infinity,Infinity);
   private frame = (now: number) => {
     if (this.disposed) return; this.raf = requestAnimationFrame(this.frame);
     if(!this.modelsReady)return;
+    this.aimViewport=undefined;
     // Commit at one predictable point, before fixed-step prediction/aim. Network
     // callbacks must not rebuild HUD/scene state a second time between draws.
     if(this.remoteDirty){this.remoteDirty=false;this.applyRemote();}
@@ -831,9 +830,27 @@ export class RaidRuntime {
     // Age existing effects before simulation so new short flashes survive their
     // first rendered frame even on a slow device. Pause freezes these clocks.
     if (active){this.effects?.age(dt);this.screenBlood?.update(dt);}
-    if (active) { this.accumulator += dt; let steps = 0; while (this.accumulator+1e-9 >= physicsStep && steps++ < 12) { this.step(physicsStep); this.accumulator = Math.max(0,this.accumulator-physicsStep); if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; } } this.frames.record(now); this.fpsClock += Math.min(1,wallDt); }
+    let simulated = 0;
+    if (active) {
+      this.accumulator += dt;
+      while (this.accumulator+1e-9 >= physicsStep && simulated < 12) {
+        this.step(physicsStep); simulated++;
+        this.accumulator = Math.max(0,this.accumulator-physicsStep);
+        if (this.session.getSnapshot().status !== 'playing' || this.session.getSnapshot().hack) { this.accumulator = 0; break; }
+      }
+      this.frames.record(now); this.fpsClock += Math.min(1,wallDt);
+    }
     this.session.authority?.flushMovement();
     if(this.session.authority?.localSimulation&&this.remoteDirty){this.remoteDirty=false;this.applyRemote();}
+    const simulation = this.session.authority?.localSimulation;
+    if(simulation && simulated) {
+      const elapsed = simulated * physicsStep;
+      const mission = this.session.authority?.latest?.mission;
+      const goal = this.socialGoal ?? simulation.campaign.destination ?? mission?.objectives.find(o=>o.id===mission.activeId)?.marker;
+      this.assignmentSite?.update(elapsed,this.body.position,simulation.campaign.holdActive?simulation.campaign.holdProgress:0);
+      this.gps?.update(elapsed,this.legacy,goal,Boolean(simulation.vehicles.current));
+      this.fires?.step(elapsed,simulation.vehicles.cars);
+    }
     if(this.socialNoticeRemaining>0){this.socialNoticeRemaining=Math.max(0,this.socialNoticeRemaining-dt);if(!this.socialNoticeRemaining&&!this.socialRemaining){this.socialNotice='';this.needsDraw=true;}}
     if(this.socialRemaining>0){this.socialRemaining=Math.max(0,this.socialRemaining-dt);if(!this.socialRemaining){this.socialHeld?.removeFromParent();this.socialHeld=undefined;this.socialGesture='idle';this.socialNotice='';}}
     const storyOpen=Boolean(this.socialMenu)||this.campaign?.handoff==='waiting';
@@ -843,7 +860,11 @@ export class RaidRuntime {
     const finished = this.session.getSnapshot().status === 'finished'||this.session.revivePending,settling = finished && (this.session.authority?.latest?.mission.state==='SUCCESS'&&this.victoryAge<4.5||this.session.revivePending&&this.downedAge<1.5||this.npcs.some(n => n.presentation?.dead && n.presentation.deathAge < 10) || (this.bossPresentation?.dead && this.bossPresentation.deathAge < 10) || this.campaign?.carrying&&this.recoveryAge<15);
     if(finished&&this.session.mission.state==='FAILED'&&!this.session.authority)this.recoverEvidence(dt);
     if (!active && !settling && !storyOpen && !this.needsDraw && !this.rig.settling) return;
-    if(active){const scale=this.resolution.sample(wallDt);if(scale!==undefined)this.dpr=scale;this.post.budget(this.resolution.scale/this.resolution.ceiling);}
+    if(active){
+      const scale=this.resolution.sample(wallDt);
+      if(scale!==undefined)this.dpr=scale;
+      this.post.budget(this.resolution.effectsLimited?.75:this.resolution.scale/this.resolution.ceiling);
+    }
     const presented=this.surface.present(this.host.clientWidth,this.host.clientHeight,this.dpr,()=>{
     // Skin/weapon/camera presentation shares the render clock. Advancing skin
     // only on physics ticks made it freeze every other frame on 120Hz screens.
@@ -861,7 +882,17 @@ export class RaidRuntime {
     this.cameraMotion.vehicle=cameraCar?this.cameraVehicle:null;
     this.cameraLook.x=cameraCar?0:this.command.x;this.cameraLook.y=cameraCar?0:this.command.y;
     this.rig.update(this.renderPosition,this.solids,dt,this.session.getSnapshot().reducedMotion,0,this.cameraLook,this.cameraMotion);this.updateAim();this.player.root.position.copy(this.renderPosition);
-    if(this.host.parentElement){this.host.parentElement.dataset.ads=String(this.rig.ads);this.host.parentElement.dataset.pov=this.rig.pov;}
+    const overlay=this.host.parentElement;
+    if(overlay){
+      const ads=String(this.rig.ads);
+      if(overlay.dataset.ads!==ads)overlay.dataset.ads=ads;
+      if(overlay.dataset.pov!==this.rig.pov)overlay.dataset.pov=this.rig.pov;
+      if(!this.displayedAim.equals(this.mouse)){
+        this.displayedAim.copy(this.mouse);
+        overlay.style.setProperty('--r3-aim-x',`${(this.mouse.x + 1) * 50}%`);
+        overlay.style.setProperty('--r3-aim-y',`${(1 - this.mouse.y) * 50}%`);
+      }
+    }
     this.player.root.visible = this.rig.pov !== 'first'&&this.rig.bodyVisible&&!this.vehicles?.current;
     if(finished){this.humanoidFrame.vx=this.humanoidFrame.vz=0;}this.animatePlayer(animationDelta,this.renderPosition);
     this.viewGun?.update(animationDelta,this.rig.ads,this.weapon.reloadRemaining,this.loadout.definition.reloadSeconds,this.loadout.action,this.loadout.remaining);
@@ -913,7 +944,7 @@ export class RaidRuntime {
     const settings = this.session.getSnapshot().settings;
     const feedbackEnabled=!this.vehicles?.current&&settings.cameraShake&&!this.session.getSnapshot().reducedMotion&&['first','third'].includes(this.rig.pov);
     this.cameraFeedback.update(active?dt:0,feedbackEnabled,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz),this.rig.ads);if(feedbackEnabled)this.cameraFeedback.apply(this.rig.camera);
-    this.shadowClock+=active?dt:0;const shadowPeriod=this.post.budgetLimited?1/12:this.quality==='high'?1/30:this.quality==='balanced'?1/20:1/12;
+    this.shadowClock+=active?dt:0;const shadowPeriod=this.post.budgetLimited?1/10:this.quality==='high'?1/24:this.quality==='balanced'?1/16:1/12;
     if(this.shadowClock>=shadowPeriod){this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;}
     if(active&&this.art.city){
       const cars=this.art.city.traffic.simulation.cars.slice(0,this.art.city.traffic.active);
@@ -922,6 +953,7 @@ export class RaidRuntime {
       const source=police?this.spatial(new T.Vector3(police.x,1,police.z)):undefined;
       this.session.cityAudio?.update(this.elapsed,nearest.speed,Math.hypot(nearest.x-this.body.position.x,nearest.z-this.body.position.z),nearest.stopped,Boolean(this.pursuit?.active),driving?{speed:driving.speed,throttle:this.drivingInput.throttle||Math.hypot(this.drivingInput.stickX,this.drivingInput.stickY)}:undefined,source?{...source,level:this.pursuit?.snapshot.level??1}:undefined);
     }
+    this.effects?.drawTraces();
     this.renderer.info.reset();this.post.render(this.rig.camera,this.elapsed);
     if (this.rig.pov === 'first' && this.viewGun&&!this.vehicles?.current&&this.socialRemaining<=0) {
       if(this.viewCamera.aspect!==this.rig.perspective.aspect||this.viewCamera.fov!==this.rig.perspective.fov){this.viewCamera.aspect=this.rig.perspective.aspect;this.viewCamera.fov=this.rig.perspective.fov;this.viewCamera.updateProjectionMatrix();}

@@ -22,7 +22,7 @@ describe('controlled shooting camera',()=>{
    for(let i=0;i<fps*10;i++){
     f.restore();if(i%Math.max(1,Math.round(fps*.07))===0)f.fire(ads,1.1);
     f.update(1/fps,true,9,ads);f.apply(c);
-    expect(c.quaternion.angleTo(base)).toBeLessThanOrEqual((ads?.00065:.0016)+1e-6);
+    expect(c.quaternion.angleTo(base)).toBeLessThanOrEqual((ads?.00015:.0004)+1e-6);
     expect(f.snapshot.yaw).toBe(0);expect(f.snapshot.roll).toBe(0);expect(c.fov).toBe(62);expect(c.position.equals(position)).toBe(true);
    }
    f.update(1/fps,false,9,ads);expect(c.quaternion.angleTo(base)).toBeLessThan(1e-7);
@@ -30,6 +30,12 @@ describe('controlled shooting camera',()=>{
  });
 });
 describe('adaptive pixel budget',()=>{
+ it('limits expensive effects even when the renderer is already at its resolution floor',()=>{
+  const b=new AdaptiveResolution(1,1,1);b.sample(.3);b.sample(.3);
+  expect(b.scale).toBe(1);expect(b.effectsLimited).toBe(true);
+  for(let i=0;i<500;i++)b.sample(1/60);
+  expect(b.effectsLimited).toBe(false);
+ });
  it('also recovers when active frames are catastrophically slow',()=>{const b=new AdaptiveResolution(1,1);b.sample(3);expect(b.scale).toBe(1);b.sample(3);expect(b.scale).toBe(.75);b.sample(2);b.sample(2);expect(b.scale).toBe(.65);});
  it('reduces sustained GPU workload quickly and recovers only after a healthy interval',()=>{
   const budget=new AdaptiveResolution(1,1);for(let i=0;i<76;i++)budget.sample(1/25);expect(budget.scale).toBeLessThan(1);const reduced=budget.scale;

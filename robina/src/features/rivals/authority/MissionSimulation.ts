@@ -97,6 +97,8 @@ export class MissionSimulation {
   private motionSteps = 0;
   private movement = new MovementStream();
   private blockersById=new Map<string,WorldState['blockers'][number]>();
+  private trafficSolids:Solid3D[]=[];
+  private vehicleTargets:Target3D[]=[];
   private lastObjectives = new Set<string>(); private aim = new Vector3(); private legacy = { x: 0, y: 0 };
   private command: AuthorityInput = { ...emptyCommand(), seq: -1, aim: [0, 1, 0], jump: false,
     jumpHeld: false, highJump: false, touchRepeat: false, throttle: 0, steer: 0, brake: false, stickX: 0, stickY: 0, cameraYaw: 0 };
@@ -124,8 +126,11 @@ export class MissionSimulation {
       const solid: Solid3D = { id: `city-traffic-${car.id}`, kind: 'cover', enabled: true, box: new Box3(),
         oriented: { center: new Vector3(), half: new Vector3(), yaw: 0 } };
       this.solids.push(solid);
-      this.targets.push({ id: `vehicle-${car.id}`, team: 'civilian', box: solid.box, alive: () => carActive(car,TRAFFIC_COUNT)&&(car.health ?? 200) > 0,
-        damage: event => this.vehicles.damage(car, event.amount) });
+      this.trafficSolids.push(solid);
+      const target:Target3D={ id: `vehicle-${car.id}`, team: 'civilian', box: solid.box, alive: () => carActive(car,TRAFFIC_COUNT)&&(car.health ?? 200) > 0,
+        damage: event => this.vehicles.damage(car, event.amount) };
+      this.vehicleTargets.push(target);
+      this.targets.push(target);
     }
     this.movementSolids=updatedCollisions?[...this.solids,...cityMovementSolids(this.operation.venue,this.operation.seed,ASSIGNMENTS[index])]:this.solids;
     this.police = new PolicePursuit(this.traffic.cars, new NavigationGrid(this.world.level.width, this.world.level.height, 64, this.world.blockers, 46),
@@ -217,24 +222,23 @@ export class MissionSimulation {
   private syncGeometry() {
     for (const solid of this.solids) {
       const original = this.blockersById.get(solid.id); if (original) solid.enabled = original.enabled;
-      if (solid.id.startsWith('city-traffic-')) {
-        const car = this.traffic.cars[Number(solid.id.slice(13))];
-        const dimensions=vehicleCollisionDimensions(car.kind),w=car.collisionWidth??dimensions.width,h=dimensions.height;
-        const hx = Math.abs(car.dx) * car.length / 2 + Math.abs(car.dz) * w / 2,
-          hz = Math.abs(car.dz) * car.length / 2 + Math.abs(car.dx) * w / 2;
-        solid.box.set(new Vector3(car.x - hx, 0, car.z - hz), new Vector3(car.x + hx, h, car.z + hz));
-        solid.oriented!.center.set(car.x, h / 2, car.z); solid.oriented!.half.set(w / 2, h / 2, VEHICLE_LENGTH[car.kind] / 2); solid.oriented!.yaw = Math.atan2(car.dx, car.dz);
-        solid.enabled = carActive(car,TRAFFIC_COUNT)&&Math.hypot(car.x - this.body.position.x, car.z - this.body.position.z) < 105;
-      }
     }
-    const setBox = (box: Box3, p: Vector3, radius: number,height=1.75) => box.set(new Vector3(p.x - radius, p.y, p.z - radius), new Vector3(p.x + radius, p.y + height, p.z + radius));
-    setBox(this.targets[0].box, this.body.position, .34);
-    for (const enemy of this.enemies) {
-      const target = this.targets.find(t => t.id === enemy.spawn.id)!; setBox(target.box, point3(enemy.x, enemy.y), .36,1.8);
-      this.occupants.find(s => s.id === enemy.spawn.id)!.enabled = enemy.alive;
+    for (let i=0;i<this.trafficSolids.length;i++) {
+      const solid=this.trafficSolids[i],car=this.traffic.cars[i];
+      const dimensions=vehicleCollisionDimensions(car.kind),w=car.collisionWidth??dimensions.width,h=dimensions.height;
+      const hx=Math.abs(car.dx)*car.length/2+Math.abs(car.dz)*w/2,hz=Math.abs(car.dz)*car.length/2+Math.abs(car.dx)*w/2;
+      solid.box.min.set(car.x-hx,0,car.z-hz); solid.box.max.set(car.x+hx,h,car.z+hz);
+      solid.oriented!.center.set(car.x,h/2,car.z); solid.oriented!.half.set(w/2,h/2,VEHICLE_LENGTH[car.kind]/2); solid.oriented!.yaw=Math.atan2(car.dx,car.dz);
+      solid.enabled=carActive(car,TRAFFIC_COUNT)&&Math.hypot(car.x-this.body.position.x,car.z-this.body.position.z)<105;
+      this.vehicleTargets[i].team=car===this.vehicles.current?'operative':car.kind==='police'?'security':'civilian';
     }
-    for (const target of this.targets.filter(t => t.id.startsWith('vehicle-'))) {
-      const car = this.traffic.cars[Number(target.id.slice(8))]; target.team = car === this.vehicles.current ? 'operative' : car.kind === 'police' ? 'security' : 'civilian';
+    const {x,y,z}=this.body.position,operative=this.targets[0].box;
+    operative.min.set(x-.34,y,z-.34); operative.max.set(x+.34,y+1.75,z+.34);
+    for (let i=0;i<this.enemies.length;i++) {
+      const enemy=this.enemies[i],solid=this.occupants[i],x=enemy.x*METRES,z=enemy.y*METRES;
+      // The target and occupancy collider share this box.
+      solid.box.min.set(x-.36,0,z-.36); solid.box.max.set(x+.36,1.8,z+.36);
+      solid.enabled=enemy.alive;
     }
   }
   step(dt = SIMULATION_STEP) {
@@ -288,7 +292,7 @@ export class MissionSimulation {
         else { direction.y = (this.body.position.y + 1.05 - origin.y) / Math.max(.1, horizontal); direction.normalize(); }
         this.shoot(origin, direction, police ? 75 : 340 * METRES, 2, police ? 32 : 640 * METRES, e.config.damage, e.spawn.id, 'security');
       });
-      for (const solid of this.solids.filter(s => s.enabled && s.id.startsWith('city-traffic-'))) { const hit = horizontalContact(enemy.x * METRES, enemy.y * METRES, .36, solid); if (hit) { enemy.x += hit.x * hit.depth / METRES; enemy.y += hit.z * hit.depth / METRES; } }
+      for (const solid of this.trafficSolids) { if(!solid.enabled)continue; const hit = horizontalContact(enemy.x * METRES, enemy.y * METRES, .36, solid); if (hit) { enemy.x += hit.x * hit.depth / METRES; enemy.y += hit.z * hit.depth / METRES; } }
     }
     if (this.throwRelease >= 0) { this.throwRelease -= dt; if (this.throwRelease <= 0) { if (this.field.throw(this.body.position, grenadeTarget(this.body.position,this.aim,this.controller.aimAngle,this.controller.aiming), this.controller.health > 0)) { this.grenadesSpent++; this.events.push({ type: 'grenade' }); } this.throwRelease = -1; } }
     this.syncGeometry();

@@ -1,4 +1,4 @@
-import { Vector3 } from 'three';
+import { MathUtils, Vector3 } from 'three';
 import { rayBox } from './physics3d';
 import type { Solid3D } from './world3d';
 import { cameraDamping } from './SmartCameraFollow';
@@ -10,11 +10,13 @@ export class CameraObstruction {
   private direction = new Vector3();
   private length = Infinity;
   private raised = false;
+  private shoulderBlend = 0;
+  private shoulder = new Vector3();
   private vehicleId: number | null = null;
   private ignore = '';
   private shoulderThreshold = .95;
-  get elevated() { return this.raised; }
-  reset() { this.length = Infinity; this.raised = false; }
+  get settling() { return this.shoulderBlend !== Number(this.raised); }
+  reset() { this.length = Infinity; this.raised = false; this.shoulderBlend = 0; }
   occupiedVehicle(id: number | null, length = 0) {
     if (id === this.vehicleId) return;
     this.vehicleId = id; this.ignore = id === null ? '' : 'city-traffic-' + id;
@@ -39,9 +41,14 @@ export class CameraObstruction {
     if (third) {
       if (safe < this.shoulderThreshold) this.raised = true;
       else if (safe > this.shoulderThreshold + .6) this.raised = false;
-      if (this.raised) {
-        desired.copy(focus); desired.x += Math.sin(yaw) * .65;
-        desired.y += 2.1; desired.z += Math.cos(yaw) * .65;
+      const target = Number(this.raised);
+      this.shoulderBlend = this.vehicleId===null||immediate?target:
+        this.shoulderBlend+MathUtils.clamp(target-this.shoulderBlend,-1.65*dt,3.5*dt);
+      if (this.shoulderBlend > 0) {
+        this.shoulder.copy(focus);
+        this.shoulder.x += Math.sin(yaw) * .65;
+        this.shoulder.y += 2.1; this.shoulder.z += Math.cos(yaw) * .65;
+        desired.lerp(this.shoulder,MathUtils.smoothstep(this.shoulderBlend,0,1));
         safe = this.distance(focus, desired, solids);
       }
     }

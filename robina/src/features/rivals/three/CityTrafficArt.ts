@@ -9,7 +9,7 @@ export class CityTrafficArt {
   readonly root=new T.Group();readonly simulation:CitySimulation;
   readonly colliders:Solid3D[]=[];active=TRAFFIC_COUNT;
   private batches:VehicleBatch[]=[];private dummy=new T.Object3D();private matrix=new T.Matrix4();
-  private renderYaw=new Map<number,number>();
+  private renderPose: { yaw:number; travelled:number; visible:boolean }[] = [];
   private materials=new Map<T.Material,T.MeshStandardMaterial>();
   private dimensions=new Map<VehicleKind,{width:number;height:number}>();
   private view=new T.Matrix4();private frustum=new T.Frustum();private sphere=new T.Sphere();private spin=new T.Matrix4();private shift=new T.Matrix4();private wheelRotation=new T.Matrix4();
@@ -32,7 +32,10 @@ export class CityTrafficArt {
       const normalization=new T.Matrix4().makeScale(scale,scale,scale).multiply(new T.Matrix4().makeTranslation(-center.x,-bounds.min.y,-center.z));prototype.updateMatrixWorld(true);
       prototype.traverse(node=>{if(!(node instanceof T.Mesh))return;const paint=(source:T.Material)=>{let m=this.materials.get(source);if(!m){m=vehicleFinish(source as T.MeshStandardMaterial);if(!source.name.startsWith('premium-')){m.roughness=.42;m.metalness=.18;}this.materials.set(source,m);}return m;};const material=Array.isArray(node.material)?node.material.map(paint):paint(node.material);const mesh=new T.InstancedMesh(node.geometry,material,cars.length);mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;this.root.add(mesh);let joint:T.Object3D|null=node;while(joint&&!joint.userData.cityWheel)joint=joint.parent;const wheel=joint?{center:joint.getWorldPosition(new T.Vector3()).applyMatrix4(normalization),radius:Math.max(.15,new T.Box3().setFromObject(joint).getSize(new T.Vector3()).y*scale/2)}:undefined;this.batches.push({mesh,cars,length:cars[0].length,local:new T.Matrix4().multiplyMatrices(normalization,node.matrixWorld),wheel,paint:(Array.isArray(material)?material:[material]).some(m=>m.userData.trafficPaint)});});
     }
-    for(const car of this.simulation.cars)this.colliders.push({id:'city-traffic-'+car.id,kind:'cover',enabled:true,box:new T.Box3(),oriented:{center:new T.Vector3(),half:new T.Vector3(),yaw:0}});
+    for(const car of this.simulation.cars){
+      this.colliders.push({id:'city-traffic-'+car.id,kind:'cover',enabled:true,box:new T.Box3(),oriented:{center:new T.Vector3(),half:new T.Vector3(),yaw:0}});
+      this.renderPose[car.id]={yaw:0,travelled:0,visible:false};
+    }
     this.headlights=new T.InstancedMesh(this.lampGeometry,this.lightMaterial,72);this.brakes=new T.InstancedMesh(this.lampGeometry,this.brakeMaterial,72);this.doors=new T.InstancedMesh(this.doorGeometry,this.doorMaterial,this.simulation.cars.length);this.doors.frustumCulled=false;this.headlights.frustumCulled=this.brakes.frustumCulled=false;this.root.add(this.headlights,this.brakes,this.doors);this.draw(new T.Vector3(8,0,8),false);
   }
   /** Refresh physics immediately after a network snapshot, before replay.
@@ -49,22 +52,29 @@ export class CityTrafficArt {
   }
   draw(player:T.Vector3,night:boolean,camera?:T.Camera,alpha=1,vehicleYaw?:number) {
     this.syncColliders(player);
-    for(const car of this.simulation.cars)this.renderYaw.set(car.id,car.mode==='player'?(vehicleYaw??drivenVehiclePose(car,alpha).yaw):Math.atan2(car.dx,car.dz));
-    const visible=(car:CityCar)=>carActive(car,this.active)&&Math.hypot(car.x-player.x,car.z-player.z)<105;
     if(camera){camera.updateMatrixWorld(true);this.view.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.view);}
-    for(const batch of this.batches){let slot=0;for(const car of batch.cars){if(!visible(car))continue;this.sphere.center.set(car.x,1,car.z);this.sphere.radius=car.length/2+1;if(camera&&!this.frustum.intersectsSphere(this.sphere)&&Math.hypot(car.x-player.x,car.z-player.z)>18)continue;
-      this.dummy.position.set(car.mode==='player'?player.x:car.x,.015,car.mode==='player'?player.z:car.z);this.dummy.rotation.set(0,this.renderYaw.get(car.id)!,0);const scale=car.length/batch.length;this.dummy.scale.setScalar(scale);this.dummy.updateMatrix();
-      if(batch.wheel){const c=batch.wheel.center,travel=car.mode==='player'?drivenVehiclePose(car,alpha).travelled:car.travelled;this.spin.makeTranslation(c.x,c.y,c.z).multiply(this.wheelRotation.makeRotationX(travel/(batch.wheel.radius*scale))).multiply(this.shift.makeTranslation(-c.x,-c.y,-c.z)).multiply(batch.local);this.matrix.multiplyMatrices(this.dummy.matrix,this.spin);}else this.matrix.multiplyMatrices(this.dummy.matrix,batch.local);
+    for(const car of this.simulation.cars){
+      const pose=this.renderPose[car.id],occupied=car.mode==='player';
+      const dx=car.x-player.x,dz=car.z-player.z,distanceSq=dx*dx+dz*dz;
+      this.sphere.center.set(car.x,1,car.z);this.sphere.radius=car.length/2+1;
+      pose.visible=carActive(car,this.active)&&distanceSq<105**2&&(!camera||distanceSq<=18**2||this.frustum.intersectsSphere(this.sphere));
+      const driven=occupied?drivenVehiclePose(car,alpha):undefined;
+      pose.yaw=driven?(vehicleYaw??driven.yaw):Math.atan2(car.dx,car.dz);
+      pose.travelled=driven?.travelled??car.travelled;
+    }
+    for(const batch of this.batches){let slot=0;for(const car of batch.cars){const pose=this.renderPose[car.id];if(!pose.visible)continue;
+      this.dummy.position.set(car.mode==='player'?player.x:car.x,.015,car.mode==='player'?player.z:car.z);this.dummy.rotation.set(0,pose.yaw,0);const scale=car.length/batch.length;this.dummy.scale.setScalar(scale);this.dummy.updateMatrix();
+      if(batch.wheel){const c=batch.wheel.center;this.spin.makeTranslation(c.x,c.y,c.z).multiply(this.wheelRotation.makeRotationX(pose.travelled/(batch.wheel.radius*scale))).multiply(this.shift.makeTranslation(-c.x,-c.y,-c.z)).multiply(batch.local);this.matrix.multiplyMatrices(this.dummy.matrix,this.spin);}else this.matrix.multiplyMatrices(this.dummy.matrix,batch.local);
       if(batch.paint)batch.mesh.setColorAt(slot,(car.health??200)<=0?this.policeColor:car.kind==='taxi'?this.taxiColor:car.kind==='police'?this.policeColor:this.colors[car.id%this.colors.length]);batch.mesh.setMatrixAt(slot++,this.matrix);
     }batch.mesh.count=slot;batch.mesh.instanceMatrix.needsUpdate=true;if(batch.mesh.instanceColor)batch.mesh.instanceColor.needsUpdate=true;}
     let n=0,doors=0,beacons=0;
     for(const car of this.simulation.cars) {
+      const pose=this.renderPose[car.id];if(!pose.visible)continue;
       const dimensions=this.dimensions.get(car.kind)!;
       const viewX=car.mode==='player'?player.x:car.x,viewZ=car.mode==='player'?player.z:car.z;
-      if(visible(car)&&car.kind==='police'&&car.mode==='pursuit')for(const side of [-1,1]){this.dummy.position.set(car.x+car.dz*side*.3,dimensions.height+.1,car.z-car.dx*side*.3);this.dummy.rotation.set(0,Math.atan2(car.dx,car.dz),0);this.dummy.scale.setScalar(1);this.dummy.updateMatrix();this.beacons.setMatrixAt(beacons,this.dummy.matrix);this.beacons.setColorAt(beacons++,new T.Color(side<0?0x469bff:0xff493d).multiplyScalar(Math.floor(this.simulation.time*7+(side>0?1:0))%2?1.8:.15));}
-      if(visible(car)&&(car.door??0)>0){const yaw=this.renderYaw.get(car.id)!,open=(car.door??0)*1.15;this.dummy.position.set(viewX-Math.cos(yaw)*(dimensions.width/2+.28),.9,viewZ+Math.sin(yaw)*(dimensions.width/2+.28));this.dummy.rotation.set(0,yaw-open,0);this.dummy.scale.set(1,1,1);this.dummy.updateMatrix();this.doors.setMatrixAt(doors++,this.dummy.matrix);}
-      if(!visible(car))continue;
-      const yaw=this.renderYaw.get(car.id)!,dx=Math.sin(yaw),dz=Math.cos(yaw);
+      const yaw=pose.yaw,dx=Math.sin(yaw),dz=Math.cos(yaw);
+      if(car.kind==='police'&&car.mode==='pursuit')for(const side of [-1,1]){this.dummy.position.set(car.x+dz*side*.3,dimensions.height+.1,car.z-dx*side*.3);this.dummy.rotation.set(0,yaw,0);this.dummy.scale.setScalar(1);this.dummy.updateMatrix();this.beacons.setMatrixAt(beacons,this.dummy.matrix);this.beacons.setColorAt(beacons++,new T.Color(side<0?0x469bff:0xff493d).multiplyScalar(Math.floor(this.simulation.time*7+(side>0?1:0))%2?1.8:.15));}
+      if((car.door??0)>0){const open=(car.door??0)*1.15;this.dummy.position.set(viewX-dz*(dimensions.width/2+.28),.9,viewZ+dx*(dimensions.width/2+.28));this.dummy.rotation.set(0,yaw-open,0);this.dummy.scale.set(1,1,1);this.dummy.updateMatrix();this.doors.setMatrixAt(doors++,this.dummy.matrix);}
       for(const side of [-1,1]){
         this.dummy.position.set(viewX+dx*(car.length/2+.01)+dz*side*.57,.59,viewZ+dz*(car.length/2+.01)-dx*side*.57);this.dummy.rotation.set(0,yaw,0);this.dummy.scale.set(night?1.2:.75,night?1.15:.75,1);this.dummy.updateMatrix();this.headlights.setMatrixAt(n,this.dummy.matrix);
         this.dummy.position.set(viewX-dx*(car.length/2+.012)+dz*side*.57,.6,viewZ-dz*(car.length/2+.012)-dx*side*.57);this.dummy.rotation.y=yaw+Math.PI;this.dummy.scale.set(car.stopped?1.25:.8,car.stopped?1.2:.75,1);this.dummy.updateMatrix();this.brakes.setMatrixAt(n++,this.dummy.matrix);

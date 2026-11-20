@@ -30,7 +30,8 @@ const PREFERENCE_KEY = 'rivals_visual_quality_v2';
 export function initialPresentation(): { quality: QualityId; reducedMotion: boolean } {
   const reducedMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const device = typeof navigator === 'undefined' ? undefined : navigator as Navigator & { deviceMemory?: number };
-  const fallback = chooseQuality({ cores: device?.hardwareConcurrency || 4, memoryGB: device?.deviceMemory, mobile: typeof innerWidth !== 'undefined' && innerWidth < 900, reducedMotion });
+  const touchFirst = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+  const fallback = chooseQuality({ cores: device?.hardwareConcurrency || 4, memoryGB: device?.deviceMemory, mobile: touchFirst || typeof innerWidth !== 'undefined' && innerWidth < 900, reducedMotion });
   try {
     const saved = localStorage.getItem(PREFERENCE_KEY);
     return { quality: isQuality(saved) ? saved : fallback, reducedMotion };

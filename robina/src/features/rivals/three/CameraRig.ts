@@ -106,8 +106,7 @@ export class CameraRig {
       this.desired.y = Math.max(.42,this.desired.y);
       this.obstruction.boom(this.focus,this.desired,solids,dt,this.yaw,view === 'third',immediate);
       this.direction.set(-Math.sin(this.yaw)*Math.cos(pitch),Math.sin(pitch)+recoil*.012,-Math.cos(this.yaw)*Math.cos(pitch));
-      if (car && this.obstruction.elevated) this.desiredLook.copy(this.focus);
-      else this.desiredLook.copy(this.desired).addScaledVector(this.direction,view === 'third' ? 5 : 20);
+      this.desiredLook.copy(this.desired).addScaledVector(this.direction,view === 'third' ? 5 : 20);
     }
     const camera = this.camera;
     const positionRate = car ? 12 : view === 'first' ? 24 : 16;
@@ -128,13 +127,23 @@ export class CameraRig {
       // A lagged shoulder position must never introduce sideways aim drift.
       // Orient from the actual eye, not a moving player-relative look target.
       if(view==='tactical'||view==='side')this.desiredLook.sub(this.desired).add(camera.position);
-      else if (car && this.obstruction.elevated) this.desiredLook.copy(this.focus);
-      else this.desiredLook.copy(camera.position).addScaledVector(this.direction,view === 'third' ? 5 : 20);
+      else {
+        if (car) {
+          // Frame the chassis at a fixed screen height as the boom lifts or
+          // retracts. Orbit still follows the player's selected yaw and pitch.
+          const x=player.x-camera.position.x,z=player.z-camera.position.z;
+          const horizontal=Math.hypot(x,z);
+          const framingPitch=Math.atan2(player.y+.8-camera.position.y,horizontal)+.25;
+          const orbitYaw=horizontal>1e-5?Math.atan2(-x,-z):this.yaw;
+          this.direction.set(-Math.sin(orbitYaw)*Math.cos(framingPitch),Math.sin(framingPitch),-Math.cos(orbitYaw)*Math.cos(framingPitch));
+        }
+        this.desiredLook.copy(camera.position).addScaledVector(this.direction,view === 'third' ? 5 : 20);
+      }
     }
     this.lookTarget.lerp(this.desiredLook,immediate || !blendLook ? 1 : cameraDamping(12,dt));
     this.previousRotation.copy(camera.quaternion);
     camera.lookAt(this.lookTarget);
-    if ((switching || car) && !combat && !motion?.manual) {
+    if (switching && !combat && !motion?.manual) {
       this.desiredRotation.copy(camera.quaternion);
       camera.quaternion.copy(this.previousRotation).slerp(this.desiredRotation,cameraDamping(car?18:12,dt));
     }
@@ -155,7 +164,7 @@ export class CameraRig {
     camera.updateMatrixWorld(); this.transition = Math.max(0,this.transition-dt);
     // Draw the exact endpoint after the last blended frame even while paused.
     // Otherwise an idle renderer can retain the penultimate FOV/orientation.
-    this.needsSettlement = switching && this.transition === 0 || camera.position.distanceToSquared(this.desired) > .0001 || Math.abs(this.displayZoom-this.zoom[this.pov]) > .0001;
+    this.needsSettlement = switching && this.transition === 0 || camera.position.distanceToSquared(this.desired) > .0001 || Math.abs(this.displayZoom-this.zoom[this.pov]) > .0001 || this.obstruction.settling;
     const eyeHeight = camera.position.y-player.y;
     this.bodyVisible = view !== 'first' && (Math.hypot(camera.position.x-player.x,camera.position.z-player.z) > .55 || eyeHeight > 1.9 || eyeHeight < .05);
     this.initialized = true;

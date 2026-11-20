@@ -36,6 +36,8 @@ export class WeaponRig {
   private chestGrip=new Vector3();private reloadTarget=new Vector3();
   private carriedGrip=new Vector3();private reachOffset=new Vector3();
   private localRotation=new Quaternion();private desiredLocal=new Quaternion();private rootRotation=new Quaternion();
+  private previousRootRotation=new Quaternion();
+  private wasAiming=false;
   private poseInitialized=false;
   constructor(readonly actor: Actor, readonly model: Object3D, avatar?: HumanoidAnimator) {
     this.metadata = weaponMetadata(model); this.muzzle = model.getObjectByName('weapon-muzzle')!; this.support = model.getObjectByName('weapon-support') ?? undefined;
@@ -83,12 +85,20 @@ export class WeaponRig {
         } else this.desired.copy(target);
         if (this.desired.distanceToSquared(this.anchor) < .09) this.desired.copy(this.anchor).add(new Vector3(Math.cos(frame.angle), 0, Math.sin(frame.angle)));
         this.look.lookAt(this.anchor, this.desired, up); this.rotation.setFromRotationMatrix(this.look);
-        // Smooth in character space: turning the body must not leave a gun
-        // lagging behind in world space or snap between carry and aimed poses.
+        // Carry follows the body. While aiming, compensate for the body's
+        // rotation before smoothing so a stride or turn cannot yank the muzzle.
         this.actor.root.getWorldQuaternion(this.rootRotation);
         this.desiredLocal.copy(this.rootRotation).invert().multiply(this.rotation);
         if(!this.poseInitialized){this.localRotation.copy(this.desiredLocal);this.poseInitialized=true;}
-        else this.localRotation.slerp(this.desiredLocal,1-Math.exp(-24*Math.max(0,Math.min(.1,dt))));
+        else {
+          if(frame.aiming&&this.wasAiming){
+            this.scratch.copy(this.rootRotation).invert().multiply(this.previousRootRotation);
+            this.localRotation.premultiply(this.scratch);
+          }
+          this.localRotation.slerp(this.desiredLocal,1-Math.exp(-24*Math.max(0,Math.min(.1,dt))));
+        }
+        this.previousRootRotation.copy(this.rootRotation);
+        this.wasAiming=frame.aiming;
         this.rotation.copy(this.rootRotation).multiply(this.localRotation);
         if(this.support&&this.left&&this.leftPalm){
           this.leftTarget.fromArray(this.metadata.sockets.support!).applyQuaternion(group.quaternion).applyQuaternion(this.rotation).add(this.anchor);

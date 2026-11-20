@@ -15,6 +15,9 @@ export class CityAtmosphere {
   preset:CityWeather='golden';
   private skyTexture:T.Texture;
   private reflection?:T.WebGLRenderTarget;private released=false;
+  private sunOffset=new T.Vector3();
+  private shadowRight=new T.Vector3();
+  private shadowUp=new T.Vector3();
   constructor(private scene:T.Scene,private renderer:T.WebGLRenderer,preset:CityWeather) {
     this.material=new T.ShaderMaterial({side:T.BackSide,depthWrite:false,depthTest:false,uniforms:{uNight:{value:0},uElevation:{value:.19},uDay:{value:0},uSky:{value:null},uReady:{value:0}},vertexShader:`varying vec3 vSky; void main(){vSky=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}`,fragmentShader:`
       varying vec3 vSky;uniform float uNight;uniform float uDay;uniform float uReady;uniform sampler2D uSky;
@@ -42,6 +45,9 @@ export class CityAtmosphere {
     this.hemi.color.set(p.fill);this.hemi.groundColor.set(p.ground);this.hemi.intensity=p.ambient;this.sun.color.set(p.sun);this.sun.intensity=p.power;this.fill.intensity=preset==='night'?.32:.7;
     this.renderer.toneMappingExposure=p.exposure;this.material.uniforms.uNight.value=p.night;this.material.uniforms.uDay.value=preset==='daylight'?1:preset==='golden'?.65:0;this.material.uniforms.uElevation.value=p.elevation;
     this.scene.environmentIntensity=preset==='night'?.26:preset==='daylight'?.8:1;
+    this.sunOffset.set(-55,Math.max(22,p.elevation*90),-42);
+    this.shadowRight.crossVectors(T.Object3D.DEFAULT_UP,this.sunOffset).normalize();
+    this.shadowUp.crossVectors(this.sunOffset,this.shadowRight).normalize();
   }
   quality(quality:QualityId){const size=quality==='high'?4096:quality==='balanced'?2048:1024;if(this.sun.shadow.mapSize.x!==size){this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.sun.shadow.mapSize.set(size,size);}this.sun.shadow.normalBias=.018;}
   follow(player:T.Vector3,pov:POV='third') {
@@ -49,7 +55,14 @@ export class CityAtmosphere {
     // is not the viewer's distance to the street; using it for exponential fog
     // washed out the entire playfield. Perspective retains physical depth fog.
     if(this.scene.fog instanceof T.FogExp2)this.scene.fog.density=pov==='side'||pov==='tactical'?0:this.preset==='night'?.010:.0055;
-    const elevation=CITY_LIGHTING[this.preset].elevation,x=Math.round(player.x*2)/2,z=Math.round(player.z*2)/2;this.sun.target.position.set(x,0,z);this.sun.position.set(x-55,Math.max(22,elevation*90),z-42);
+    // Align the shadow camera to its own texel grid. World X/Z rounding moves
+    // every shadow edge by multiple light-space pixels when the player walks.
+    const target=this.sun.target.position.set(player.x,0,player.z);
+    const texel=50/this.sun.shadow.mapSize.x;
+    const u=target.dot(this.shadowRight),v=target.dot(this.shadowUp);
+    target.addScaledVector(this.shadowRight,Math.round(u/texel)*texel-u);
+    target.addScaledVector(this.shadowUp,Math.round(v/texel)*texel-v);
+    this.sun.position.copy(target).add(this.sunOffset);
   }
   dispose(){this.released=true;if(this.scene.environment===this.reflection?.texture)this.scene.environment=null;this.reflection?.dispose();this.skyTexture.dispose();this.sky.geometry.dispose();this.material.dispose();this.sun.shadow.map?.dispose();this.root.removeFromParent();}
 }

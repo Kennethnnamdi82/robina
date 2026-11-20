@@ -23,7 +23,7 @@ const direction = new Vector3(), up = new Vector3(0, 1, 0), correction = new Qua
 // Distance covered by one loop. Walk and jog follow the stance-foot travel
 // measured on the shipped field operative rather than a generic stride.
 const strideMetres: Record<string,number> = {Walk_Loop:1.13,Jog_Fwd_Loop:4.45,Sprint_Loop:4.3};
-const hipStabilization: Record<string,number> = {Walk_Loop:.9,Jog_Fwd_Loop:.42,Sprint_Loop:.76};
+const hipStabilization: Record<string,number> = {Walk_Loop:.74,Jog_Fwd_Loop:.32,Sprint_Loop:.53};
 
 /** Per-instance actions/bones; shared immutable geometry, textures and source clips.
  * Physics owns translation. Lower/upper tracks are disjoint during locomotion,
@@ -244,9 +244,10 @@ export class HumanoidAnimator {
       direction.copy(up).applyQuaternion(this.chest.parent!.getWorldQuaternion(inverse).invert());
       this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction,this.chestTwist));
     }
-    const aligned=frame.vx*Math.sin(this.yaw)+frame.vz*Math.cos(this.yaw)>.92*this.speed;
+    const alignment=this.speed>0?(frame.vx*Math.sin(this.yaw)+frame.vz*Math.cos(this.yaw))/this.speed:0;
+    const contactWeight=MathUtils.smoothstep(alignment,.78,.97)*MathUtils.smoothstep(this.speed,.35,.85);
     this.footPlant.update(clipName,this.base.time/this.base.getClip().duration,
-      dt>0&&frame.travel!==undefined&&frame.grounded&&this.speed>.5&&aligned&&!full&&!directional);
+      dt>0&&frame.travel!==undefined&&frame.grounded&&!full&&!directional?contactWeight:0);
     for (const { bone, source } of this.weaponPose) source.copy(bone.quaternion);
     this.actor.recoil = Math.max(0, this.actor.recoil - dt * 9); this.actor.muzzle.visible = this.actor.recoil > .6;
     this.actionTime = this.base.time; this.activeActions = 0;

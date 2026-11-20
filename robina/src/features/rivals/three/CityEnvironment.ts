@@ -5,7 +5,7 @@ import type { QualityId } from '../core/presentation';
 import type { POV } from './CameraRig';
 import { cityPlan, cityRandom, buildingPlacement, STREET_CENTRES, trafficPhase,waterfrontRails,BRIDGE_SPAN,streetLampPlacements,avenueLightPosts,trafficSignalPosts, type CityPoint, type CityWeather } from './LivingCityPlan';
 import { CityTrafficArt } from './CityTrafficArt';
-import {TRAFFIC_COUNT,type CitySimulation} from './CitySimulation';
+import {TRAFFIC_COUNT,carActive,type CitySimulation} from './CitySimulation';
 import { CityCrowd } from './CityCrowd';
 import { CityTrees } from './CityTrees';
 import { CityGrounding } from './CityGrounding';
@@ -37,7 +37,20 @@ export class CityEnvironment {
     const profile=campaignDistrict(seed);
     const concrete=this.material(profile.paving),curb=this.material(0xb9b2a0),asphalt=this.material(profile.road),paint=this.material(0xd5cfae),yellow=this.material(profile.accent),soil=this.material(0x4c5b3a),metal=this.material(0x39474b,.55);
     const roadMaps=assets.surfaces.get('asphalt'),pavingMaps=assets.surfaces.get('paving');
-    if(roadMaps){applyRealismSurface(asphalt,roadMaps,125,this.textures,.18);asphalt.color.set(0xb3b3b0);asphalt.envMapIntensity=.45;asphalt.customProgramCacheKey=()=>'rivals-dry-asphalt';asphalt.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=max(.78,roughnessFactor);');};}
+    if(roadMaps){
+      applyRealismSurface(asphalt,roadMaps,125,this.textures,.27);
+      asphalt.color.set(0xb3b3b0);asphalt.envMapIntensity=.38;
+      asphalt.customProgramCacheKey=()=>'rivals-weathered-asphalt';
+      asphalt.onBeforeCompile=shader=>{
+        shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+          vec2 roadUv=vMapUv/125.;
+          float repairs=sin(roadUv.x*173.+sin(roadUv.y*112.))*sin(roadUv.y*157.+roadUv.x*29.);
+          float worn=smoothstep(-.55,.55,repairs);
+          diffuseColor.rgb*=mix(vec3(.81,.83,.85),vec3(1.04,1.02,.98),worn);
+          roughnessFactor=max(mix(.87,.74,worn),roughnessFactor);
+        `);
+      };
+    }
     else{this.surface(asphalt,assets.texture('premium-asphalt'),62.5);asphalt.color.set(0xffffff);}
     this.roadDetail=new CityRoadDetail(seed);this.root.add(this.roadDetail.root);
     // A continuous asphalt sheet prevents road seams and overlapping tile strips.
@@ -232,11 +245,12 @@ export class CityEnvironment {
     if(this.serverTraffic)this.traffic.active=TRAFFIC_COUNT;
     let delta=Math.min(.2,Math.max(0,time-this.lastTime));this.nightClock+=delta;this.lastTime=time;this.wind.value=reduced?0:time;
     if(shots!==this.shots){this.threat(player);this.shots=shots;}
-    const obstacles:CityPoint[]=[player,...actors,...this.solids.filter(s=>s.enabled&&s.kind==='cover'&&!s.id.startsWith('city-traffic')).map(s=>({x:(s.box.min.x+s.box.max.x)/2,z:(s.box.min.z+s.box.max.z)/2}))];
+    const obstacles:CityPoint[]=this.serverTraffic?[]:[player,...actors,...this.solids.filter(s=>s.enabled&&s.kind==='cover'&&!s.id.startsWith('city-traffic')).map(s=>({x:(s.box.min.x+s.box.max.x)/2,z:(s.box.min.z+s.box.max.z)/2}))];
     const pedestrianObstacles=this.pedestrianObstacles;
     while(delta>0){const dt=Math.min(delta,1/30);if(!this.serverTraffic)this.traffic.simulation.step(dt,[...obstacles,...this.crowd.people.slice(0,this.crowd.active)],this.traffic.active);this.crowd.step(dt,this.traffic.simulation.time,this.traffic.simulation.cars.slice(0,this.traffic.active),player,pedestrianObstacles);delta-=dt;}
     const signal=trafficPhase(this.traffic.simulation.time);this.signalLenses.forEach(l=>{const active=signal[l.axis]===l.color;l.material.emissiveIntensity=active?2.2:.025;l.material.color.setScalar(active?1:.13).multiply(new T.Color(l.color==='red'?0xe83f30:l.color==='amber'?0xf2bb39:0x56d59a));});
-    this.traffic.draw(player,this.lighting==='night',camera,alpha,vehicleYaw);this.crowd.draw(time,camera);this.trees.update(this.wind.value);this.grounding.update(this.traffic.simulation.cars.slice(0,this.traffic.active),[player,...this.crowd.people.slice(0,this.crowd.active)]);
+    this.traffic.draw(player,this.lighting==='night',camera,alpha,vehicleYaw);this.crowd.draw(time,camera);this.trees.update(this.wind.value);
+    this.grounding.update(this.traffic.simulation.cars.filter(car=>carActive(car,this.traffic.active)),[player,...this.crowd.people.slice(0,this.crowd.active)],player,vehicleYaw);
     if(this.lighting==='night'&&this.nightClock>.35){this.nightClock=0;this.lampPositions.sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));this.nightLights.forEach((l,i)=>l.position.set(this.lampPositions[i].x,4.8,this.lampPositions[i].z));}
   }
   private architectureHash(){if(this.architectureFingerprint)return this.architectureFingerprint;let hash=2166136261;for(const mesh of this.architecture){for(const value of mesh.instanceMatrix.array){hash=Math.imul(hash^Math.round(value*10000),16777619);}hash=Math.imul(hash^mesh.geometry.getAttribute('position').count,16777619);}return this.architectureFingerprint=(hash>>>0).toString(16);}

@@ -1,4 +1,5 @@
 import * as T from 'three';
+import type { CityCar } from './CitySimulation';
 /** Small shared contact decals keep low-quality mode grounded without screen-
  * space postprocessing. These never participate in movement collision. */
 export class CityGrounding {
@@ -13,8 +14,13 @@ export class CityGrounding {
   buildings.forEach((b,i)=>this.place(this.buildings,i,b.x,b.z,b.width+3,b.depth+3,0,.069));
  }
  private place(mesh:T.InstancedMesh,i:number,x:number,z:number,w:number,d:number,yaw:number,y=.067){this.dummy.position.set(x,y,z);this.dummy.rotation.set(-Math.PI/2,0,yaw);this.dummy.scale.set(w,d,1);this.dummy.updateMatrix();mesh.setMatrixAt(i,this.dummy.matrix);}
- update(cars:readonly {x:number;z:number;dx:number;dz:number;length:number}[],people:readonly {x:number;z:number}[]){
-  this.cars.count=cars.length;cars.forEach((p,i)=>this.place(this.cars,i,p.x,p.z,2.1,p.length,Math.atan2(p.dx,p.dz),.006));this.people.count=people.length;people.forEach((p,i)=>this.place(this.people,i,p.x,p.z,.68,.63,0));this.cars.instanceMatrix.needsUpdate=this.people.instanceMatrix.needsUpdate=true;
+ update(cars:readonly CityCar[],people:readonly {x:number;z:number}[],player:T.Vector3,vehicleYaw?:number){
+  this.cars.count=cars.length;
+  cars.forEach((p,i)=>{
+    const occupied=p.mode==='player';
+    this.place(this.cars,i,occupied?player.x:p.x,occupied?player.z:p.z,2.1,p.length,occupied&&vehicleYaw!==undefined?vehicleYaw:Math.atan2(p.dx,p.dz),.006);
+  });
+  this.people.count=people.length;people.forEach((p,i)=>this.place(this.people,i,p.x,p.z,.68,.63,0));this.cars.instanceMatrix.needsUpdate=this.people.instanceMatrix.needsUpdate=true;
  }
  dispose(){for(const mesh of [this.buildings,this.cars,this.people])mesh.dispose();this.geometry.dispose();this.texture.dispose();this.material.dispose();this.root.clear();}
 }

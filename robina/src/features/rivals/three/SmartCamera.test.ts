@@ -158,6 +158,29 @@ describe('vehicle framing and four-POV transitions', () => {
 
 describe('collision-safe camera damping', () => {
   const wall=():Solid3D=>({id:'wall',kind:'wall',enabled:true,box:new Box3(new Vector3(-5,0,1),new Vector3(5,6,2))});
+  it.each([30,60,120])('keeps the driven car from jumping on screen when clearing a wall at %s FPS',fps=>{
+    const r=rig(),m=motion(),solid=wall(),position=new Vector3(0,.55,3);
+    const anchor=new Vector3(),previous=new Vector3();
+    r.yaw=-Math.PI;
+    m.vehicle={id:4,heading:0,speed:3,length:4.1};
+    solid.box.set(new Vector3(-2,0,1),new Vector3(2,3.5,1.4));
+    let peak=0,peakAngle=0;
+    for(let i=0;i<fps*4;i++){
+      const rotation=r.camera.quaternion.clone();
+      if(i>=fps)position.z+=3/fps;
+      r.update(position,[solid],1/fps,false,0,undefined,m);
+      anchor.copy(position);anchor.y+=.8;anchor.project(r.camera);
+      anchor.set(anchor.x*480,anchor.y*270,0);
+      if(i>=fps){
+        peak=Math.max(peak,anchor.distanceTo(previous));
+        peakAngle=Math.max(peakAngle,r.camera.quaternion.angleTo(rotation));
+      }
+      expect(solid.box.containsPoint(r.camera.position)).toBe(false);
+      previous.copy(anchor);
+    }
+    expect(peak).toBeLessThan(1);
+    expect(peakAngle).toBeLessThan(2.5/fps);
+  });
   it('constrains the lagged eye immediately when a wall appears, then restores distance gradually', () => {
     const r=rig(), m=motion(), solid=wall(), original=solid.box.clone();
     r.update(origin,[solid],1/120,false,0,undefined,m);
