@@ -143,9 +143,19 @@ export class CameraRig {
     this.lookTarget.lerp(this.desiredLook,immediate || !blendLook ? 1 : cameraDamping(12,dt));
     this.previousRotation.copy(camera.quaternion);
     camera.lookAt(this.lookTarget);
+    let settlingRotation=false;
     if (switching && !combat && !motion?.manual) {
       this.desiredRotation.copy(camera.quaternion);
       camera.quaternion.copy(this.previousRotation).slerp(this.desiredRotation,cameraDamping(car?18:12,dt));
+    } else if (car && view==='third' && !immediate && !motion?.manual) {
+      // If cover appears right behind the car, the eye must retract at once
+      // for collision safety. Bound the corresponding view rotation.
+      const maxTurn=Math.min(.22,6*dt);
+      settlingRotation=this.previousRotation.angleTo(camera.quaternion)>maxTurn;
+      if(settlingRotation){
+        this.desiredRotation.copy(camera.quaternion);
+        camera.quaternion.copy(this.previousRotation).rotateTowards(this.desiredRotation,maxTurn);
+      }
     }
     const size = (view === 'tactical' ? this.aspect < 1 ? 12 : 8 : this.aspect < 1 ? 8 : 5.6) / zoom;
     const baseFov = car ? 59 : view === 'first' ? MathUtils.clamp(72 / zoom * (1-this.adsBlend*.28),42,90) : MathUtils.lerp(57,49,this.adsBlend);
@@ -164,7 +174,7 @@ export class CameraRig {
     camera.updateMatrixWorld(); this.transition = Math.max(0,this.transition-dt);
     // Draw the exact endpoint after the last blended frame even while paused.
     // Otherwise an idle renderer can retain the penultimate FOV/orientation.
-    this.needsSettlement = switching && this.transition === 0 || camera.position.distanceToSquared(this.desired) > .0001 || Math.abs(this.displayZoom-this.zoom[this.pov]) > .0001 || this.obstruction.settling;
+    this.needsSettlement = switching && this.transition === 0 || camera.position.distanceToSquared(this.desired) > .0001 || Math.abs(this.displayZoom-this.zoom[this.pov]) > .0001 || this.obstruction.settling || settlingRotation;
     const eyeHeight = camera.position.y-player.y;
     this.bodyVisible = view !== 'first' && (Math.hypot(camera.position.x-player.x,camera.position.z-player.z) > .55 || eyeHeight > 1.9 || eyeHeight < .05);
     this.initialized = true;
