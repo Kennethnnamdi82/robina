@@ -1,7 +1,7 @@
 import { api, type ApiError } from './api';
 import type {MissionPermit} from '@/features/rivals/authority/MissionReplay';
 import type {VerifiedGameResult} from './missionAuthority';
-import {COLLISION_SIMULATION_VERSION} from '@/features/rivals/authority/SimulationVersion';
+import {VISIBLE_VEHICLE_SIMULATION_VERSION} from '@/features/rivals/authority/SimulationVersion';
 
 export interface CompletionStatus {status:'missing'|'uploading'|'queued'|'verifying'|'verified'|'rejected';id:string;result?:VerifiedGameResult;error?:string;received?:number;total?:number}
 export interface SavedMissionResult {sessionId:string;missionId:string;score:number;durationSeconds:number;verifiedAt:string;outcome:'success'|'failure';firstCompletion:boolean;rewardEligible:boolean;enemiesDefeated:number;shotsFired:number;successfulHits:number}
@@ -25,7 +25,7 @@ export interface MissionEligibility {
 export const missionsApi = {
   async permit(missionId:string,seed:number){
     const path='/api/missions/permits',body={missionId,seed};
-    try{return await api.post<{permit:MissionPermit}>(path,{...body,simulationVersion:COLLISION_SIMULATION_VERSION});}
+    try{return await api.post<{permit:MissionPermit}>(path,{...body,simulationVersion:VISIBLE_VEHICLE_SIMULATION_VERSION});}
     catch(error){
       // An older backend rejects the additional version field while it is rolling out.
       if(!(error instanceof Error)||(error as ApiError).status!==400||error.message!=='invalid_mission')throw error;

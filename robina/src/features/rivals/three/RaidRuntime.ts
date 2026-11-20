@@ -113,6 +113,7 @@ export class RaidRuntime {
   private combatAudio: CombatAudio; private viewScene = new T.Scene(); private viewCamera = new T.PerspectiveCamera(72,1,.025,8);
   private flash?: MuzzleFlash; private viewFlash?: MuzzleFlash; private securityFlashes = new Map<string,MuzzleFlash>(); private cameraFeedback=new CameraFeedback();private resolution=new AdaptiveResolution(1,1);private shadowClock=1;
   private previousPosition=this.body.position.clone();private renderPosition=new T.Vector3();
+  private previousOperativePose?:T.Vector3;
   private correction=new PresentationCorrection();private aimStart=new T.Vector3();private aimHit=new T.Vector3();
   private prediction=new MovementPrediction();
   private headingCorrection=new HeadingCorrection();private presentedVehicleYaw:number|undefined;
@@ -277,13 +278,12 @@ export class RaidRuntime {
       this.npcs.forEach(n => { mountActor(n.actor,this.assets); n.presentation = new SecurityPresentation(n.actor,this.assets.instance(n.model.spawn.type === 'guard' ? 'pistol' : n.model.spawn.type === 'enforcer' ? 'smg' : 'rifle').root,this.assets.models.get(n.actor.role)!.animations); });
       for (const n of this.npcs) this.securityFlashes.set(n.model.spawn.id,new MuzzleFlash(n.presentation!.weapon.muzzle,this.assets.textures.get('combat-flash')!));
       this.securityFlashes.set('vault-guardian',new MuzzleFlash(this.bossPresentation.weapon.muzzle,this.assets.textures.get('combat-flash')!));
-      this.art.attachAssets(this.assets); this.art.setQuality(this.quality);
+      const local=this.session.authority?.localSimulation;
+      this.art.attachAssets(this.assets,local?.traffic); this.art.setQuality(this.quality);
       if(this.art.city){
         this.art.city.serverTraffic=Boolean(this.session.authority);
-        const local=this.session.authority?.localSimulation;
-        if(local)this.art.city.traffic.simulation.cars.splice(0,this.art.city.traffic.simulation.cars.length,...local.traffic.cars);
         this.vehicles=local?.vehicles??new VehicleController(this.art.city.traffic.simulation.cars);
-        this.art.city.traffic.simulation.blocked=car=>this.solids.some(s=>!s.id.startsWith('city-traffic-')&&vehicleOverlap(car,car.x,car.z,Math.atan2(car.dx,car.dz),s));
+        if(!local)this.art.city.traffic.simulation.blocked=car=>this.solids.some(s=>!s.id.startsWith('city-traffic-')&&vehicleOverlap(car,car.x,car.z,Math.atan2(car.dx,car.dz),s));
         this.vehicleTargets=this.vehicles.cars.map(car=>({id:'vehicle-'+car.id,team:'security',box:this.art.city!.traffic.colliders[car.id].box,alive:()=>(car.health??200)>0,damage:event=>this.vehicles!.damage(car,event.amount)}));this.targets.push(...this.vehicleTargets);
         this.targets.push(...this.art.city.crowd.combat.targets);this.art.city.crowd.combat.onCrime=()=>this.pursuit?.alert();
         if(this.session.operation.assignment!==undefined){
@@ -459,7 +459,25 @@ export class RaidRuntime {
     this.controller.stop();this.pool.clear();this.session.revivePending=false;this.session.blocked=false;this.session.update({health:this.controller.health});this.previousPosition.copy(this.body.position);this.session.resume();this.publish();return true;
   }
   declineRevive(){if(!this.session.revivePending)return;this.session.revivePending=false;this.session.mission.fail('Operative defeated before extraction.');this.session.publishMission();this.publish();}
-  vehicleInteract=()=>{if(!this.session.canControl()||!this.vehicles)return;if(this.session.authority){this.session.authority.action({type:'vehicle'});return;}const v=this.vehicles;this.controller.stop();this.jump=false;if(v.current)v.exit(this.body.position,this.solids);else{v.scan(this.body.position,this.art.city?.traffic.active??28);if(v.nearby)v.enter(v.nearby,this.body.position,this.solids,car=>this.art.city?.crowd.ejectDriver(car));}if(v.current)this.body.position.set(v.current.x,.55,v.current.z);this.previousPosition.copy(this.body.position);this.session.clearInput();this.publish();};
+  vehicleInteract=()=>{
+    const vehicles=this.vehicles;
+    if(!this.session.canControl()||!vehicles)return;
+    const authority=this.session.authority;
+    if(authority){
+      const previous=vehicles.current;
+      authority.action({type:'vehicle'});
+      if(authority.localSimulation&&vehicles.current!==previous)this.session.clearInput();
+      return;
+    }
+    this.controller.stop();this.jump=false;
+    if(vehicles.current)vehicles.exit(this.body.position,this.solids);
+    else{
+      vehicles.scan(this.body.position,this.art.city?.traffic.active??28);
+      if(vehicles.nearby)vehicles.enter(vehicles.nearby,this.body.position,this.solids,car=>this.art.city?.crowd.ejectDriver(car));
+    }
+    if(vehicles.current)this.body.position.set(vehicles.current.x,.55,vehicles.current.z);
+    this.previousPosition.copy(this.body.position);this.session.clearInput();this.publish();
+  };
   setDriving=(patch:Partial<typeof this.drivingInput>)=>{if(this.session.canControl()||Object.values(patch).every(value=>!value))Object.assign(this.drivingInput,patch);};
   private recoverEvidence(dt:number){
     const campaign=this.campaign;if(!campaign?.carrying||campaign.recoveredByPolice||this.recoveryAge>=15)return;
@@ -494,8 +512,8 @@ export class RaidRuntime {
     const authority=this.session.authority;if(!authority||!this.modelsReady)return;
     if(authority.connection==='reconnecting'&&this.session.getSnapshot().status==='playing')this.session.pause();
     if(authority.connection==='closed'&&!authority.result){this.session.fail('The operation connection expired. Return to the mission briefing.');return;}
-    const state=authority.latest;if(!state||state===this.authorityLast)return;
-    const restored=Boolean(this.authorityLast&&state.inputSequence<this.authorityLast.inputSequence);
+    const state=authority.latest,previousState=this.authorityLast;if(!state||state===previousState)return;
+    const restored=Boolean(previousState&&state.inputSequence<previousState.inputSequence);
     this.authorityLast=state;
     if(state.movementInterrupted&&this.session.getSnapshot().status==='playing')this.session.pause();
     if(state.civilians)this.art.city?.crowd.applyAuthority(state.civilians);
@@ -503,7 +521,8 @@ export class RaidRuntime {
     if(outfit!==this.outfitId)void this.updateOutfit(outfit);
     for(const models of [this.playerModels,this.viewModels])for(const [id,model]of models)if(id!=='knife'&&id!=='pistol'&&this.finishedModels.get(model)!==finish){this.weaponFinish.apply(model,finish);this.finishedModels.set(model,finish);}
     const previousHealth=this.controller.health,position=new T.Vector3().fromArray(state.position);
-    const vehicleChanged=(state.vehicle.driving?state.vehicle.id:null)!==(this.vehicles?.current?.id??null);
+    const previousVehicleId=authority.localSimulation?previousState?.vehicle.id:this.vehicles?.current?.id;
+    const vehicleChanged=state.vehicle.id!==(previousVehicleId??null);
     const before=this.body.position.clone();
     const beforeCar=this.vehicles?.current,beforeYaw=beforeCar?Math.atan2(beforeCar.dx,beforeCar.dz):0;
     this.controller.vitality.current=state.health;
@@ -525,7 +544,7 @@ export class RaidRuntime {
       n.model.health.current=row.health;n.collider.enabled=row.health>0;this.setBox(n.target.box,point3(row.x,row.y),.36,1.8);
     }
     if(!authority.localSimulation)for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=!state.prediction&&car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,row);if(predict)Object.assign(car,motion);}}
-    if(this.art.city)this.art.city.traffic.simulation.time=state.trafficTime;
+    if(this.art.city&&!authority.localSimulation)this.art.city.traffic.simulation.time=state.trafficTime;
     this.art.city?.traffic.syncColliders(position);
     if(this.vehicles&&!authority.localSimulation)this.vehicles.current=state.vehicle.driving?this.vehicles.cars.find(c=>c.id===state.vehicle.id)??null:null;
     if(this.pursuit){this.pursuit.active=state.pursuit.active;this.pursuit.lost=state.pursuit.lost;this.pursuit.quiet=state.pursuit.evading;}
@@ -746,6 +765,10 @@ export class RaidRuntime {
   private animatePlayer(dt: number,position=this.body.position) {
     this.cosmeticClock+=dt;
     this.player.root.position.copy(position);
+    const previous=this.previousOperativePose;
+    const travel=previous?Math.hypot(position.x-previous.x,position.z-previous.z):Infinity;
+    (this.previousOperativePose??=new T.Vector3()).copy(position);
+    this.humanoidFrame.travel=dt>0&&travel<=dt*14+.03?travel:undefined;
     if(this.vehicles?.current){this.humanoidFrame.vx=this.humanoidFrame.vz=0;return;}
     Object.assign(this.humanoidFrame,{ vertical: this.body.vertical,grounded: this.body.grounded,sprinting: this.controller.sprinting,aiming: this.controller.aiming,angle: this.controller.aimAngle,pov: this.rig.pov,dodgeRemaining: this.controller.dodgeRemaining,dodgeSerial: this.controller.dodgeSerial,health: this.controller.health,hitSerial: this.session.getSnapshot().damage.serial,shots: this.loadout.shots,reload: this.weapon.reloadRemaining,reloadDuration: this.loadout.definition.reloadSeconds,equipment: this.loadout.current.id,action: this.loadout.action,actionRemaining: this.loadout.remaining });
     this.humanoidFrame.independentAim=this.independentAim&&this.rig.pov!=='first';

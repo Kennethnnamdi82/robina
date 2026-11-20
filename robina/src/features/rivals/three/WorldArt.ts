@@ -7,6 +7,7 @@ import type { RaidAssets } from './RaidAssets';
 import { CityEnvironment } from './CityEnvironment';
 import type { QualityId } from '../core/presentation';
 import type { POV } from './CameraRig';
+import type { CitySimulation } from './CitySimulation';
 
 export class WorldArt {
   city?: CityEnvironment;
@@ -81,8 +82,8 @@ export class WorldArt {
       }
     }
   }
-  attachAssets(assets: RaidAssets) {
-    this.city = new CityEnvironment(assets.city,this.solids,assets.textures.get('city-grass')!,this.venue,this.seed);
+  attachAssets(assets: RaidAssets,traffic?: CitySimulation) {
+    this.city = new CityEnvironment(assets.city,this.solids,assets.textures.get('city-grass')!,this.venue,this.seed,traffic);
     this.root.add(this.city.root); this.wallBatch.visible = false;
     this.ground.visible = false; this.platformMeshes.forEach(mesh => { mesh.visible = false; });
     // The supplied SciFi props now fit every unchanged cover footprint.

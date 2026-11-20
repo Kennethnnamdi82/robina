@@ -5,7 +5,7 @@ import type { QualityId } from '../core/presentation';
 import type { POV } from './CameraRig';
 import { cityPlan, cityRandom, buildingPlacement, STREET_CENTRES, trafficPhase,waterfrontRails,BRIDGE_SPAN,streetLampPlacements,avenueLightPosts,trafficSignalPosts, type CityPoint, type CityWeather } from './LivingCityPlan';
 import { CityTrafficArt } from './CityTrafficArt';
-import {TRAFFIC_COUNT} from './CitySimulation';
+import {TRAFFIC_COUNT,type CitySimulation} from './CitySimulation';
 import { CityCrowd } from './CityCrowd';
 import { CityTrees } from './CityTrees';
 import { CityGrounding } from './CityGrounding';
@@ -31,7 +31,7 @@ export class CityEnvironment {
   private pedestrianObstacles:Solid3D[]=[];private nightClock=1;private architectureFingerprint='';
   private lampPositions=STREET_CENTRES.flatMap(x=>STREET_CENTRES.map(z=>({x:x-5.4,z:z-6.1})));
   lighting:CityWeather='golden';
-  constructor(readonly assets:CityAssets,readonly solids:Solid3D[],grassAlpha:T.Texture,readonly venue=0,readonly seed=0) {
+  constructor(readonly assets:CityAssets,readonly solids:Solid3D[],grassAlpha:T.Texture,readonly venue=0,readonly seed=0,traffic?:CitySimulation) {
     this.plan=cityPlan(venue,seed);this.root.name=this.plan.label;this.root.add(this.detail);this.geometries.add(this.box);
     this.grounding=new CityGrounding(this.plan.buildings);this.root.add(this.grounding.root);
     const profile=campaignDistrict(seed);
@@ -85,7 +85,7 @@ export class CityEnvironment {
     // into a walkable/drivable waterfront with real hotel and bar facades
     this.waterfront(concrete,metal,asphalt,yellow);
     this.districtLandmarks(metal,yellow);
-    this.pedestrianObstacles=solids.filter(s=>!s.id.startsWith('city-traffic'));this.traffic=new CityTrafficArt(assets,seed);this.crowd=new CityCrowd(seed,assets.humanoid!);this.root.add(this.traffic.root,this.crowd.root);solids.push(...this.traffic.colliders);
+    this.pedestrianObstacles=solids.filter(s=>!s.id.startsWith('city-traffic'));this.traffic=new CityTrafficArt(assets,seed,traffic);this.crowd=new CityCrowd(seed,assets.humanoid!);this.root.add(this.traffic.root,this.crowd.root);solids.push(...this.traffic.colliders);
     for(let i=0;i<3;i++){const light=new T.PointLight(0xffc184,180,22,2);this.nightLights.push(light);this.root.add(light);}
     this.flushBoxes();this.setLighting('golden');
   }

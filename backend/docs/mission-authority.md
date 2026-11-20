@@ -41,7 +41,7 @@ Legacy `/sessions` and Socket.IO remain available for previously installed APKs.
 
 Deploy both backend and frontend, with the backend first. Backend prestart bundles shared source from the sibling frontend directory. A new signed APK is required: Vercel cannot update bundled Android JavaScript or bridge policy. Existing single-instance Render configuration is supported. Multiple verification instances can settle idempotently, but chunk routing requires sticky sessions or a shared upload queue.
 
-Replay format version 1 supports simulation versions 3 and 4. Updated clients request version 4 for the movement collision changes. Older clients still get version 3, and recordings are verified against the version on their signed permit. The installed live protocol remains on version 3.
+Replay format version 1 supports simulation versions 3, 4 and 5. Version 4 adds movement collision changes. Version 5 restricts entry to active cars and immediately seats the operative at the car's location. Recordings are verified against the version on their signed permit. The installed live protocol remains on version 3.
 
 ## Verification
 

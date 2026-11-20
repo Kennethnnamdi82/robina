@@ -1,7 +1,7 @@
 import {expect,it} from 'vitest';
 import {emptyCommand} from '../input/InputBuffer';
 import {BODY} from '../three/physics3d';
-import {MissionSimulation,COLLISION_SIMULATION_VERSION} from './MissionSimulation';
+import {MissionSimulation,COLLISION_SIMULATION_VERSION,VISIBLE_VEHICLE_SIMULATION_VERSION} from './MissionSimulation';
 
 function reserve(version?:number){
   const mission=new MissionSimulation('assignment-reserve',42,'collision-test',version);
@@ -53,4 +53,15 @@ it('stops a driven car on contact with another car',()=>{
   expect(driven.z).toBeGreaterThan(9);
   expect(driven.z).toBeLessThanOrEqual(parked.z-(driven.length+parked.length)/2+.02);
   expect(mission.vehicles.crashes).toBeGreaterThan(0);
+});
+
+it('enters the visible parked car when a closer inactive traffic car exists',()=>{
+  const mission=reserve(VISIBLE_VEHICLE_SIMULATION_VERSION);
+  const parked=mission.traffic.cars[28],inactive=mission.traffic.cars[14];
+  mission.body.position.set(5.9,0,12);
+  Object.assign(parked,{x:8,z:12,dx:0,dz:1});
+  Object.assign(inactive,{x:6.6,z:12,dx:0,dz:1,mode:'traffic'});
+  expect(mission.action({type:'vehicle'})).toBe(true);
+  expect(mission.vehicles.current).toBe(parked);
+  expect(mission.body.position.toArray()).toEqual([8,.55,12]);
 });

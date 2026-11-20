@@ -7,13 +7,13 @@ import { web3Middleware } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { MissionLife, MissionSession, VerifiedMissionResult } from './models.js';
 import { MissionCompletions } from './completions.js';
-import { COLLISION_SIMULATION_VERSION } from '../../generated/missionSimulation.mjs';
+import { isReplaySimulationVersion } from '../../generated/missionSimulation.mjs';
 
 // Exact existing assignment identifiers from the 3D game's assignments.ts.
 // This is an allowlist, not a second mission configuration or gameplay engine.
 const missionIds = ['reserve', 'reactor', 'archive', 'convoy', 'hostage', 'cargo', 'military', 'bridge', 'bridge-night'];
 const startInput = z.object({ missionId: z.enum(missionIds.map(id => `assignment-${id}`)), seed: z.number().int().min(0).max(4294967295).optional() }).strict();
-const permitInput = startInput.extend({simulationVersion:z.literal(COLLISION_SIMULATION_VERSION).optional()});
+const permitInput = startInput.extend({simulationVersion:z.number().int().refine(isReplaySimulationVersion).optional()});
 const idInput = z.string().regex(/^[a-f\d]{24}$/i);
 const reportInput = z.object({ outcome: z.enum(['success', 'failure']) }).strict();
 const asyncRoute = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);

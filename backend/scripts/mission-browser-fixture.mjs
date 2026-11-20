@@ -11,6 +11,7 @@ process.env.DOTENV_CONFIG_PATH='test/nonexistent-browser-env';process.env.NODE_E
 process.env.JWT_SECRET='isolated-browser-mission-secret-32-characters';process.env.BOUNTY_PAYOUTS_ENABLED='false';
 process.env.CORS_ORIGIN='http://127.0.0.1:8086';process.env.SIWE_DOMAIN='127.0.0.1:8086';process.env.SIWE_URI='http://127.0.0.1:8086';
 const {createApp}=await import('../src/app.js');
+const {VISIBLE_VEHICLE_SIMULATION_VERSION}=await import('../generated/missionSimulation.mjs');
 const {initializeMongoModels}=await import('../src/db/mongo.js');
 const {LiveMissionAuthority}=await import('../src/missions/liveAuthority.js');
 const {signSession}=await import('../src/middleware/auth.js');
@@ -46,7 +47,8 @@ const server=createServer(async(req,res)=>{
     }
     if(url.pathname==='/__test/recording'){
       const fixture=JSON.parse(gunzipSync(readFileSync(new URL('../test/fixtures/reserve-collision-replay-v1.json.gz',import.meta.url))).toString());
-      const permit=await app.locals.missionCompletions.permit(playerId,{missionId:'assignment-reserve',seed:42,simulationVersion:fixture.permit.simulationVersion});
+      // This recording is on foot, so the updated entry rules produce the same run.
+      const permit=await app.locals.missionCompletions.permit(playerId,{missionId:'assignment-reserve',seed:42,simulationVersion:VISIBLE_VEHICLE_SIMULATION_VERSION});
       // Test-only clock offset for a naturally played recording; no production route can sign this.
       const {token,...claims}=permit;claims.issuedAt=Date.now()-120000;
       claims.token=jwt.sign(claims,process.env.JWT_SECRET,{audience:'rivals-mission-replay-v1',issuer:'rivals',subject:playerId,expiresIn:'7d'});

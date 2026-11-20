@@ -2,6 +2,7 @@ import { AnimationClip, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, MathU
 import type { Actor } from '../../rugfire/actors';
 import type { POV } from './CameraRig';
 import { ArmIK } from './ArmIK';
+import {OperativeFootPlant} from './OperativeFootPlant';
 
 export interface HumanoidFrame {
   vx: number; vz: number; vertical: number; grounded: boolean; sprinting: boolean;
@@ -9,6 +10,7 @@ export interface HumanoidFrame {
   health: number; hitSerial: number; shots: number; reload: number; reloadDuration?: number;
   equipment?: string; action?: string; actionRemaining?: number;
   independentAim?: boolean;
+  travel?:number;
 }
 export type HumanoidMotion = 'idle' | 'walk' | 'backward' | 'strafe-left' | 'strafe-right' | 'jog' | 'run' | 'sprint' | 'takeoff' | 'fall' | 'land' | 'dodge' | 'hit' | 'death';
 // Locomotion owns the torso/head as well as the legs. Freezing every spine
@@ -42,6 +44,7 @@ export class HumanoidAnimator {
   private gaitSpeed=0;
   private hipTwist=0;
   private chestTwist=0;
+  private readonly footPlant:OperativeFootPlant;
   private weaponPose: { bone: Object3D; source: Quaternion }[] = [];
   private handRest:{bone:Object3D;source:Quaternion}[]=[];
   private socialArms?:{left:ArmIK;right:ArmIK};private socialPoint=new Vector3();private socialPole=new Vector3();
@@ -49,6 +52,7 @@ export class HumanoidAnimator {
   /** The layered pose that keeps the equipped item readable during locomotion. */
   get upperClipName() { return this.upper?.getClip().name.replace(/^upper-/, '').split(':').pop() ?? ''; }
   constructor(readonly actor: Actor, body: Object3D, clips: readonly AnimationClip[]) {
+    this.footPlant=new OperativeFootPlant(body);
     for (const clip of clips) this.clips.set(clip.name, clip);
     for (const name of ['Idle_Loop', 'Walk_Loop', 'Jog_Fwd_Loop', 'Sprint_Loop', 'Roll', 'Jump_Start', 'Jump_Loop', 'Jump_Land', 'Hit_Chest', 'Death01', 'Pistol_Aim_Neutral', 'Pistol_Idle_Loop', 'Pistol_Shoot', 'Pistol_Reload']) {
       if (!this.clips.has(name)) throw new Error('Universal humanoid is missing ' + name);
@@ -124,6 +128,7 @@ export class HumanoidAnimator {
     // A clamped aiming clip may not rewrite unchanged channels. Restore its
     // source arms before evaluation so last frame's IK cannot accumulate.
     for (const { bone, source } of this.weaponPose) bone.quaternion.copy(source);
+    this.footPlant.restore();
     this.speed = Math.hypot(frame.vx, frame.vz);
     this.gaitSpeed=this.wasMoving?MathUtils.damp(this.gaitSpeed,this.speed,18,dt):this.speed;
     this.specialRemaining = Math.max(0, this.specialRemaining - dt); this.shotRemaining = Math.max(0, this.shotRemaining - dt);
@@ -196,7 +201,8 @@ export class HumanoidAnimator {
     const once = full && motion !== 'fall';
     const duration = motion === 'dodge' ? .28 : motion === 'takeoff' ? .14 : motion === 'land' ? .15 : motion === 'hit' ? .22 : 0;
     const stride = strideMetres[clipName]??1;
-    const rate = duration ? this.clips.get(clipName)!.duration / duration : full || !moving ? 1 : MathUtils.clamp(this.gaitSpeed*this.clips.get(clipName)!.duration/stride, .2, 2.8) * (reverse ? -1 : 1);
+    const visualSpeed=frame.travel!==undefined&&dt>0?frame.travel/dt:this.gaitSpeed;
+    const rate = duration ? this.clips.get(clipName)!.duration / duration : full || !moving ? 1 : MathUtils.clamp(visualSpeed*this.clips.get(clipName)!.duration/stride, frame.travel===undefined?.2:0, 3.6) * (reverse ? -1 : 1);
     this.base = this.switchAction(this.base, this.action('base-' + (full?'full':'gait') + ':' + clipName, clipName, full ? 'full' : 'lower', once), rate);
     if (full) {
       if (this.upper) { this.upper.fadeOut(.08); this.fading.push({ action: this.upper, remaining: .09 }); this.upper = undefined; }
@@ -238,6 +244,9 @@ export class HumanoidAnimator {
       direction.copy(up).applyQuaternion(this.chest.parent!.getWorldQuaternion(inverse).invert());
       this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction,this.chestTwist));
     }
+    const aligned=frame.vx*Math.sin(this.yaw)+frame.vz*Math.cos(this.yaw)>.92*this.speed;
+    this.footPlant.update(clipName,this.base.time/this.base.getClip().duration,
+      dt>0&&frame.travel!==undefined&&frame.grounded&&this.speed>.5&&aligned&&!full&&!directional);
     for (const { bone, source } of this.weaponPose) source.copy(bone.quaternion);
     this.actor.recoil = Math.max(0, this.actor.recoil - dt * 9); this.actor.muzzle.visible = this.actor.recoil > .6;
     this.actionTime = this.base.time; this.activeActions = 0;

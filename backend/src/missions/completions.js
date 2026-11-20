@@ -8,7 +8,7 @@ import { StoreInventory, StoreLedger } from '../payments/storeModels.js';
 import { appearance } from '../payments/entitlements.js';
 import { inventory, storeEnvironment, transaction, fail } from '../payments/service.js';
 import { REPLAY_SCORE_VERSION, scoreVerifiedRun } from './score.js';
-import { COLLISION_SIMULATION_VERSION,SIMULATION_VERSION } from '../../generated/missionSimulation.mjs';
+import { isReplaySimulationVersion,SIMULATION_VERSION } from '../../generated/missionSimulation.mjs';
 
 const audience='rivals-mission-replay-v1';
 const CHUNK_SIZE=40000,MAX_CHUNKS=600;
@@ -28,7 +28,7 @@ export class MissionCompletions {
   authorize(playerId,token) {
     try {
       const permit=jwt.verify(token,env.jwtSecret,{algorithms:['HS256'],audience,issuer:'rivals'});
-      if(permit.sub!==String(playerId)||![SIMULATION_VERSION,COLLISION_SIMULATION_VERSION].includes(permit.simulationVersion)||!mongoose.isValidObjectId(permit.id))throw Error();
+      if(permit.sub!==String(playerId)||!isReplaySimulationVersion(permit.simulationVersion)||!mongoose.isValidObjectId(permit.id))throw Error();
       return permit;
     }catch{fail('invalid_mission_permit',403);}
   }

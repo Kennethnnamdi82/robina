@@ -18,9 +18,9 @@ export class CityTrafficArt {
   private headlights:T.InstancedMesh;private brakes:T.InstancedMesh;
   private doorGeometry=new T.BoxGeometry(.065,.85,1.12);private doorMaterial=new T.MeshStandardMaterial({color:0x47535c,metalness:.5,roughness:.4});private doors:T.InstancedMesh;
   private beaconGeometry=new T.BoxGeometry(.38,.16,.25);private beaconMaterial=new T.MeshBasicMaterial({color:0xffffff,toneMapped:false});private beacons:T.InstancedMesh;
-  constructor(assets:CityAssets,seed:number) {
-    this.root.name='Living road traffic';this.simulation=new CitySimulation(seed);
-    addParkedVehicles(this.simulation.cars);
+  constructor(assets:CityAssets,seed:number,traffic?:CitySimulation) {
+    this.root.name='Living road traffic';this.simulation=traffic??new CitySimulation(seed);
+    if(!traffic)addParkedVehicles(this.simulation.cars);
     this.beacons=new T.InstancedMesh(this.beaconGeometry,this.beaconMaterial,12);this.beacons.frustumCulled=false;this.root.add(this.beacons);
     const groups=new Map<T.Group,CityCar[]>();for(const car of this.simulation.cars){const source=assets.details.get(car.kind)!;if(!groups.has(source))groups.set(source,[]);groups.get(source)!.push(car);}
     for(const [source,cars]of groups) {

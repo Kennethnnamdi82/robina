@@ -25,9 +25,9 @@ import {PedestrianSimulation} from '../three/PedestrianSimulation';
 import {authoritativeMuzzle} from '../three/WeaponGeometry';
 import {MovementStream,type MovementBatch} from './MovementStream';
 import {cityMovementSolids} from '../three/CityMovementSolids';
-import {COLLISION_SIMULATION_VERSION,SIMULATION_VERSION} from './SimulationVersion';
+import {COLLISION_SIMULATION_VERSION,SIMULATION_VERSION,VISIBLE_VEHICLE_SIMULATION_VERSION} from './SimulationVersion';
 
-export {COLLISION_SIMULATION_VERSION,SIMULATION_VERSION};
+export {COLLISION_SIMULATION_VERSION,SIMULATION_VERSION,VISIBLE_VEHICLE_SIMULATION_VERSION,isReplaySimulationVersion} from './SimulationVersion';
 export const SIMULATION_STEP = 1 / 60;
 export interface AuthorityInput extends PlayerCommand {
   seq: number; aim: [number, number, number]; jump: boolean; jumpHeld: boolean; highJump: boolean;
@@ -114,7 +114,7 @@ export class MissionSimulation {
       damage: event => this.damage(event) });
     this.world.level.enemies.forEach((spawn, i) => this.addEnemy(spawn, i * .05));
     this.traffic = new CitySimulation(this.operation.seed); addParkedVehicles(this.traffic.cars);
-    const updatedCollisions=simulationVersion===COLLISION_SIMULATION_VERSION;
+    const updatedCollisions=simulationVersion>=COLLISION_SIMULATION_VERSION;
     if(updatedCollisions)for(const car of this.traffic.cars)car.collisionWidth=vehicleModelWidth(car);
     this.vehicles = new VehicleController(this.traffic.cars);
     this.crowd=new PedestrianSimulation(this.operation.seed);this.targets.push(...this.crowd.combat.targets);
@@ -171,9 +171,14 @@ export class MissionSimulation {
     if (action.type === 'vehicle') {
       this.controller.stop();
       if (this.vehicles.current) {const exited=this.vehicles.exit(this.body.position,this.movementSolids);if(exited)this.movement.reset();return exited;}
-      this.vehicles.scan(this.body.position, 28);
-      const entered=!!this.vehicles.nearby && this.vehicles.enter(this.vehicles.nearby, this.body.position, this.movementSolids,car=>{this.crowd.ejectDriver(car);this.crowd.combat.sync(this.crowd.active);});
-      if(entered)this.movement.reset();return entered;
+      const visibleOnly=this.simulationVersion>=VISIBLE_VEHICLE_SIMULATION_VERSION;
+      const car=this.vehicles.scan(this.body.position,visibleOnly?TRAFFIC_COUNT:28);
+      const entered=!!car&&this.vehicles.enter(car,this.body.position,this.movementSolids,vehicle=>{this.crowd.ejectDriver(vehicle);this.crowd.combat.sync(this.crowd.active);});
+      if(entered){
+        if(visibleOnly){this.body.position.set(car.x,.55,car.z);this.body.vertical=0;this.body.grounded=true;}
+        this.movement.reset();
+      }
+      return entered;
     }
     return false;
   }

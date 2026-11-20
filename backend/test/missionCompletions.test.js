@@ -54,6 +54,8 @@ test('launch permit and unfinished play write no mission sessions, health, check
   assert.equal(p.simulationVersion,3);
   const upgraded=await request(a,'/permits','POST',{missionId:'assignment-reserve',seed:42,simulationVersion:4});
   assert.equal(upgraded.status,200);assert.equal(upgraded.body.permit.simulationVersion,4);
+  const visibleCars=await request(a,'/permits','POST',{missionId:'assignment-reserve',seed:42,simulationVersion:5});
+  assert.equal(visibleCars.status,200);assert.equal(visibleCars.body.permit.simulationVersion,5);
   for(const model of [MissionSession,MissionCheckpoint,MissionCombatEvent,VerifiedMissionResult])assert.equal(await model.countDocuments({playerId:a.user._id}),0);
   assert.equal((await StoreInventory.findOne({playerId:a.user._id})).grenades,5);
 });
