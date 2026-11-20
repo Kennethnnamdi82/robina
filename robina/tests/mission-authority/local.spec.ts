@@ -77,7 +77,7 @@ test('rendered walking, running and driving keep held touch input through a resi
   await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).id,{timeout:30000}).toBe(28);
   const exit=page.getByRole('button',{name:'Exit vehicle'});
   await expect(exit).toBeVisible({timeout:30000});
-  await page.evaluate(()=>{const audit=Reflect.get(window,'movementAudit');audit.samples=[];audit.recording=true;});
+  await page.evaluate(()=>{const audit=Reflect.get(window,'movementAudit');audit.samples=[];audit.shadowRefreshes=0;audit.recording=true;});
   await holdForward('driving-stick',8);
   await touch.detach();
   const rendered=await page.evaluate(()=>{
@@ -95,7 +95,12 @@ test('rendered walking, running and driving keep held touch input through a resi
   });
   expect(rendered.meshZ.length).toBeGreaterThan(0);
   expect(rendered.meshZ.every(z=>Math.abs(z-rendered.z)<4)).toBe(true);
-  const drivingSamples=await page.evaluate(()=>{const audit=Reflect.get(window,'movementAudit');audit.recording=false;return audit.samples as {at:number;z:number}[];});
+  const {drivingSamples,shadowRefreshes}=await page.evaluate(()=>{
+    const audit=Reflect.get(window,'movementAudit');audit.recording=false;
+    return {drivingSamples:audit.samples as {at:number;z:number}[],shadowRefreshes:audit.shadowRefreshes as number};
+  });
+  expect(drivingSamples.length).toBeGreaterThanOrEqual(5);
+  expect(shadowRefreshes).toBeLessThanOrEqual(1);
   for(let i=2;i<drivingSamples.length;i++)expect(drivingSamples[i].z-drivingSamples[i-1].z).toBeGreaterThanOrEqual(-.01);
   await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).speed,{timeout:30000}).toBeLessThanOrEqual(2);
   await exit.tap({timeout:60000});
@@ -119,7 +124,7 @@ test('rendered walking, running and driving keep held touch input through a resi
   await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing');expect(gameplayRequests).toEqual([]);expect(errors).toEqual([]);
   await page.context().setOffline(false);
   const stored=await(await request.get(`${backend}/__test/state?playerId=${playerId}`)).json();expect(stored).toMatchObject({sessions:0,checkpoints:0,events:0,life:null,live:null,results:[]});
-  await info.attach('offline-rendered-movement',{body:JSON.stringify({samples,drivingSamples,walkingZ:walked,drivingZ:await state.getAttribute('data-z'),fps:await state.getAttribute('data-fps'),frameMs:await state.getAttribute('data-frame-ms')}),contentType:'application/json'});
+  await info.attach('offline-rendered-movement',{body:JSON.stringify({samples,drivingSamples,shadowRefreshes,walkingZ:walked,drivingZ:await state.getAttribute('data-z'),fps:await state.getAttribute('data-fps'),frameMs:await state.getAttribute('data-frame-ms')}),contentType:'application/json'});
 });
 test('a natural victory is durably queued offline and verified once after reconnecting',async({page,request})=>{
   const session=await(await request.get(backend+'/__test/session')).json(),playerId=session.playerId;

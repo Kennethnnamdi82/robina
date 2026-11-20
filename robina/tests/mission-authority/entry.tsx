@@ -9,7 +9,8 @@ import {pendingMissions} from '../../src/services/missionCompletion';
 // Test-entry instrumentation only: retain pause causes and frame positions even
 // when a slow software renderer cannot publish HUD diagnostics regularly.
 import {PresentationCorrection} from '../../src/features/rivals/three/PresentationCorrection';
-const movementAudit={pauses:[] as {at:number;stack:string|undefined;hidden:boolean;interrupted:boolean|undefined;stalled:boolean}[],samples:[] as {at:number;z:number}[],recording:false};
+import {CityPostProcess} from '../../src/features/rivals/three/CityPostProcess';
+const movementAudit={pauses:[] as {at:number;stack:string|undefined;hidden:boolean;interrupted:boolean|undefined;stalled:boolean}[],samples:[] as {at:number;z:number}[],recording:false,shadowRefreshes:0};
 Object.assign(window,{movementAudit});
 Object.assign(window,{completionTools:{LocalMission,unpackReplayInput,pendingMissions}});
 const pause=LocalMission.prototype.pause;
@@ -27,5 +28,10 @@ PresentationCorrection.prototype.present=function(position,dt,out){
   const result=present.call(this,position,dt,out);
   if(movementAudit.recording)movementAudit.samples.push({at:performance.now(),z:result.z});
   return result;
+};
+const draw=CityPostProcess.prototype.render;
+CityPostProcess.prototype.render=function(camera,time){
+  if(movementAudit.recording&&Reflect.get(this,'renderer').shadowMap.needsUpdate)movementAudit.shadowRefreshes++;
+  return draw.call(this,camera,time);
 };
 createRoot(document.getElementById('root')!).render(<RaidApp operation={createAssignmentOperation(0,42)} preferences={{...defaultHubPreferences(),muted:true}}/>);

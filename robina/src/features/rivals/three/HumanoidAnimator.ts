@@ -1,4 +1,4 @@
-import { AnimationClip, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, MathUtils, Quaternion, Vector3, type AnimationAction, type Object3D } from 'three';
+import { AnimationClip, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, MathUtils, Quaternion, Vector3, type AnimationAction, type KeyframeTrack, type Object3D } from 'three';
 import type { Actor } from '../../rugfire/actors';
 import type { POV } from './CameraRig';
 import { ArmIK } from './ArmIK';
@@ -24,6 +24,21 @@ const direction = new Vector3(), up = new Vector3(0, 1, 0), correction = new Qua
 // measured on the shipped field operative rather than a generic stride.
 const strideMetres: Record<string,number> = {Walk_Loop:1.13,Jog_Fwd_Loop:4.45,Sprint_Loop:4.3};
 const hipStabilization: Record<string,number> = {Walk_Loop:.74,Jog_Fwd_Loop:.32,Sprint_Loop:.53};
+const torsoRotation = /^(pelvis|spine_0[123]|neck_01|Head)\.quaternion$/;
+
+/** Remove sharp changes between neighboring torso keys while keeping the
+ * motion centered in the authored stride. Work on a private track copy. */
+function softenTorso(track:KeyframeTrack,duration:number){
+  const smoothed=track.clone(),sample=track.InterpolantFactoryMethodLinear();
+  const before=new Quaternion(),after=new Quaternion(),pose=new Quaternion();
+  for(let i=0;i<track.times.length;i++){
+    const at=track.times[i],offset=i*4;
+    before.fromArray(sample.evaluate(MathUtils.euclideanModulo(at-.045,duration)));
+    after.fromArray(sample.evaluate(MathUtils.euclideanModulo(at+.045,duration)));
+    pose.fromArray(track.values,offset).slerp(before.slerp(after,.5),.7).toArray(smoothed.values,offset);
+  }
+  return smoothed;
+}
 
 /** Per-instance actions/bones; shared immutable geometry, textures and source clips.
  * Physics owns translation. Lower/upper tracks are disjoint during locomotion,
@@ -99,6 +114,7 @@ export class HumanoidAnimator {
       let tracks = layer === 'full' ? clip.tracks : clip.tracks.filter(track => lower.test(track.name) === (layer === 'lower'));
       const stability=hipStabilization[clipName];
       if(layer==='lower'&&stability!==undefined)tracks=tracks.map(track=>{
+        if(torsoRotation.test(track.name)&&track.ValueTypeName==='quaternion')return softenTorso(track,clip.duration);
         if(track.name!=='pelvis.position')return track;
         // Scale the in-place bob in bone-local space so this also works on
         // outfits with a rotated pelvis parent. Keep the loop's reference pose.
@@ -247,7 +263,7 @@ export class HumanoidAnimator {
     const alignment=this.speed>0?(frame.vx*Math.sin(this.yaw)+frame.vz*Math.cos(this.yaw))/this.speed:0;
     const contactWeight=MathUtils.smoothstep(alignment,.78,.97)*MathUtils.smoothstep(this.speed,.35,.85);
     this.footPlant.update(clipName,this.base.time/this.base.getClip().duration,
-      dt>0&&frame.travel!==undefined&&frame.grounded&&!full&&!directional?contactWeight:0);
+      dt>0&&frame.travel!==undefined&&frame.grounded&&!full&&!directional?contactWeight:0,dt);
     for (const { bone, source } of this.weaponPose) source.copy(bone.quaternion);
     this.actor.recoil = Math.max(0, this.actor.recoil - dt * 9); this.actor.muzzle.visible = this.actor.recoil > .6;
     this.actionTime = this.base.time; this.activeActions = 0;

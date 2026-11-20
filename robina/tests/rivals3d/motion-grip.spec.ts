@@ -20,6 +20,9 @@ for(const model of ['realism/field-operative.glb','characters/universal-operativ
     let grip=0,support=0,maxWeaponStep=0,peak={},peakStep={};const clips=new Set<string>();
     const pelvis=body.scene.getObjectByName('pelvis'),pelvisPoint=new T.Vector3(),jogHeights:number[]=[];
     const stanceFoot=body.scene.getObjectByName('foot_l'),stancePoint=new T.Vector3(),priorStance=new T.Vector3();
+    const calf=body.scene.getObjectByName('calf_l'),spine=body.scene.getObjectByName('spine_03');
+    const priorCalf=new T.Quaternion(),priorSpine=new T.Quaternion();
+    let walkKneeSpeed=0,sprintKneeSpeed=0,runTorsoSpeed=0;
     let plantedSamples=0,stanceDrift=0,wasPlanted=false;
     for(let i=0;i<630;i++){
       const dt=1/120;frame.vz=i<60?0:i<180?2:i<300?5.875:i<420?9:0;frame.sprinting=i>=300&&i<420;frame.aiming=i>=420;
@@ -27,6 +30,10 @@ for(const model of ['realism/field-operative.glb','characters/universal-operativ
       frame.reload=i>=450?Math.max(0,1.25-(i-450)*dt):0;
       frame.travel=frame.vz*dt;actor.root.position.z+=frame.travel;
       animator.update(dt,frame);gun.decay(dt);gun.pose(target,frame,dt);actor.root.updateMatrixWorld(true);gun.model.getWorldPosition(point);
+      if(i>=80&&i<180)walkKneeSpeed=Math.max(walkKneeSpeed,calf.quaternion.angleTo(priorCalf)/dt);
+      if(i>=320&&i<420)sprintKneeSpeed=Math.max(sprintKneeSpeed,calf.quaternion.angleTo(priorCalf)/dt);
+      if(i>=200&&i<300||i>=320&&i<420)runTorsoSpeed=Math.max(runTorsoSpeed,spine.quaternion.angleTo(priorSpine)/dt);
+      priorCalf.copy(calf.quaternion);priorSpine.copy(spine.quaternion);
       grip=Math.max(grip,gun.rightGripError);if(!frame.reload&&gun.leftGripError>support){support=gun.leftGripError;peak={frame:i,error:support,target:gun.leftTarget.toArray(),wrist:body.scene.getObjectByName('hand_l').getWorldPosition(new T.Vector3()).toArray(),shoulder:body.scene.getObjectByName('upperarm_l').getWorldPosition(new T.Vector3()).toArray()};}
       point.z-=actor.root.position.z;
       if(i>1&&point.distanceTo(prior)>maxWeaponStep){maxWeaponStep=point.distanceTo(prior);peakStep={frame:i,from:prior.toArray(),to:point.toArray()};}prior.copy(point);clips.add(animator.upperClipName);
@@ -37,13 +44,16 @@ for(const model of ['realism/field-operative.glb','characters/universal-operativ
       wasPlanted=planted;
     }
     camera.position.z+=actor.root.position.z;camera.lookAt(0,1,actor.root.position.z);renderer.render(scene,camera);
-    return{grip,support,maxWeaponStep,jogBob:Math.max(...jogHeights)-Math.min(...jogHeights),stanceDrift,plantedSamples,clips:[...clips],supported:gun.supportEngaged,alignment:gun.alignment,peak,peakStep};
+    return{grip,support,maxWeaponStep,jogBob:Math.max(...jogHeights)-Math.min(...jogHeights),stanceDrift,plantedSamples,walkKneeSpeed,sprintKneeSpeed,runTorsoSpeed,clips:[...clips],supported:gun.supportEngaged,alignment:gun.alignment,peak,peakStep};
   },model);
   console.log('Real soldier grip/motion audit:',JSON.stringify(result));
   expect(result.grip).toBeLessThan(.005);expect(result.support).toBeLessThan(.035);
   expect(result.maxWeaponStep).toBeLessThan(.04);expect(result.clips).toEqual(['Pistol_Aim_Neutral']);expect(result.supported).toBe(true);
   expect(result.alignment).toBeGreaterThan(.98);expect(errors).toEqual([]);
   if(model.startsWith('realism/')){
+    expect(result.walkKneeSpeed).toBeLessThan(30);
+    expect(result.sprintKneeSpeed).toBeLessThan(53);
+    expect(result.runTorsoSpeed).toBeLessThan(7.2);
     expect(result.jogBob).toBeLessThan(.13);
     expect(result.plantedSamples).toBeGreaterThanOrEqual(3);
     expect(result.stanceDrift).toBeLessThan(.025);

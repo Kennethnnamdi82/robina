@@ -1,12 +1,51 @@
 import { describe,it,expect } from 'vitest';
-import { Box3,Vector3 } from 'three';
+import { Box3,BoxGeometry,Group,InstancedMesh,Matrix4,Mesh,MeshStandardMaterial,Vector3 } from 'three';
 import { BODY,horizontalContact,moveKinematic,traceSolids } from './physics3d';
 import type { Solid3D } from './world3d';
 import {CityTrafficArt} from './CityTrafficArt';
 import {CitySimulation,TRAFFIC_COUNT,vehicleCollisionDimensions} from './CitySimulation';
+import type { CityAssets } from './CityAssets';
+import { driveVehicle,drivenVehiclePose } from './VehicleController';
+import { CameraRig } from './CameraRig';
+import { frameTiming } from './frameTiming';
 const solid=(id:string,x:number,z:number,w:number,d:number):Solid3D=>({id,kind:'cover',enabled:true,box:new Box3(new Vector3(x-w/2,0,z-d/2),new Vector3(x+w/2,2,z+d/2))});
 const body=(x:number,z:number)=>({position:new Vector3(x,0,z),vertical:0,grounded:true});
 describe('road movement regression',()=>{
+ it('moves the rendered car at motorway speed with stable framing across uneven display intervals',()=>{
+  const sim=new CitySimulation(42,1),car=sim.cars[0];
+  Object.assign(car,{mode:'player',x:8,z:8,dx:0,dz:1,speed:20-.25/60});
+  const source=new Group(),geometry=new BoxGeometry(2,1,car.length),material=new MeshStandardMaterial();
+  source.add(new Mesh(geometry,material));
+  const art=new CityTrafficArt({details:new Map([[car.kind,source]])} as unknown as CityAssets,42,sim);
+  try{
+    const mesh=art.root.children.find(child=>child instanceof InstancedMesh&&child.geometry===geometry) as InstancedMesh;
+    const rig=new CameraRig(),matrix=new Matrix4(),chassis=new Vector3(),last=new Vector3(),lastScreen=new Vector3();
+    const target=new Vector3(8,.55,8),motion={vx:0,vz:car.speed,combat:false,sprinting:false,manual:false,vehicle:{id:car.id,speed:car.speed,length:car.length,heading:Math.PI}};
+    rig.setPOV('third');rig.yaw=-Math.PI;rig.resize(960,540);
+    let remainder=0,previousZ=car.z;
+    for(let i=0;i<240;i++){
+      const {delta,step}=frameTiming([1/60,1/120,1/30,1/90][i%4]);
+      remainder+=delta;
+      while(remainder+1e-9>=step){
+        previousZ=car.z;driveVehicle(car,{throttle:1,steer:0,brake:false},step,[]);
+        remainder=Math.max(0,remainder-step);
+      }
+      const alpha=remainder/step;
+      target.z=previousZ+(car.z-previousZ)*alpha;
+      const pose=drivenVehiclePose(car,alpha);
+      rig.update(target,[],delta,false,0,undefined,motion);
+      art.draw(target,false,rig.camera,alpha,pose.yaw);
+      expect(mesh.count).toBe(1);expect(mesh.castShadow).toBe(false);
+      mesh.getMatrixAt(0,matrix);chassis.setFromMatrixPosition(matrix);
+      const screen=chassis.clone().add(new Vector3(0,.65,0)).project(rig.camera);
+      if(i>60){
+        expect(chassis.z-last.z).toBeCloseTo(car.speed*delta,4);
+        expect(Math.hypot(screen.x-lastScreen.x,screen.y-lastScreen.y)).toBeLessThan(.0005);
+      }
+      last.copy(chassis);lastScreen.copy(screen);
+    }
+  }finally{art.dispose();geometry.dispose();material.dispose();}
+ });
  it('refreshes traffic collision boxes from a received snapshot before any rendering',()=>{
   const simulation=new CitySimulation(42),colliders=simulation.cars.map(car=>({...solid('city-traffic-'+car.id,0,0,1,1),oriented:{center:new Vector3(),half:new Vector3(),yaw:0}}));
   const art={simulation,colliders,active:TRAFFIC_COUNT};

@@ -111,7 +111,7 @@ export class RaidRuntime {
   private humanoid?: HumanoidAnimator;
   private gun?: WeaponRig; private bossPresentation?: SecurityPresentation; private viewGun?: FirstPersonWeapon; private effects?: CombatEffects;
   private combatAudio: CombatAudio; private viewScene = new T.Scene(); private viewCamera = new T.PerspectiveCamera(72,1,.025,8);
-  private flash?: MuzzleFlash; private viewFlash?: MuzzleFlash; private securityFlashes = new Map<string,MuzzleFlash>(); private cameraFeedback=new CameraFeedback();private resolution=new AdaptiveResolution(1,1);private shadowClock=1;
+  private flash?: MuzzleFlash; private viewFlash?: MuzzleFlash; private securityFlashes = new Map<string,MuzzleFlash>(); private cameraFeedback=new CameraFeedback();private resolution=new AdaptiveResolution(1,1);
   private previousPosition=this.body.position.clone();private renderPosition=new T.Vector3();
   private hasMotionInterval=false;
   private previousOperativePose?:T.Vector3;
@@ -312,7 +312,7 @@ export class RaidRuntime {
       this.fieldArt = new FieldArt(this.assets,this.field); this.scene.add(this.fieldArt.root);
       this.humanoid.sockets.leftHand.add(this.fieldArt.held); this.fieldArt.held.position.set(0,.01,-.06);
       this.viewScene.add(this.fieldArt.viewHeld); this.fieldArt.viewHeld.position.set(-.18,-.15,-.55);
-      this.rig.resize(this.host.clientWidth,this.host.clientHeight);this.rig.update(this.body.position,this.solids,0,true);this.atmosphere.follow(this.body.position,this.rig.pov);
+      this.rig.resize(this.host.clientWidth,this.host.clientHeight);this.rig.update(this.body.position,this.solids,0,true);this.atmosphere.updateFog(this.rig.pov);
       this.session.loading('Warming graphics',.98);await this.renderer.compileAsync(this.scene,this.rig.camera);if(this.disposed)return;
       // Keep the loading overlay until a complete world frame has been drawn.
       const firstFrame=new Promise<void>(resolve=>{this.firstFrameReady=resolve;});
@@ -369,7 +369,7 @@ export class RaidRuntime {
     this.renderQuality=quality;
     this.art?.setQuality(quality);this.siteLife?.setQuality(quality);this.witnessArt?.setQuality(quality);
     this.effects?.setQuality(quality);this.fires?.setQuality(quality);this.atmosphere.quality(quality);this.post.quality(quality);
-    this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;
+    this.renderer.shadowMap.needsUpdate=true;
   }
   private setQuality(quality:QualityId){
     this.quality=quality;
@@ -379,7 +379,7 @@ export class RaidRuntime {
     this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.autoUpdate=false;
     this.applyRenderQuality(this.resolution.quality(quality));this.resize();if(this.modelsReady)this.publish();
   }
-  setEnvironmentLighting(preset:CityWeather) { this.atmosphere.set(preset);this.art.city?.setLighting(preset);this.needsDraw=true;if(this.modelsReady)this.publish(); }
+  setEnvironmentLighting(preset:CityWeather) { this.atmosphere.set(preset);this.art.city?.setLighting(preset);this.renderer.shadowMap.needsUpdate=true;this.needsDraw=true;if(this.modelsReady)this.publish(); }
   // Queue only. Writing canvas dimensions here could clear the last image
   // between animation frames (including a paused frame).
   private resize(){this.needsDraw=true;}
@@ -435,6 +435,7 @@ export class RaidRuntime {
   };
   private syncGeometry() {
     if (this.revision === this.world.revision) return; this.revision = this.world.revision;
+    this.renderer.shadowMap.needsUpdate=true;
     for (const solid of this.solids) { const original = this.world.blockers.find(b => b.id === solid.id); if (original) solid.enabled = original.enabled; }
     this.navigation.rebuild(); this.boss.navigation.rebuild();
     if(!this.session.authority)for (const id of this.world.active) this.session.mission.event(id);
@@ -958,7 +959,7 @@ export class RaidRuntime {
     }
     this.roadGuide.update(this.renderPosition,this.gps?.route??[],this.gps?.goal,this.elapsed,this.session.getSnapshot().reducedMotion,this.vehicles?.current?this.vehicles.current.length/2+1.5:1.4);
     this.fires?.draw(this.rig.camera,this.elapsed,this.body.position);if(this.carriedCase)this.carriedCase.visible=Boolean(this.campaign?.carrying)&&!this.vehicles?.current;
-    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera,alpha,this.presentedVehicleYaw);this.atmosphere.follow(this.body.position,this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
+    this.art.sync(this.elapsed); this.art.updateEnvironment(this.elapsed,this.rig.pov,this.session.getSnapshot().reducedMotion,this.renderPosition,this.loadout.shots,this.npcs.filter(n=>n.model.alive).map(n=>({x:n.model.x*METRES,z:n.model.y*METRES})),this.rig.camera,alpha,this.presentedVehicleYaw);this.atmosphere.updateFog(this.rig.pov); this.fieldArt?.sync(this.elapsed,this.field.nearby(this.body.position,this.solids),this.loadout.action === 'throw' && this.throwRelease > 0,this.rig.pov === 'first');
     if(this.witnessArt&&this.witnessPose&&this.campaign){const w=this.witnessPose,p=this.campaign.witness;w.yaw=Math.atan2(p.x*.025-w.x,p.y*.025-w.z);w.x=p.x*.025;w.z=p.y*.025;w.moving=this.campaign.witnessMoving;w.motion=w.moving?1.5:0;this.witnessArt.draw([w],this.campaign.witnessBoarded?0:1,this.elapsed,this.rig.camera);}
     this.siteLife?.update(active?dt:0,this.elapsed,Boolean(this.pursuit?.active),this.rig.camera);
     this.socialScene?.update(this.socialClock,this.body.position,this.campaign?.handoff==='complete');
@@ -968,8 +969,6 @@ export class RaidRuntime {
     const settings = this.session.getSnapshot().settings;
     const feedbackEnabled=!this.vehicles?.current&&settings.cameraShake&&!this.session.getSnapshot().reducedMotion&&['first','third'].includes(this.rig.pov);
     this.cameraFeedback.update(active?dt:0,feedbackEnabled,Math.hypot(this.humanoidFrame.vx,this.humanoidFrame.vz),this.rig.ads);if(feedbackEnabled)this.cameraFeedback.apply(this.rig.camera);
-    this.shadowClock+=active?dt:0;const shadowPeriod=this.renderQuality==='high'?1/24:this.renderQuality==='balanced'?1/16:1/8;
-    if(this.shadowClock>=shadowPeriod){this.renderer.shadowMap.needsUpdate=true;this.shadowClock=0;}
     if(active&&this.art.city){
       const cars=this.art.city.traffic.simulation.cars.slice(0,this.art.city.traffic.active);
       const nearest=cars.reduce((a,b)=>Math.hypot(a.x-this.body.position.x,a.z-this.body.position.z)<Math.hypot(b.x-this.body.position.x,b.z-this.body.position.z)?a:b),driving=this.vehicles?.current;

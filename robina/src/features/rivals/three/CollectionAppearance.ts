@@ -34,7 +34,7 @@ export function prepareOutfit(root:Object3D,id:OutfitId){
   // Normalize only the wrapper; animation track positions keep source units.
   wrapper.scale.setScalar(1.78/Math.max(.01,size.y));wrapper.position.set(-mid.x*wrapper.scale.x,-bounds.min.y*wrapper.scale.y,-mid.z*wrapper.scale.z);
   wrapper.userData.rivalsOutfit=id;
-  wrapper.traverse(n=>{if(n instanceof Mesh){n.castShadow=true;n.receiveShadow=true;n.frustumCulled=false;}});
+  wrapper.traverse(n=>{if(n instanceof Mesh){n.castShadow=false;n.receiveShadow=true;n.frustumCulled=false;}});
   return wrapper;
 }
 export const FINISHES:Record<string,string>={desert:'#c4ae7d',pulse:'#9dcf91',steel:'#8e9ba7',fire:'#d17f70',frost:'#95d5e5',protocol:'#d8b86c',diamond:'#c7d1e5'};

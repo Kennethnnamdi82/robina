@@ -10,7 +10,24 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 describe('stable city presentation',()=>{
  it('does not mistake the distant orthographic eye for street-level fog distance',()=>{
   const load=vi.spyOn(T.TextureLoader.prototype,'load').mockReturnValue(new T.Texture()),hdr=vi.spyOn(RGBELoader.prototype,'load').mockReturnValue(new T.DataTexture());
-  try{const scene=new T.Scene(),atmosphere=new CityAtmosphere(scene,{} as T.WebGLRenderer,'golden');for(const pov of ['side','tactical'] as const){atmosphere.follow(new T.Vector3(8,0,8),pov);expect((scene.fog as T.FogExp2).density).toBe(0);}atmosphere.follow(new T.Vector3(),'third');expect((scene.fog as T.FogExp2).density).toBe(.0055);atmosphere.set('night');atmosphere.follow(new T.Vector3(),'first');expect((scene.fog as T.FogExp2).density).toBe(.01);atmosphere.dispose();}finally{load.mockRestore();hdr.mockRestore();}
+  try{const scene=new T.Scene(),atmosphere=new CityAtmosphere(scene,{} as T.WebGLRenderer,'golden');for(const pov of ['side','tactical'] as const){atmosphere.updateFog(pov);expect((scene.fog as T.FogExp2).density).toBe(0);}atmosphere.updateFog('third');expect((scene.fog as T.FogExp2).density).toBe(.0055);atmosphere.set('night');atmosphere.updateFog('first');expect((scene.fog as T.FogExp2).density).toBe(.01);atmosphere.dispose();}finally{load.mockRestore();hdr.mockRestore();}
+ });
+ it('covers the city streets with one shadow projection through all driving views',()=>{
+  const load=vi.spyOn(T.TextureLoader.prototype,'load').mockReturnValue(new T.Texture()),hdr=vi.spyOn(RGBELoader.prototype,'load').mockReturnValue(new T.DataTexture());
+  const scene=new T.Scene(),atmosphere=new CityAtmosphere(scene,{} as T.WebGLRenderer,'golden');
+  try{
+   const sun=atmosphere.root.children.find(node=>node instanceof T.DirectionalLight&&node.castShadow) as T.DirectionalLight;
+   scene.updateMatrixWorld(true);sun.shadow.updateMatrices(sun);
+   const frustum=sun.shadow.getFrustum(),transform=sun.shadow.matrix.clone();
+   for(const street of [8,32,56,80])for(const edge of [-28,140]){
+    expect(frustum.containsPoint(new T.Vector3(street,0,edge))).toBe(true);
+    expect(frustum.containsPoint(new T.Vector3(edge,0,street))).toBe(true);
+   }
+   for(const pov of ['first','side','tactical','third'] as const){
+    atmosphere.updateFog(pov);sun.shadow.updateMatrices(sun);
+    expect(sun.shadow.matrix.equals(transform)).toBe(true);
+   }
+  }finally{atmosphere.dispose();load.mockRestore();hdr.mockRestore();}
  });
  it('reduces crowd geometry while preserving normalized skin weights and the immutable source',()=>{
   const source=new T.SphereGeometry(.3,48,32),count=source.getAttribute('position').count,indices=new Uint16Array(count*4),weights=new Float32Array(count*4);

@@ -12,6 +12,8 @@ class LegContact {
   private readonly ik:ArmIK;
   private readonly bones:Object3D[];
   private readonly pose=[new Quaternion(),new Quaternion(),new Quaternion()];
+  private readonly correction=[new Quaternion(),new Quaternion(),new Quaternion()];
+  private readonly goal=new Quaternion();
   private readonly anchor=new Vector3();
   private readonly position=new Vector3();
   private readonly offset=new Vector3();
@@ -33,26 +35,35 @@ class LegContact {
     this.corrected=false;
   }
 
-  update(clip:string,phase:number,window:readonly [number,number]|undefined,weight:number){
-    if(!window||phase<=window[0]||phase>=window[1]){
-      this.clip='';
-      return;
-    }
-    const foot=this.ik.hand;
-    foot.getWorldPosition(this.position);
-    if(this.clip!==clip||phase<this.priorPhase)this.anchor.copy(this.position);
-    this.clip=clip;this.priorPhase=phase;
-    const blend=weight*MathUtils.smoothstep(phase,window[0],window[0]+.042)*(1-MathUtils.smoothstep(phase,window[1]-.042,window[1]));
-    // Keep the correction small so retargeted outfits and uneven terrain
-    // can release the stance naturally instead of overextending a knee.
-    this.offset.subVectors(this.anchor,this.position).clampLength(0,.17).multiplyScalar(blend);
-    if(this.offset.lengthSq()<1e-8)return;
+  update(clip:string,phase:number,window:readonly [number,number]|undefined,weight:number,dt:number){
+    this.offset.set(0,0,0);
+    if(window&&phase>window[0]&&phase<window[1]&&weight>0){
+      const foot=this.ik.hand;
+      foot.getWorldPosition(this.position);
+      if(this.clip!==clip||phase<this.priorPhase)this.anchor.copy(this.position);
+      this.clip=clip;this.priorPhase=phase;
+      const blend=weight*MathUtils.smoothstep(phase,window[0],window[0]+.042)*(1-MathUtils.smoothstep(phase,window[1]-.042,window[1]));
+      this.offset.subVectors(this.anchor,this.position).clampLength(0,.17).multiplyScalar(blend);
+    }else this.clip='';
+    const solve=this.offset.lengthSq()>=1e-8;
+    if(!solve&&this.correction.every(q=>Math.abs(q.w)>1-1e-8))return;
     this.bones.forEach((bone,i)=>this.pose[i].copy(bone.quaternion));
+    if(solve){
+      this.ik.lower.getWorldPosition(this.pole);
+      this.ik.hand.getWorldQuaternion(this.footRotation);
+      this.ik.solve(this.position.add(this.offset),this.pole);
+      setWorldRotation(this.ik.hand,this.footRotation,this.scratch);
+    }
+    // Ease only the additive contact pose. The authored gait still advances
+    // at the current stride as the stance starts, ends or reaches full extension.
+    const response=1-Math.exp(-26*dt);
+    this.bones.forEach((bone,i)=>{
+      this.goal.identity();
+      if(solve)this.goal.copy(this.pose[i]).invert().multiply(bone.quaternion);
+      this.correction[i].slerp(this.goal,response);
+      bone.quaternion.copy(this.pose[i]).multiply(this.correction[i]);
+    });
     this.corrected=true;
-    this.ik.lower.getWorldPosition(this.pole);
-    foot.getWorldQuaternion(this.footRotation);
-    this.ik.solve(this.position.add(this.offset),this.pole);
-    setWorldRotation(foot,this.footRotation,this.scratch);
   }
 }
 
@@ -65,8 +76,8 @@ export class OperativeFootPlant {
     });
   }
   restore(){this.legs.forEach(leg=>leg?.restore());}
-  update(clip:string,phase:number,weight:number){
-    const intervals=weight>0?stance[clip]:undefined;
-    this.legs.forEach((leg,i)=>leg?.update(clip,phase,intervals?.[i],weight));
+  update(clip:string,phase:number,weight:number,dt:number){
+    const intervals=stance[clip];
+    this.legs.forEach((leg,i)=>leg?.update(clip,phase,intervals?.[i],weight,dt));
   }
 }

@@ -74,7 +74,7 @@ export class RaidAssets extends MissionAssets {
     const scale=targetBox.getSize(new Vector3()).z/Math.max(.001,size.z);
     shape.scale.setScalar(scale);shape.position.copy(bounds.getCenter(new Vector3())).multiplyScalar(-scale).add(targetBox.getCenter(new Vector3()));
     shell.traverse(node=>{if(node instanceof Mesh)node.visible=false;});
-    shape.traverse(node=>{if(node instanceof Mesh){node.castShadow=true;node.receiveShadow=true;}});
+    shape.traverse(node=>{if(node instanceof Mesh){node.castShadow=false;node.receiveShadow=true;}});
     shell.add(shape);this.collection.set(id,shell);
   }
   collectionInstance(id:string){return this.collection.get(id)?.clone(true);}
@@ -94,7 +94,7 @@ export class RaidAssets extends MissionAssets {
         const elbow = gltf.scene.getObjectByName('Elbow_R');
         if (elbow) { gltf.scene.updateMatrixWorld(true); const hand = elbow.children.find(child => child.name.startsWith('human_gloved_hand')); if (hand) { const centre = new Box3().setFromObject(hand).getCenter(new Vector3()); elbow.userData.rivalsHand = elbow.worldToLocal(centre).toArray(); } }
         if (!['player','rifle','smg','pistol'].includes(id)) batchRaidRigid(gltf.scene,gltf.animations);
-        gltf.scene.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } if (o instanceof SkinnedMesh) o.frustumCulled = false; });
+        gltf.scene.traverse(o => { if (o instanceof Mesh) { o.castShadow = id==='crate'; o.receiveShadow = true; } if (o instanceof SkinnedMesh) o.frustumCulled = false; });
         if(id==='player')finishOperative(gltf.scene);
         this.models.set(id,gltf); progress(++loaded,entries.length + 1);
       }));

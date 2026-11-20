@@ -73,7 +73,7 @@ export class WorldArt {
         const screen = new T.Mesh(this.box,color); screen.scale.set(.43,.26,.025); screen.position.set(0,1.14,.225);screen.rotation.x=-.12;root.add(screen);
       } else if (object.kind === 'collectible') {
         const shell=material(0x293238),hardware=material(0xd9c18b,0x40300c),caseBody=new T.Group();caseBody.name='recovery-hard-case';caseBody.position.y=.6;root.add(caseBody);
-        const part=(x:number,y:number,z:number,w:number,h:number,d:number,m:T.Material)=>{const mesh=new T.Mesh(this.box,m);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.castShadow=true;caseBody.add(mesh);};
+        const part=(x:number,y:number,z:number,w:number,h:number,d:number,m:T.Material)=>{const mesh=new T.Mesh(this.box,m);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);caseBody.add(mesh);};
         part(0,0,0,.68,.42,.22,shell);part(0,.24,0,.26,.045,.075,hardware);for(const side of [-1,1]){part(side*.13,.2,0,.04,.1,.075,hardware);part(side*.22,-.02,.116,.07,.11,.025,hardware);part(side*.31,0,0,.025,.43,.23,hardware);}
         const ringGeometry=new T.TorusGeometry(.58,.025,5,32);this.geometry.add(ringGeometry);const ring=new T.Mesh(ringGeometry,hardware);ring.rotation.x=-Math.PI/2;ring.position.y=.09;root.add(ring);
       } else if (object.kind === 'vault') {
