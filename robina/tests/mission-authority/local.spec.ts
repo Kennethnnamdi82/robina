@@ -21,8 +21,12 @@ test('rendered walking, running and driving keep held touch input through a resi
     const client=Reflect.get(window,'localMission') as LocalMission,runtime=Reflect.get(window,'raidRuntime') as RaidRuntime,sim=client.localSimulation;
     sim.neutral();sim.controller.stop();sim.police.end();sim.enemies.forEach(enemy=>enemy.health.current=0);sim.body.position.set(8,0,8);
     for(const car of sim.traffic.cars)Object.assign(car,{x:-1000-car.id*10,z:-1000,speed:0,mode:'parked'});
-    runtime.rig.yaw=-Math.PI;client.flushMovement();Reflect.get(window,'movementAudit').recording=true;
+    runtime.rig.yaw=-Math.PI;
   });
+  // Start after the first display of the test placement. The previous HUD
+  // update can still represent the original mission spawn.
+  await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:30000}).toBeCloseTo(8,1);
+  await page.evaluate(()=>{Reflect.get(window,'movementAudit').recording=true;});
   const touch=await page.context().newCDPSession(page);
   const holdForward=async(stick:'movement-stick'|'driving-stick',distance:number)=>{
     const bounds=(await page.getByTestId(stick).boundingBox())!;
@@ -66,6 +70,7 @@ test('rendered walking, running and driving keep held touch input through a resi
     Object.assign(sim.traffic.cars[14],{x:6.6,z:12,dx:0,dz:1,speed:0,mode:'traffic'});
     runtime.setPOV('third');runtime.rig.yaw=-Math.PI;
   });
+  await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:30000}).toBeCloseTo(12,1);
   const enter=page.getByRole('button',{name:'Enter sedan'});
   await expect(enter).toBeVisible({timeout:30000});
   await enter.tap();
