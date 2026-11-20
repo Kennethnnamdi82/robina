@@ -18,6 +18,10 @@ const lower = /^(root|pelvis|spine_0[123]|neck_01|Head|thigh_[lr]|calf_[lr]|foot
 const gaitClip: Partial<Record<HumanoidMotion, string>> = { idle: 'Idle_Loop', walk: 'Walk_Loop', backward: 'Walk_Loop', 'strafe-left': 'Walk_Loop', 'strafe-right': 'Walk_Loop', jog: 'Jog_Fwd_Loop', run: 'Jog_Fwd_Loop', sprint: 'Sprint_Loop' };
 const special: Partial<Record<HumanoidMotion, string>> = { takeoff: 'Jump_Start', fall: 'Jump_Loop', land: 'Jump_Land', dodge: 'Crouch_Fwd_Loop', hit: 'Hit_Chest', death: 'Death01' };
 const direction = new Vector3(), up = new Vector3(0, 1, 0), correction = new Quaternion(), inverse = new Quaternion();
+// Distance covered by one loop. Walk and jog follow the stance-foot travel
+// measured on the shipped field operative rather than a generic stride.
+const strideMetres: Record<string,number> = {Walk_Loop:1.13,Jog_Fwd_Loop:4.45,Sprint_Loop:4.3};
+const hipStabilization: Record<string,number> = {Walk_Loop:.9,Jog_Fwd_Loop:.42,Sprint_Loop:.76};
 
 /** Per-instance actions/bones; shared immutable geometry, textures and source clips.
  * Physics owns translation. Lower/upper tracks are disjoint during locomotion,
@@ -35,6 +39,9 @@ export class HumanoidAnimator {
   private specialRemaining = 0; private shotRemaining = 0; private changeRemaining = 0; private wasMoving = false; private initialized = false; private disposed = false;
   private pelvis: Object3D; private chest: Object3D;
   private pelvisSample = new Quaternion(); private chestSample = new Quaternion(); private corrected = false;
+  private gaitSpeed=0;
+  private hipTwist=0;
+  private chestTwist=0;
   private weaponPose: { bone: Object3D; source: Quaternion }[] = [];
   private handRest:{bone:Object3D;source:Quaternion}[]=[];
   private socialArms?:{left:ArmIK;right:ArmIK};private socialPoint=new Vector3();private socialPole=new Vector3();
@@ -85,7 +92,16 @@ export class HumanoidAnimator {
     let action = this.actions.get(key);
     if (!action) {
       const clip = this.clips.get(clipName)!;
-      const tracks = layer === 'full' ? clip.tracks : clip.tracks.filter(track => lower.test(track.name) === (layer === 'lower'));
+      let tracks = layer === 'full' ? clip.tracks : clip.tracks.filter(track => lower.test(track.name) === (layer === 'lower'));
+      const stability=hipStabilization[clipName];
+      if(layer==='lower'&&stability!==undefined)tracks=tracks.map(track=>{
+        if(track.name!=='pelvis.position')return track;
+        // Scale the in-place bob in bone-local space so this also works on
+        // outfits with a rotated pelvis parent. Keep the loop's reference pose.
+        const stabilized=track.clone(),values=stabilized.values,origin=values.slice(0,3);
+        for(let i=0;i<values.length;i++)values[i]=origin[i%3]+(values[i]-origin[i%3])*stability;
+        return stabilized;
+      });
       action = this.mixer.clipAction(new AnimationClip(key, clip.duration, tracks));
       action.setLoop(once ? LoopOnce : LoopRepeat, once ? 1 : Infinity); action.clampWhenFinished = once;
       this.actions.set(key, action);
@@ -109,6 +125,7 @@ export class HumanoidAnimator {
     // source arms before evaluation so last frame's IK cannot accumulate.
     for (const { bone, source } of this.weaponPose) bone.quaternion.copy(source);
     this.speed = Math.hypot(frame.vx, frame.vz);
+    this.gaitSpeed=this.wasMoving?MathUtils.damp(this.gaitSpeed,this.speed,18,dt):this.speed;
     this.specialRemaining = Math.max(0, this.specialRemaining - dt); this.shotRemaining = Math.max(0, this.shotRemaining - dt);
     const dodge = frame.dodgeSerial !== this.lastDodge, hit = frame.hitSerial !== this.lastHit, fired = frame.shots !== this.lastShot;
     this.lastDodge = frame.dodgeSerial; this.lastHit = frame.hitSerial; this.lastShot = frame.shots;
@@ -171,14 +188,16 @@ export class HumanoidAnimator {
     const evade = motion === 'dodge' ? Math.sin(Math.PI * Math.min(1,this.specialRemaining / .28)) : 0;
     const lateral = frame.vx * Math.cos(frame.angle + Math.PI / 2) + frame.vz * Math.sin(frame.angle + Math.PI / 2);
     const bank = !full && frame.grounded && moving ? MathUtils.clamp(-turn * .065,-.055,.055) : 0;
+    const lean = !full && frame.grounded && moving ? Math.min(.13,this.gaitSpeed*(frame.aiming?.009:.016)) : 0;
+    this.actor.torso.rotation.x=MathUtils.damp(this.actor.torso.rotation.x,lean,12,dt);
     this.actor.torso.rotation.z = MathUtils.damp(this.actor.torso.rotation.z,Math.sign(lateral) * evade * -.22 + bank,18,dt);
     const directional = motion === 'backward' || motion === 'strafe-left' || motion === 'strafe-right';
     const clipName = special[motion] || (directional ? frame.sprinting ? 'Sprint_Loop' : this.speed > 2.8 ? 'Jog_Fwd_Loop' : 'Walk_Loop' : gaitClip[motion]!);
     const once = full && motion !== 'fall';
     const duration = motion === 'dodge' ? .28 : motion === 'takeoff' ? .14 : motion === 'land' ? .15 : motion === 'hit' ? .22 : 0;
-    const stride = clipName === 'Sprint_Loop' ? 4.3 : clipName === 'Jog_Fwd_Loop' ? 2.75 : 1.65;
-    const rate = duration ? this.clips.get(clipName)!.duration / duration : full || !moving ? 1 : MathUtils.clamp(this.speed*this.clips.get(clipName)!.duration/stride, .2, 2.8) * (reverse ? -1 : 1);
-    this.base = this.switchAction(this.base, this.action('base-' + motion + ':' + clipName, clipName, full ? 'full' : 'lower', once), rate);
+    const stride = strideMetres[clipName]??1;
+    const rate = duration ? this.clips.get(clipName)!.duration / duration : full || !moving ? 1 : MathUtils.clamp(this.gaitSpeed*this.clips.get(clipName)!.duration/stride, .2, 2.8) * (reverse ? -1 : 1);
+    this.base = this.switchAction(this.base, this.action('base-' + (full?'full':'gait') + ':' + clipName, clipName, full ? 'full' : 'lower', once), rate);
     if (full) {
       if (this.upper) { this.upper.fadeOut(.08); this.fading.push({ action: this.upper, remaining: .09 }); this.upper = undefined; }
     } else {
@@ -206,21 +225,18 @@ export class HumanoidAnimator {
     // source pose before evaluating, so procedural twists never accumulate.
     if (this.corrected) { this.pelvis.quaternion.copy(this.pelvisSample); this.chest.quaternion.copy(this.chestSample); this.corrected = false; }
     this.mixer.update(dt);
-    if (!full && lowerTwist) {
+    const aimTwist=frame.independentAim&&frame.aiming?MathUtils.clamp(Math.atan2(Math.sin(Math.PI/2-frame.angle-this.yaw),Math.cos(Math.PI/2-frame.angle-this.yaw)),-.9,.9):0;
+    this.hipTwist=full?0:MathUtils.damp(this.hipTwist,lowerTwist,14,dt);
+    this.chestTwist=full?0:MathUtils.damp(this.chestTwist,aimTwist-lowerTwist,14,dt);
+    if (!full && (Math.abs(this.hipTwist)>.001||Math.abs(this.chestTwist)>.001)) {
       this.pelvisSample.copy(this.pelvis.quaternion); this.chestSample.copy(this.chest.quaternion); this.corrected = true;
       // The mixer restores these transforms before every sample; no cumulative
       // twist. One procedural correction supplements real library leg motion.
       this.actor.root.updateMatrixWorld(true);
       direction.copy(up).applyQuaternion(this.pelvis.parent!.getWorldQuaternion(inverse).invert());
-      this.pelvis.quaternion.premultiply(correction.setFromAxisAngle(direction, lowerTwist)); this.pelvis.updateMatrixWorld(true);
+      this.pelvis.quaternion.premultiply(correction.setFromAxisAngle(direction,this.hipTwist)); this.pelvis.updateMatrixWorld(true);
       direction.copy(up).applyQuaternion(this.chest.parent!.getWorldQuaternion(inverse).invert());
-      this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction, -lowerTwist));
-    }
-    if(!full&&frame.independentAim&&frame.aiming){
-      if(!this.corrected){this.pelvisSample.copy(this.pelvis.quaternion);this.chestSample.copy(this.chest.quaternion);this.corrected=true;}
-      this.actor.root.updateMatrixWorld(true);direction.copy(up).applyQuaternion(this.chest.parent!.getWorldQuaternion(inverse).invert());
-      const offset=Math.atan2(Math.sin(Math.PI/2-frame.angle-this.yaw),Math.cos(Math.PI/2-frame.angle-this.yaw));
-      this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction,MathUtils.clamp(offset,-.9,.9)));
+      this.chest.quaternion.premultiply(correction.setFromAxisAngle(direction,this.chestTwist));
     }
     for (const { bone, source } of this.weaponPose) source.copy(bone.quaternion);
     this.actor.recoil = Math.max(0, this.actor.recoil - dt * 9); this.actor.muzzle.visible = this.actor.recoil > .6;

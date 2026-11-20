@@ -1,7 +1,9 @@
 ﻿import {initializeReplay,MissionRecorder,replayMission} from '../generated/missionReplay.mjs';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
-const permit={id:'0123456789abcdef01234567',missionId:'assignment-reserve',seed:42,issuedAt:Date.now()-3600000,maxTicks:432000,simulationVersion:3,initial:{grenades:5,ownedIds:['elite'],weapon:'elite',appearance:{outfit:null,finish:null,emote:null,effect:null,identity:null}}};
+const simulationVersion=Number(process.argv[2]??3);
+const output=simulationVersion===4?'reserve-collision-replay-v1.json.gz':'reserve-replay-v1.json.gz';
+const permit={id:'0123456789abcdef01234567',missionId:'assignment-reserve',seed:42,issuedAt:Date.now()-3600000,maxTicks:432000,simulationVersion,initial:{grenades:5,ownedIds:['elite'],weapon:'elite',appearance:{outfit:null,finish:null,emote:null,effect:null,identity:null}}};
 const sim=initializeReplay(permit),recorder=new MissionRecorder();let route=[],goalKey='',stuck=0,lastX=sim.body.position.x,lastZ=sim.body.position.z;
 for(let tick=0;tick<60*600&&sim.mission.state==='ACTIVE';tick++){
  const snap=sim.mission.snapshot(),objective=snap.objectives.find(o=>o.id===snap.activeId),target=sim.campaign.destination??objective?.marker;
@@ -21,4 +23,4 @@ for(let tick=0;tick<60*600&&sim.mission.state==='ACTIVE';tick++){
  if(tick%600===0)console.log(JSON.stringify({tick,state:sim.mission.state,objective:snap.activeId,health:sim.controller.health,x:lastX,z:lastZ,route:route.length,message:sim.campaign.message}));
 }
 console.log(JSON.stringify({state:sim.mission.state,health:sim.controller.health,ticks:recorder.tape.ticks,completed:[...sim.mission.completed],message:sim.campaign.message}));
-if(sim.mission.state==='SUCCESS'){const replay=replayMission(permit,recorder.tape);console.log('REPLAY_SUCCESS',replay.mission.elapsed);fs.writeFileSync(new URL('../test/fixtures/reserve-replay-v1.json.gz',import.meta.url),zlib.gzipSync(JSON.stringify({permit,tape:recorder.tape})));}
+if(sim.mission.state==='SUCCESS'){const replay=replayMission(permit,recorder.tape);console.log('REPLAY_SUCCESS',replay.mission.elapsed);fs.writeFileSync(new URL('../test/fixtures/'+output,import.meta.url),zlib.gzipSync(JSON.stringify({permit,tape:recorder.tape})));}

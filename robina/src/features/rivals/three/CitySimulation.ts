@@ -1,11 +1,16 @@
 import { cityRandom, STREET_CENTRES, trafficPhase, trafficRoute, type CityPoint } from './LivingCityPlan';
 export type VehicleKind = 'sedan' | 'coupe' | 'taxi' | 'police' | 'van' | 'lorry' | 'tanker' | 'bus';
 export const TRAFFIC_COUNT=14;
-export interface CityCar { id:number; kind:VehicleKind; route:CityPoint[]; lengths:number[]; total:number; distance:number; x:number; z:number; dx:number; dz:number; speed:number; cruise:number; length:number; stopped:boolean; travelled:number; mode?:'traffic'|'parked'|'player'|'pursuit'|'disabled'; health?:number; driver?:boolean; door?:number;fire?:number; fuse?:number; exploded?:boolean }
+export interface CityCar { id:number; kind:VehicleKind; route:CityPoint[]; lengths:number[]; total:number; distance:number; x:number; z:number; dx:number; dz:number; speed:number; cruise:number; length:number; stopped:boolean; travelled:number; mode?:'traffic'|'parked'|'player'|'pursuit'|'disabled'; health?:number; driver?:boolean; door?:number;fire?:number; fuse?:number; exploded?:boolean;collisionWidth?:number }
 export const carActive=(car:CityCar,active:number)=>car.id<active||Boolean(car.mode&&car.mode!=='traffic');
 export const VEHICLE_LENGTH:Record<VehicleKind,number>={sedan:4.1,coupe:4.2,taxi:4.1,police:4.3,van:4.8,lorry:6.8,tanker:7.2,bus:6.8};
 // Collision dimensions are gameplay data, independent of downloaded art bounds.
 export const vehicleCollisionDimensions=(kind:VehicleKind)=>['lorry','tanker','bus'].includes(kind)?{width:2.35,height:2.6}:{width:1.85,height:1.75};
+// Width/length ratios of the shipped, length-normalized street car and delivery truck.
+export function vehicleModelWidth(car:CityCar){
+  const ratio=car.kind==='van'||car.kind==='lorry'?.574:car.kind==='tanker'||car.kind==='bus'?0:.585;
+  return Math.max(vehicleCollisionDimensions(car.kind).width,car.length*ratio);
+}
 export function sampleRoute(car: Pick<CityCar,'route'|'lengths'|'total'>, distance:number) {
   let at=((distance%car.total)+car.total)%car.total;
   for(let i=0;i<car.route.length;i++) {

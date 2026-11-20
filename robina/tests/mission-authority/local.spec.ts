@@ -46,14 +46,22 @@ test('rendered walking, running and driving continue offline without corrections
   await page.evaluate(()=>{
     const client=Reflect.get(window,'localMission') as LocalMission,runtime=Reflect.get(window,'raidRuntime') as RaidRuntime,sim=client.localSimulation;
     sim.controller.stop();sim.body.position.set(5.9,0,12);Object.assign(sim.traffic.cars[28],{x:8,z:12,dx:0,dz:1,speed:0,mode:'parked'});
-    runtime.setPOV('third');runtime.rig.yaw=-Math.PI;client.action({type:'vehicle'});
+    runtime.setPOV('third');runtime.rig.yaw=-Math.PI;
   });
+  const enter=page.getByRole('button',{name:'Enter sedan'});
+  await expect(enter).toBeVisible({timeout:30000});
+  await enter.tap();
   await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).driving,{timeout:30000}).toBe(true);
+  const exit=page.getByRole('button',{name:'Exit vehicle'});
+  await expect(exit).toBeVisible({timeout:30000});
   await page.evaluate(()=>{const audit=Reflect.get(window,'movementAudit');audit.samples=[];audit.recording=true;});
   const before=Number(await state.getAttribute('data-z'));await page.keyboard.down('KeyW');
   try{await expect.poll(async()=>Number(await state.getAttribute('data-z')),{timeout:60000}).toBeGreaterThan(before+8);}finally{await page.keyboard.up('KeyW');}
   const drivingSamples=await page.evaluate(()=>{const audit=Reflect.get(window,'movementAudit');audit.recording=false;return audit.samples as {at:number;z:number}[];});
   for(let i=2;i<drivingSamples.length;i++)expect(drivingSamples[i].z-drivingSamples[i-1].z).toBeGreaterThanOrEqual(-.01);
+  await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).speed,{timeout:30000}).toBeLessThanOrEqual(6);
+  await exit.tap();
+  await expect.poll(async()=>JSON.parse((await state.getAttribute('data-vehicle'))!).driving,{timeout:30000}).toBe(false);
   await expect(page.locator('.r3-game')).toHaveAttribute('data-status','playing');expect(gameplayRequests).toEqual([]);expect(errors).toEqual([]);
   await page.context().setOffline(false);
   const stored=await(await request.get(`${backend}/__test/state?playerId=${playerId}`)).json();expect(stored).toMatchObject({sessions:0,checkpoints:0,events:0,life:null,live:null,results:[]});
@@ -83,5 +91,5 @@ test('a natural victory is durably queued offline and verified once after reconn
   await page.evaluate(async()=>{await(Reflect.get(window,'completedMission') as LocalMission).retrySave();});
   await expect.poll(()=>page.evaluate(()=>Reflect.get(window,'completedMission').saving),{timeout:180000}).toBe('verified');
   expect(await page.evaluate(()=>{const client=Reflect.get(window,'completedMission');return {saving:client.saving,error:client.saveError};})).toEqual({saving:'verified',error:''});
-  const stored=await(await request.get(`${backend}/__test/state?playerId=${playerId}`)).json();expect(stored.sessions).toBe(1);expect(stored.results).toHaveLength(1);expect(stored.results[0]).toMatchObject({outcome:'success',remainingHealth:72,firstCompletion:true});expect(stored.checkpoints).toBe(0);expect(stored.events).toBe(0);
+  const stored=await(await request.get(`${backend}/__test/state?playerId=${playerId}`)).json();expect(stored.sessions).toBe(1);expect(stored.results).toHaveLength(1);expect(stored.results[0]).toMatchObject({outcome:'success',remainingHealth:68,firstCompletion:true});expect(stored.checkpoints).toBe(0);expect(stored.events).toBe(0);
 });

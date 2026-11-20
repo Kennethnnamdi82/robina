@@ -3,7 +3,7 @@ import type { CityAssets, CityModel, CityDetail } from './CityAssets';
 import type { Solid3D } from './world3d';
 import type { QualityId } from '../core/presentation';
 import type { POV } from './CameraRig';
-import { cityPlan, cityRandom, buildingPlacement, STREET_CENTRES, trafficPhase,waterfrontRails,BRIDGE_SPAN, type CityPoint, type CityWeather } from './LivingCityPlan';
+import { cityPlan, cityRandom, buildingPlacement, STREET_CENTRES, trafficPhase,waterfrontRails,BRIDGE_SPAN,streetLampPlacements,avenueLightPosts,trafficSignalPosts, type CityPoint, type CityWeather } from './LivingCityPlan';
 import { CityTrafficArt } from './CityTrafficArt';
 import {TRAFFIC_COUNT} from './CitySimulation';
 import { CityCrowd } from './CityCrowd';
@@ -65,17 +65,17 @@ export class CityEnvironment {
     for(let i=-2;i<=5;i++)for(const side of [0,1]){const height=profile.heights[0]+((i+2)%3)*(profile.heights[1]-profile.heights[0])*.45;skyline.push({x:20+i*24,z:side?140:-28,width:15,depth:12,height,yaw:Math.PI});skyline.push({x:side?180:-28,z:20+i*24,width:15,depth:12,height});}
     this.batch(profile.style==='garden'?'residence':profile.style==='financial'||profile.style==='corporate'?'headquarters':'commerce',skyline,this.root,false,true);
     const distant=assets.showcase.get('showcase-skyline');if(distant){const clone=distant.clone(true);clone.position.set(44,0,44);clone.scale.set(1.65,1.15,1.65);clone.traverse(n=>{if(n instanceof T.Mesh){n.castShadow=false;n.receiveShadow=true;}});this.root.add(clone);}
-    const random=cityRandom(seed),trees:Placement[]=[],tallTrees:Placement[]=[],planters:Placement[]=[],lamps:Placement[]=[],bins:Placement[]=[],hydrants:Placement[]=[];
+    const random=cityRandom(seed),trees:Placement[]=[],tallTrees:Placement[]=[],planters:Placement[]=[],bins:Placement[]=[],hydrants:Placement[]=[];
     for(let row=-1;row<4;row++)for(let col=-1;col<4;col++) {
       const x=20+col*24,z=20+row*24;
       for(const dx of [-6.5,6.5])for(const dz of [-3.5,3.5]) {
         if(random()>profile.foliage)continue;
         const p={x:x+dx,z:z+dz,height:5.3+random()*1.9,width:3.5,depth:3.5};if(this.solids.some(s=>s.kind==='cover'&&Math.hypot((s.box.min.x+s.box.max.x)/2-p.x,(s.box.min.z+s.box.max.z)/2-p.z)<1.6))continue;(random()>.55?tallTrees:trees).push(p);planters.push({x:p.x,z:p.z,width:1.3,depth:1.3,height:.24});
       }
-      lamps.push({x:x-6.7,z:z-6.7,height:5.2,width:1.0,depth:1.0,yaw:Math.PI/2});bins.push({x:x+6.5,z:z+5.2,height:.8,width:.5,depth:.5});hydrants.push({x:x-5.8,z:z+6.6,height:.7,width:.35,depth:.35});
+      bins.push({x:x+6.5,z:z+5.2,height:.8,width:.5,depth:.5});hydrants.push({x:x-5.8,z:z+6.6,height:.7,width:.35,depth:.35});
     }
     const oakTrees=[...trees,...tallTrees].filter((_,i)=>i%4!==0||!assets.showcase.has('palm-0'));
-    this.trees=new CityTrees(oakTrees,assets.texture('city-oak')!);this.root.add(this.trees.root);this.batch('planter',planters,this.root);this.batch('streetLamp',lamps,this.root,true);this.batch('bin',bins,this.detail,true);this.batch('hydrant',hydrants,this.detail,true);
+    this.trees=new CityTrees(oakTrees,assets.texture('city-oak')!);this.root.add(this.trees.root);this.batch('planter',planters,this.root);this.batch('streetLamp',streetLampPlacements,this.root,true);this.batch('bin',bins,this.detail,true);this.batch('hydrant',hydrants,this.detail,true);
     // Curate palms/seating onto the existing grid; never overlay the pack's
     // incompatible demonstration roads, bank shell or reference traffic.
     [...trees,...tallTrees].filter((_,i)=>i%4===0).forEach((p,i)=>this.batch('planter',[{x:p.x,z:p.z,height:7.5,width:4.2,depth:4.2}],this.root,false,false,assets.showcase.get('palm-'+i%10)));
@@ -186,9 +186,9 @@ export class CityEnvironment {
       for(const side of [-1,1])this.cube({x:x+side*.8,z,y:.05,width:.08,height:.46,depth:.45},metal);
     }
     const lens=this.material(0xffe5b7);lens.emissive.set(0xffcd83);this.lamps.push(lens);
-    for(const x of STREET_CENTRES)for(const z of STREET_CENTRES) {
-      this.cube({x:x-6.1,z:z-6.1,width:.11,height:5.4,depth:.11},metal);this.cube({x:x-5.4,z:z-6.1,y:5.25,width:1.5,height:.1,depth:.22},metal);this.cube({x:x-5.4,z:z-6.1,y:5.22,width:1.35,height:.025,depth:.18},lens);
-      this.sign(`${String.fromCharCode(65+STREET_CENTRES.indexOf(x))} / ${STREET_CENTRES.indexOf(z)+1} AVENUE`,x-6.1,3.1,z-6.1,0,2.0,.36,'#234c4d','#e2e9d8');
+    for(const [index,{x,z}] of avenueLightPosts.entries()) {
+      this.cube({x,z,width:.11,height:5.4,depth:.11},metal);this.cube({x:x+.7,z,y:5.25,width:1.5,height:.1,depth:.22},metal);this.cube({x:x+.7,z,y:5.22,width:1.35,height:.025,depth:.18},lens);
+      this.sign(`${String.fromCharCode(65+Math.floor(index/STREET_CENTRES.length))} / ${index%STREET_CENTRES.length+1} AVENUE`,x,3.1,z,0,2.0,.36,'#234c4d','#e2e9d8');
     }
     // No decorative construction barricade across the driving lanes.
     this.batch('ac',this.plan.buildings.filter(b=>b.model==='commerce').map(b=>({x:b.x+2,z:b.z,y:b.height,height:1,width:1.8,depth:1.2})),this.detail);
@@ -196,8 +196,7 @@ export class CityEnvironment {
   private trafficSignals(metal:T.Material){
     const housing=this.material(0x222c2e);
     for(const axis of ['x','z'] as const)for(const color of ['red','amber','green'] as const){const material=this.material(color==='red'?0xe83f30:color==='amber'?0xf2bb39:0x56d59a);material.emissive.copy(material.color);this.signalLenses.push({axis,color,material});}
-    for(const x of STREET_CENTRES)for(const z of STREET_CENTRES)for(const axis of ['x','z'] as const)for(const side of [-1,1]){
-      const px=x+(axis==='x'?side*5.4:side*5.65),pz=z+(axis==='z'?side*5.4:-side*5.65),yaw=axis==='x'?side*Math.PI/2:side>0?0:Math.PI;
+    for(const {axis,x:px,z:pz,yaw} of trafficSignalPosts){
       this.cube({x:px,z:pz,width:.10,height:3.7,depth:.10},metal);this.cube({x:px,z:pz,y:2.72,width:.37,height:.99,depth:.28,yaw},housing);
       for(let i=0;i<3;i++){const color=(['red','amber','green'] as const)[i],material=this.signalLenses.find(l=>l.axis===axis&&l.color===color)!.material;
         this.cube({x:px+Math.sin(yaw)*.151,z:pz+Math.cos(yaw)*.151,y:3.39-i*.28,width:.23,height:.2,depth:.035,yaw},material);
@@ -206,7 +205,8 @@ export class CityEnvironment {
   }
   private missionProps(){
     const placements=new Map<CityModel,Placement[]>();
-    for(const solid of this.solids.filter(s=>(s.kind==='cover'||s.kind==='platform')&&!s.id.startsWith('mission-')&&!s.id.startsWith('task-')&&!s.id.startsWith('waterfront-rail-'))){
+    // SocialScene draws the actual walls, counters and tables for these colliders.
+    for(const solid of this.solids.filter(s=>(s.kind==='cover'||s.kind==='platform')&&!/^(mission-|task-|waterfront-rail-|social-)/.test(s.id))){
       const s=solid.box.getSize(new T.Vector3()),c=solid.box.getCenter(new T.Vector3());
       const id:CityModel=solid.kind==='platform'?'platform':solid.id.includes('console')||solid.id.startsWith('relay')?'computer':solid.id.startsWith('cooling')?'vent':solid.id==='reactor'?'barrel':'crate';
       if(!placements.has(id))placements.set(id,[]);placements.get(id)!.push({x:c.x,z:c.z,width:s.x,depth:s.z,height:s.y});

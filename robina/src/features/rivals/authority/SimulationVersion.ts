@@ -1,0 +1,2 @@
+export const SIMULATION_VERSION = 3;
+export const COLLISION_SIMULATION_VERSION = 4;

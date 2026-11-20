@@ -5,6 +5,7 @@ import type { HumanSource } from './CityPeople';
 import type { Assignment } from '../missions/assignments';
 import { SOCIAL_VENUES, socialWalls } from './SocialVenues';
 import {batchPresentation} from './batchPresentation';
+import {worldSurface,type SurfaceFamily,type SurfaceMaps} from './RealismMaterials';
 
 type SocialPose = 'stand'|'sit'|'drink'|'eat'|'dance';
 /** Small, nearby-only casts use the supplied human skin and a genuine two-bone
@@ -12,8 +13,9 @@ type SocialPose = 'stand'|'sit'|'drink'|'eat'|'dance';
 class SocialPerson {
   readonly root=new T.Group();private body:T.Object3D;private limbs:{bone:T.Object3D;rotation:T.Quaternion}[]=[];
   private right:ArmIK;private left:ArmIK;private legs:ArmIK[]=[];private cup?:T.Group;private point=new T.Vector3();private pole=new T.Vector3();
+  private readonly head:T.Object3D;private readonly chest:T.Object3D;
   private ownedMaterials:T.Material[]=[];
-  constructor(source:HumanSource,readonly pose:SocialPose,private glass:()=>T.Group,colour:number){
+  constructor(source:HumanSource,readonly pose:SocialPose,glass:()=>T.Group,colour:number,private index:number){
     this.root.userData.socialAnimated=true;this.body=clone(source.scene);this.body.name='Social character / '+pose;this.root.add(this.body);
     this.body.getObjectByName('Operative-vis-or')?.removeFromParent();
     const mixer=new T.AnimationMixer(this.body),idle=source.animations.find(clip=>clip.name==='Idle_Loop');
@@ -24,28 +26,63 @@ class SocialPerson {
     this.body.traverse(node=>sampled.push({node,position:node.position.clone(),rotation:node.quaternion.clone(),scale:node.scale.clone()}));
     mixer.stopAllAction();mixer.uncacheRoot(this.body);
     sampled.forEach(pose=>{pose.node.position.copy(pose.position);pose.node.quaternion.copy(pose.rotation);pose.node.scale.copy(pose.scale);});
-    this.body.traverse(node=>{if(node instanceof T.Mesh){node.castShadow=false;node.receiveShadow=true;const paint=(original:T.Material)=>{const material=(original as T.MeshStandardMaterial).clone();this.ownedMaterials.push(material);if(node.name==='SuperHero_Male'){
-      material.customProgramCacheKey=()=>'social-clothing-v1';material.onBeforeCompile=shader=>{shader.uniforms.socialTint={value:new T.Color(colour)};shader.uniforms.socialBind={value:(node as T.SkinnedMesh).bindMatrix};shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vSocialRest;uniform mat4 socialBind;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSocialRest=(socialBind*vec4(position,1.)).xyz;');shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vSocialRest;uniform vec3 socialTint;').replace('#include <color_fragment>','#include <color_fragment>\nfloat shirt=step(.87,vSocialRest.y)*(1.-step(1.49,vSocialRest.y))*(1.-step(.48,abs(vSocialRest.x)));float pants=step(.15,vSocialRest.y)*(1.-step(.87,vSocialRest.y));diffuseColor.rgb=mix(diffuseColor.rgb,socialTint,shirt);diffuseColor.rgb=mix(diffuseColor.rgb,socialTint*.45,pants);');};
+    this.body.traverse(node=>{if(node instanceof T.Mesh){node.castShadow=false;node.receiveShadow=true;const paint=(original:T.Material)=>{const material=(original as T.MeshStandardMaterial).clone();this.ownedMaterials.push(material);
+    if(node.name==='Hair_SimpleParted'){material.color.set([0x392923,0x2d2825,0x816c59,0x594432][index%4]);material.roughness=.88;material.metalness=0;}
+    if(node.name==='SuperHero_Male'){
+      material.vertexColors=false;material.color.set(0xffffff);material.metalness=0;material.roughness=.85;material.envMapIntensity=.45;
+      material.customProgramCacheKey=()=>'social-clothing-v2';
+      material.onBeforeCompile=shader=>{
+        shader.uniforms.socialTint={value:new T.Color(colour)};
+        shader.uniforms.socialStyle={value:pose==='stand'?2:index%2};
+        shader.uniforms.socialSkin={value:[.94,.8,1,.88][index%4]};
+        shader.uniforms.socialBind={value:(node as T.SkinnedMesh).bindMatrix};
+        shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vSocialRest;uniform mat4 socialBind;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSocialRest=(socialBind*vec4(position,1.)).xyz;');
+        shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vSocialRest;uniform vec3 socialTint;uniform float socialStyle;uniform float socialSkin;').replace('#include <color_fragment>',`#include <color_fragment>
+          float x=abs(vSocialRest.x),y=vSocialRest.y;
+          float shirt=step(.87,y)*(1.-step(1.49,y))*(1.-step(.36,x));
+          float sleeve=step(1.22,y)*(1.-step(1.52,y))*step(.24,x)*(1.-smoothstep(.43,.46,x));
+          float pants=step(.17,y)*(1.-step(.87,y))*(1.-step(.27,x));
+          float collar=step(1.38,y)*(1.-step(1.49,y))*(1.-smoothstep(.055,.14,x));
+          float seam=(1.-smoothstep(.009,.02,x))*shirt;
+          float detail=clamp(dot(diffuseColor.rgb,vec3(.2126,.7152,.0722))*2.3,.68,1.13);
+          vec3 cloth=mix(socialTint,socialTint*.43,max(collar,seam*.55));
+          if(socialStyle==1.)cloth=mix(cloth,vec3(.35,.32,.28),(1.-smoothstep(.065,.083,x))*shirt);
+          if(socialStyle==2.)cloth=mix(cloth,vec3(.036,.055,.063),step(.94,y)*(1.-step(1.22,y))*(1.-smoothstep(.16,.19,x)));
+          diffuseColor.rgb=mix(diffuseColor.rgb*socialSkin,cloth*detail,max(shirt,sleeve));
+          diffuseColor.rgb=mix(diffuseColor.rgb,socialTint*.33*detail,pants);
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.044,.032,.026),1.-smoothstep(.147,.17,y));
+        `);
+      };
     }return material;};node.material=Array.isArray(node.material)?node.material.map(paint):paint(node.material);}});
     const bone=(name:string)=>{const node=this.body.getObjectByName(name);if(!node)throw Error('Social actor is missing '+name);return node;};
+    this.head=bone('Head');this.chest=bone('spine_03');
     this.right=new ArmIK(bone('upperarm_r'),bone('lowerarm_r'),bone('hand_r'));this.left=new ArmIK(bone('upperarm_l'),bone('lowerarm_l'),bone('hand_l'));
-    for(const name of ['upperarm_r','lowerarm_r','hand_r','upperarm_l','lowerarm_l','hand_l','thigh_l','calf_l','foot_l','thigh_r','calf_r','foot_r']){const node=bone(name);this.limbs.push({bone:node,rotation:node.quaternion.clone()});}
+    for(const name of ['Head','spine_03','upperarm_r','lowerarm_r','hand_r','upperarm_l','lowerarm_l','hand_l','thigh_l','calf_l','foot_l','thigh_r','calf_r','foot_r']){const node=bone(name);this.limbs.push({bone:node,rotation:node.quaternion.clone()});}
     if(pose!=='stand'&&pose!=='dance'){this.body.position.y=-.42;for(const side of ['l','r'])this.legs.push(new ArmIK(bone('thigh_'+side),bone('calf_'+side),bone('foot_'+side)));}
     if(pose==='drink'){this.cup=glass();this.root.add(this.cup);}
   }
   update(time:number){
     for(const limb of this.limbs)limb.bone.quaternion.copy(limb.rotation);
-    this.body.rotation.z=this.pose==='dance'?Math.sin(time*2.4)*.055:Math.sin(time*.8)*.006;
+    const pace=.82+this.index%5*.075;
+    const breath=Math.sin(time*pace),glance=Math.sin(time*.71+this.index*1.9),listen=Math.sin(time*.51+this.index*.8);
+    const seated=this.legs.length>0,phase=(time*pace%8+8)%8;
+    const lift=T.MathUtils.smoothstep(phase,2,3)*(1-T.MathUtils.smoothstep(phase,3.7,4.9));
+    this.body.rotation.z=this.pose==='dance'?Math.sin(time*2.4)*.055:breath*.012;
+    this.chest.rotateX((seated?.04:0)+breath*.018+lift*(this.pose==='eat'?.14:.035));
+    this.chest.rotateY(glance*.045);
+    this.head.rotateY(glance*(seated?.19:.29));
+    this.head.rotateX(listen*.055+lift*(this.pose==='eat'?.1:-.035));
     this.root.updateMatrixWorld(true);
     this.legs.forEach((leg,index)=>{const side=index===0?1:-1;this.point.set(side*.13,.08,.42);this.root.localToWorld(this.point);this.pole.set(side*.14,.54,.7);this.root.localToWorld(this.pole);leg.solve(this.point,this.pole);});
     if(this.pose==='drink'||this.pose==='eat'){
-      const sip=(Math.sin(time*.65)+1)/2,lift=T.MathUtils.smoothstep(sip,.42,.9);
-      this.point.set(.25-lift*.11,.86+lift*.36,.4-lift*.24);if(this.cup)this.cup.position.copy(this.point);if(this.cup)this.cup.position.y-=.1;this.root.localToWorld(this.point);this.pole.set(.48,.75,.12);this.root.localToWorld(this.pole);this.right.solve(this.point,this.pole);
-      this.point.set(-.25,.88,.4);this.root.localToWorld(this.point);this.pole.set(-.5,.7,.1);this.root.localToWorld(this.pole);this.left.solve(this.point,this.pole);
+      this.point.set(-.23+lift*.14,.84+lift*.34,.43-lift*.24);
+      this.root.localToWorld(this.point);this.pole.set(-.47,.75,.12);this.root.localToWorld(this.pole);this.right.solve(this.point,this.pole);
+      if(this.cup){this.right.hand.getWorldPosition(this.cup.position);this.root.worldToLocal(this.cup.position);this.cup.position.y-=.06;this.cup.rotation.x=-lift*.25;}
+      this.point.set(.24,.85+listen*.018,.42);this.root.localToWorld(this.point);this.pole.set(.44,.71,.1);this.root.localToWorld(this.pole);this.left.solve(this.point,this.pole);
     }else if(this.pose==='stand'||this.pose==='sit'){
-      for(const [arm,side]of [[this.right,1],[this.left,-1]] as const){this.point.set(side*.24,this.pose==='sit'?.65:.91,this.pose==='sit'?.35:.07);this.root.localToWorld(this.point);this.pole.set(side*.45,this.pose==='sit'?.76:1.1,-.02);this.root.localToWorld(this.pole);arm.solve(this.point,this.pole);}
+      for(const [arm,side]of [[this.right,-1],[this.left,1]] as const){this.point.set(side*(seated?.22:.28),seated?.65+breath*.02:.89+listen*.04,seated?.35:.11+Math.max(0,glance)*.055);this.root.localToWorld(this.point);this.pole.set(side*.43,seated?.76:1.04,-.03);this.root.localToWorld(this.pole);arm.solve(this.point,this.pole);}
     }else if(this.pose==='dance'){
-      for(const [arm,side]of [[this.right,1],[this.left,-1]] as const){this.point.set(side*.38,1.05+Math.sin(time*2+side)*.1,.23);this.root.localToWorld(this.point);this.pole.set(side*.6,.95,-.1);this.root.localToWorld(this.pole);arm.solve(this.point,this.pole);}
+      for(const [arm,side]of [[this.right,-1],[this.left,1]] as const){this.point.set(side*.38,1.05+Math.sin(time*2+side)*.1,.23);this.root.localToWorld(this.point);this.pole.set(side*.6,.95,-.1);this.root.localToWorld(this.pole);arm.solve(this.point,this.pole);}
     }
   }
   dispose(){this.body.traverse(node=>{if(node instanceof T.SkinnedMesh)node.skeleton.boneTexture?.dispose();});this.ownedMaterials.forEach(material=>material.dispose());this.root.clear();}
@@ -56,10 +93,14 @@ export class SocialScene {
   private casts:{person:SocialPerson;offset:number}[]=[];private groups:{root:T.Group;x:number;z:number}[]=[];private brokerCase?:T.Group;
   private scratch=new T.Vector3();
   private makeHeld?:(action:string)=>T.Group|undefined;
-  constructor(source:HumanSource,assignment?:Assignment){
+  constructor(source:HumanSource,assignment?:Assignment,surfaces?:ReadonlyMap<SurfaceFamily,SurfaceMaps>){
     this.root.name='WATERFRONT / SOCIAL LIFE';
     const mat=(color:number,metalness=0,roughness=.7)=>{const material=new T.MeshStandardMaterial({color,metalness,roughness});this.materials.add(material);return material;};
     const wood=mat(0x5c3b29),dark=mat(0x22252a,.2),cream=mat(0xcfc3ab),brass=mat(0xc5a66e,.6,.3),leather=mat(0x392323),white=mat(0xe4dfd2),green=mat(0x234a3d),red=mat(0x5e1225,.05,.2);
+    const plaster=mat(0xd8c8ad),stucco=surfaces?.get('stucco');
+    if(stucco){plaster.name='Restaurant plaster';worldSurface(plaster,stucco,1.8);plaster.color.set(0xe0cdb2);plaster.normalScale.set(.23,.23);}
+    const panelling=mat(0x684934),woodMaps=surfaces?.get('wood');
+    if(woodMaps){worldSurface(panelling,woodMaps,1.65);panelling.color.set(0x9a785a);panelling.normalScale.set(.19,.19);}
     const clear=new T.MeshPhysicalMaterial({color:0xd2e1e5,transparent:true,opacity:.37,roughness:.08,metalness:0,side:T.DoubleSide,depthWrite:false});this.materials.add(clear);
     const unit=this.own(new T.BoxGeometry(1,1,1)),cylinder=this.own(new T.CylinderGeometry(1,1,1,14)),sphere=this.own(new T.SphereGeometry(1,12,8));
     const box=(parent:T.Group,x:number,y:number,z:number,w:number,h:number,d:number,material:T.Material)=>{const mesh=new T.Mesh(unit,material);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.receiveShadow=true;parent.add(mesh);return mesh;};
@@ -69,11 +110,21 @@ export class SocialScene {
     const bottle=(parent:T.Group,x:number,z:number,y=.85)=>{round(parent,x,y+.11,z,.065,.22,green);round(parent,x,y+.27,z,.025,.16,green);round(parent,x,y+.36,z,.027,.035,brass);box(parent,x,y+.12,z+.061,.095,.1,.006,cream);};
     const chair=(parent:T.Group,x:number,z:number,yaw=0,boss=false)=>{const group=new T.Group();group.position.set(x,0,z);group.rotation.y=yaw;parent.add(group);box(group,0,.47,0,boss?.8:.65,.12,.66,leather);box(group,0,.91,-.29,boss?.82:.66,.84,.13,leather);for(const dx of [-.26,.26])for(const dz of [-.24,.24])box(group,dx,.23,dz,.055,.46,.055,wood);if(boss)for(const dx of [-.41,.41])box(group,dx,.72,0,.12,.13,.65,wood);};
     const table=(parent:T.Group,x:number,z:number)=>{round(parent,x,.79,z,.7,.09,wood);round(parent,x,.4,z,.065,.74,brass);round(parent,x,.07,z,.32,.06,dark);for(const dx of [-.28,.28]){round(parent,x+dx,.845,z,.17,.025,white);const food=new T.Mesh(sphere,mat(0x986b3d));food.position.set(x+dx,.89,z);food.scale.set(.1,.045,.09);parent.add(food);}bottle(parent,x,z-.2);const cup=glass();cup.position.set(x+.35,.85,z+.2);parent.add(cup);};
-    const person=(parent:T.Group,x:number,z:number,yaw:number,pose:SocialPose,colour:number,index:number)=>{const actor=new SocialPerson(source,pose,glass,colour);actor.root.position.set(x,0,z);actor.root.rotation.y=yaw;parent.add(actor.root);actor.update(index*1.7);this.casts.push({person:actor,offset:index*1.7});return actor;};
+    const person=(parent:T.Group,x:number,z:number,yaw:number,pose:SocialPose,colour:number,index:number)=>{const actor=new SocialPerson(source,pose,glass,colour,index);actor.root.position.set(x,0,z);actor.root.rotation.y=yaw;parent.add(actor.root);actor.update(index*1.7);this.casts.push({person:actor,offset:index*1.7});return actor;};
     for(const venue of SOCIAL_VENUES){
       const room=new T.Group();room.name=venue.name;this.root.add(room);this.groups.push({root:room,x:venue.x,z:venue.z});
       box(room,venue.x,-.02,venue.z,11.4,.06,11.4,venue.id==='bar'?wood:cream);
-      for(const part of socialWalls().filter(part=>part.id.startsWith(venue.id)&&!part.id.includes('table')))box(room,part.x,part.h/2,part.z,part.w,part.h,part.d,part.id.includes('counter')?wood:venue.id==='bar'?leather:cream);
+      for(const part of socialWalls().filter(part=>part.id.startsWith(venue.id)&&!part.id.includes('table'))){
+        const counter=part.id.includes('counter');
+        box(room,part.x,part.h/2,part.z,part.w,part.h,part.d,counter?wood:venue.id==='bar'?leather:plaster);
+        if(venue.id==='restaurant'&&!counter){
+          const vertical=part.w<part.d,insideX=part.x<venue.x?1:-1,insideZ=part.z<venue.z?1:-1;
+          const x=part.x+(vertical?insideX*(part.w/2+.022):0),z=part.z+(!vertical?insideZ*(part.d/2+.022):0);
+          const w=vertical?.045:part.w-.16,d=vertical?part.d-.16:.045;
+          box(room,x,.51,z,w,1.02,d,panelling);
+          box(room,x,1.035,z,w+(vertical?.016:0),.045,d+(!vertical?.016:0),wood);
+        }
+      }
       // Real door opening faces the eastern promenade. There is no roof hiding the room.
       box(room,venue.x+5.6,2.85,venue.z,.3,.35,3.2,dark);
       this.sign(room,venue.name,venue.x,2.7,venue.z-5.42,7.5,.65);

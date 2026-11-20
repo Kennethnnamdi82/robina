@@ -1,6 +1,6 @@
 import { Box3,Vector3 } from 'three';
 import type { CityCar } from './CitySimulation';
-import { carActive, TRAFFIC_COUNT, VEHICLE_LENGTH,sampleRoute } from './CitySimulation';
+import { carActive, TRAFFIC_COUNT, VEHICLE_LENGTH,sampleRoute,vehicleCollisionDimensions } from './CitySimulation';
 import type { Solid3D } from './world3d';
 import { horizontalContact,traceSolids } from './physics3d';
 export interface DrivingInput { throttle:number; steer:number; brake:boolean;heading?:number;stickX?:number;stickY?:number;cameraYaw?:number }
@@ -14,7 +14,7 @@ export function directionalDriving(input:DrivingInput):DrivingInput {
   const yaw=input.cameraYaw??0,worldX=x*Math.cos(yaw)+y*Math.sin(yaw),worldZ=-x*Math.sin(yaw)+y*Math.cos(yaw);
   return{...input,throttle:Math.max(.55,magnitude),steer:0,heading:Math.atan2(worldX,worldZ)};
 }
-const width=(car:CityCar)=>['lorry','tanker','bus'].includes(car.kind)?2.35:1.85;
+const width=(car:CityCar)=>car.collisionWidth??vehicleCollisionDimensions(car.kind).width;
 const previousDrive=new WeakMap<CityCar,{yaw:number;travelled:number}>();
 /** Position, steering and wheel travel share the fixed simulation interpolation. */
 export function drivenVehiclePose(car:CityCar,alpha=1){

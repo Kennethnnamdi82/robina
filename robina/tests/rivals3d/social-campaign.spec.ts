@@ -30,12 +30,31 @@ test('articulated hands and populated social venues render with the real supplie
     return{right:weapon.rightGripError,left:weapon.leftGripError,supported:weapon.supportEngaged,alignment:weapon.alignment};
   });expect(grip.right).toBeLessThan(.001);expect(grip.left).toBeLessThan(.045);expect(grip.supported).toBe(true);expect(grip.alignment).toBeGreaterThan(.98);await page.screenshot({path:info.outputPath('third-person-real-rig-grip.png')});
   const venue=await page.evaluate(async()=>{
-    const q=(window as unknown as SceneWindow).__socialArt,load=(path:string)=>import(/* @vite-ignore */path),{GLTFLoader}=await load('/node_modules/three/examples/jsm/loaders/GLTFLoader.js'),{SocialScene}=await load('/src/features/rivals/three/SocialScene.ts'),{ASSIGNMENTS}=await load('/src/features/rivals/missions/assignments.ts');
-    q.scene.children.filter(node=>node.type==='Group').forEach(node=>q.scene.remove(node));const human=await new GLTFLoader().loadAsync('/assets/rivals/characters/universal-operative.glb');q.social=new SocialScene({scene:human.scene,animations:human.animations},ASSIGNMENTS[7]);q.scene.add(q.social.root);
+    const q=(window as unknown as SceneWindow).__socialArt,load=(path:string)=>import(/* @vite-ignore */path),{GLTFLoader}=await load('/node_modules/three/examples/jsm/loaders/GLTFLoader.js'),{SocialScene}=await load('/src/features/rivals/three/SocialScene.ts'),{ASSIGNMENTS}=await load('/src/features/rivals/missions/assignments.ts'),{loadRealismSurfaces}=await load('/src/features/rivals/three/RealismMaterials.ts');
+    q.scene.children.filter(node=>node.type==='Group').forEach(node=>q.scene.remove(node));const [human,surfaces]=await Promise.all([new GLTFLoader().loadAsync('/assets/rivals/characters/universal-operative.glb'),loadRealismSurfaces(new AbortController().signal)]);q.social=new SocialScene({scene:human.scene,animations:human.animations},ASSIGNMENTS[7],surfaces);q.scene.add(q.social.root);
     q.camera.position.set(134,8,54);q.camera.lookAt(125,1,44);q.camera.updateMatrixWorld(true);q.social.update(4,new q.T.Vector3(126,0,44),false);await q.renderer.compileAsync(q.scene,q.camera);q.renderer.render(q.scene,q.camera);
     let people=0;q.social.root.traverse(node=>{if(node.name.startsWith('Social character'))people++;});return{people,calls:q.renderer.info.render.calls};
   });
   expect(venue.people).toBeGreaterThanOrEqual(13);expect(venue.calls).toBeLessThan(150);await page.screenshot({path:info.outputPath('amber-room-patrons-waiter.png')});
+  const restaurant=await page.evaluate(async()=>{
+    const q=(window as unknown as SceneWindow).__socialArt,room=q.social.root.getObjectByName('CASA MERIDIAN')!;
+    const guests=room.children.filter(node=>node.userData.socialAnimated),head=guests[0].getObjectByName('Head')!;
+    const player=new q.T.Vector3(129,0,68);
+    q.social.update(1,player,false);
+    const firstPose=head.quaternion.clone();
+    q.social.update(3.25,player,false);
+    const right=guests[0].getObjectByName('hand_r')!.getWorldPosition(new q.T.Vector3());
+    const left=guests[0].getObjectByName('hand_l')!.getWorldPosition(new q.T.Vector3());
+    guests[0].worldToLocal(right);guests[0].worldToLocal(left);
+    const plaster=room.children.map(node=>(node as Three.Mesh<Three.BufferGeometry,Three.MeshStandardMaterial>).material).find(material=>material?.name==='Restaurant plaster');
+    q.camera.position.set(131.2,2.15,69.7);q.camera.lookAt(125.6,1.15,66.1);q.camera.updateMatrixWorld(true);
+    await q.renderer.compileAsync(q.scene,q.camera);q.renderer.render(q.scene,q.camera);
+    return{guests:guests.length,headTurn:head.quaternion.angleTo(firstPose),right:right.x,left:left.x,material:plaster?.map?.name,calls:q.renderer.info.render.calls};
+  });
+  expect(restaurant.guests).toBe(5);expect(restaurant.headTurn).toBeGreaterThan(.06);
+  expect(restaurant.right).toBeLessThan(-.03);expect(restaurant.left).toBeGreaterThan(.1);
+  expect(restaurant.material).toBe('realism-stucco-color');expect(restaurant.calls).toBeLessThan(150);
+  await page.screenshot({path:info.outputPath('casa-meridian-restaurant.png')});
   await page.evaluate(()=>{const q=(window as unknown as SceneWindow).__socialArt;q.camera.position.set(135,2.1,44);q.camera.lookAt(122,1.2,44);q.camera.updateMatrixWorld(true);q.social.update(8,new q.T.Vector3(126,0,44),false);q.renderer.render(q.scene,q.camera);});await page.screenshot({path:info.outputPath('bar-open-door-interior.png')});
   await page.evaluate(()=>{const q=(window as unknown as SceneWindow).__socialArt;q.camera.position.set(141,3.6,69);q.camera.lookAt(137,1,62);q.camera.updateMatrixWorld(true);q.social.update(5,new q.T.Vector3(136,0,64),true);q.renderer.render(q.scene,q.camera);});await page.screenshot({path:info.outputPath('broker-wine-and-gang-handoff.png')});
   expect(errors).toEqual([]);

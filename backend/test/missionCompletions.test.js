@@ -51,6 +51,9 @@ async function waitFor(account,id){
 }
 test('launch permit and unfinished play write no mission sessions, health, checkpoints or results',async()=>{
   const a=await account(),p=await permit(a);assert.equal(p.initial.weapon,'elite');assert.equal(p.initial.grenades,5);
+  assert.equal(p.simulationVersion,3);
+  const upgraded=await request(a,'/permits','POST',{missionId:'assignment-reserve',seed:42,simulationVersion:4});
+  assert.equal(upgraded.status,200);assert.equal(upgraded.body.permit.simulationVersion,4);
   for(const model of [MissionSession,MissionCheckpoint,MissionCombatEvent,VerifiedMissionResult])assert.equal(await model.countDocuments({playerId:a.user._id}),0);
   assert.equal((await StoreInventory.findOne({playerId:a.user._id})).grenades,5);
 });

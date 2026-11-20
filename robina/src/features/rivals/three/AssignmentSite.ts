@@ -4,6 +4,7 @@ import type {Assignment} from '../missions/assignments';
 import {siteLayout} from './SiteLayout';
 import type {CityAssets} from './CityAssets';
 import {worldSurface} from './RealismMaterials';
+import {bankFrontPillars} from './CityMovementSolids';
 
 export function addAssignmentWalls(world:WorldState,a:Assignment){
   siteLayout(a).forEach((p,i)=>world.blockers.push({id:'mission-'+p.kind+'-'+i,x:(a.site.x+p.x)*40,y:(a.site.z+p.z)*40,width:p.width*40,height:p.depth*40,enabled:true}));
@@ -58,7 +59,7 @@ export class AssignmentSite {
       for(const side of [-1,1]){const door=new T.Group(),pane=new T.Mesh(this.geometry,glass),frame=new T.Mesh(this.geometry,metal);pane.scale.set(1.9,2.8,.07);frame.scale.set(.07,2.8,.09);frame.position.x=side*.93;door.add(pane,frame);door.position.set(a.site.x+side*.98,1.4,a.site.z+front);this.root.add(door);this.doors.push(door);}
       for(const x of [-5.8,5.8]){this.box(x,3.9,0,.24,.3,11.5,dark);this.box(x,3.66,0,.08,.04,10.5,glow);}
       if(a.id==='reserve'){
-        for(const x of [-5.7,-2.1,2.1,5.7]){this.box(x,1.7,5.65,.36,3.4,.5,stone);this.box(x,.2,5.65,.65,.4,.65,gold);this.box(x,3.25,5.65,.65,.25,.65,gold);}
+        for(const p of bankFrontPillars){this.box(p.x,p.height/2,p.z,.36,p.height,.5,stone);this.box(p.x,.2,p.z,p.width,.4,p.depth,gold);this.box(p.x,3.25,p.z,p.width,.25,p.depth,gold);}
         this.sign('CASH SERVICES',-3,2.5,-.8,3,.35);this.sign('CLIENT SERVICES',3,2.5,-.8,3,.35);
         for(const x of [-3,3]){this.box(x,1.44,-.7,.65,.45,.08,dark);this.box(x,1.44,-.65,.54,.32,.015,glow);this.box(x,1.18,-.18,.5,.04,.2,metal);}
         for(const x of [-4.7,4.7])for(const z of [1.2,3.4]){this.box(x,.44,z,.65,.8,.65,dark);this.box(x,.88,z+.25,.65,.25,.12,wood);}

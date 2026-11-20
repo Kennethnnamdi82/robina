@@ -272,7 +272,7 @@ export class RaidRuntime {
       for (const id of Object.keys(EQUIPMENT) as EquipmentId[]) { this.playerModels.set(id,this.assets.equipment(id)); this.viewModels.set(id,this.assets.equipment(id)); }
       for(const slot of this.session.authority?.latest?.loadout.slots??[]){if(slot?.collectionId){await this.assets.loadCollection(slot.collectionId);this.playerModels.set(slot.collectionId,this.assets.collectionInstance(slot.collectionId)!);this.viewModels.set(slot.collectionId,this.assets.collectionInstance(slot.collectionId)!);}}
       this.equip();
-      this.socialScene=new SocialScene(this.assets.city.humanoid!,this.session.operation.assignment===undefined?undefined:assignmentAt(this.session.operation.assignment));this.scene.add(this.socialScene.root);
+      this.socialScene=new SocialScene(this.assets.city.humanoid!,this.session.operation.assignment===undefined?undefined:assignmentAt(this.session.operation.assignment),this.assets.city.surfaces);this.scene.add(this.socialScene.root);
       mountActor(this.bossActor,this.assets); this.bossPresentation = new SecurityPresentation(this.bossActor,this.assets.instance('rifle').root,this.assets.models.get('boss')!.animations);
       this.npcs.forEach(n => { mountActor(n.actor,this.assets); n.presentation = new SecurityPresentation(n.actor,this.assets.instance(n.model.spawn.type === 'guard' ? 'pistol' : n.model.spawn.type === 'enforcer' ? 'smg' : 'rifle').root,this.assets.models.get(n.actor.role)!.animations); });
       for (const n of this.npcs) this.securityFlashes.set(n.model.spawn.id,new MuzzleFlash(n.presentation!.weapon.muzzle,this.assets.textures.get('combat-flash')!));
@@ -282,7 +282,7 @@ export class RaidRuntime {
         this.art.city.serverTraffic=Boolean(this.session.authority);
         const local=this.session.authority?.localSimulation;
         if(local)this.art.city.traffic.simulation.cars.splice(0,this.art.city.traffic.simulation.cars.length,...local.traffic.cars);
-        this.vehicles=new VehicleController(this.art.city.traffic.simulation.cars);
+        this.vehicles=local?.vehicles??new VehicleController(this.art.city.traffic.simulation.cars);
         this.art.city.traffic.simulation.blocked=car=>this.solids.some(s=>!s.id.startsWith('city-traffic-')&&vehicleOverlap(car,car.x,car.z,Math.atan2(car.dx,car.dz),s));
         this.vehicleTargets=this.vehicles.cars.map(car=>({id:'vehicle-'+car.id,team:'security',box:this.art.city!.traffic.colliders[car.id].box,alive:()=>(car.health??200)>0,damage:event=>this.vehicles!.damage(car,event.amount)}));this.targets.push(...this.vehicleTargets);
         this.targets.push(...this.art.city.crowd.combat.targets);this.art.city.crowd.combat.onCrime=()=>this.pursuit?.alert();
@@ -524,10 +524,10 @@ export class RaidRuntime {
       Object.assign(n.model,{x:row.x,y:row.y,vx:row.vx,vy:row.vy,angle:row.angle,state:row.state,shots:row.shots,hurt:row.hurt,detection:row.detection,tactic:row.tactic,sprinting:row.sprinting});
       n.model.health.current=row.health;n.collider.enabled=row.health>0;this.setBox(n.target.box,point3(row.x,row.y),.36,1.8);
     }
-    for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=!state.prediction&&car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,authority.localSimulation?.traffic.cars.find(c=>c.id===row.id)??row);if(predict)Object.assign(car,motion);}}
+    if(!authority.localSimulation)for(const row of state.cars){const car=this.vehicles?.cars.find(c=>c.id===row.id);if(car){const predict=!state.prediction&&car===this.vehicles?.current&&!restored&&!vehicleChanged&&Math.hypot(car.x-row.x,car.z-row.z)<2.5;const motion={x:car.x,z:car.z,dx:car.dx,dz:car.dz,speed:car.speed,travelled:car.travelled};Object.assign(car,row);if(predict)Object.assign(car,motion);}}
     if(this.art.city)this.art.city.traffic.simulation.time=state.trafficTime;
     this.art.city?.traffic.syncColliders(position);
-    if(this.vehicles)this.vehicles.current=state.vehicle.driving?this.vehicles.cars.find(c=>c.id===state.vehicle.id)??null:null;
+    if(this.vehicles&&!authority.localSimulation)this.vehicles.current=state.vehicle.driving?this.vehicles.cars.find(c=>c.id===state.vehicle.id)??null:null;
     if(this.pursuit){this.pursuit.active=state.pursuit.active;this.pursuit.lost=state.pursuit.lost;this.pursuit.quiet=state.pursuit.evading;}
     if(this.campaign){const {witness,...campaign}=state.campaign;Object.assign(this.campaign,campaign);if(witness)Object.assign(this.campaign.witness,{x:witness.x,y:witness.y});}
     state.loadout.slots.forEach((slot,index)=>{if(!slot){this.loadout.slots[index]=null;return;}if(this.loadout.slots[index]?.id!==slot.id||this.loadout.slots[index]?.collectionId!==slot.collectionId){this.loadout.slots[index]=new Loadout([slot.id]).slots[0];if(slot.collectionId)this.loadout.equipCollection(slot.collectionId,[slot.collectionId],index);}const local=this.loadout.slots[index]!.controller;local.ammo=slot.ammo;local.reserve=slot.reserve;local.reloadRemaining=slot.reload;});

@@ -8,27 +8,27 @@ import { StoreInventory, StoreLedger } from '../payments/storeModels.js';
 import { appearance } from '../payments/entitlements.js';
 import { inventory, storeEnvironment, transaction, fail } from '../payments/service.js';
 import { REPLAY_SCORE_VERSION, scoreVerifiedRun } from './score.js';
-import { SIMULATION_VERSION } from '../../generated/missionSimulation.mjs';
+import { COLLISION_SIMULATION_VERSION,SIMULATION_VERSION } from '../../generated/missionSimulation.mjs';
 
 const audience='rivals-mission-replay-v1';
 const CHUNK_SIZE=40000,MAX_CHUNKS=600;
 const digest=value=>crypto.createHash('sha256').update(value).digest('hex');
 export class MissionCompletions {
   jobs=new Map(); workers=new Set();closing=false;
-  async permit(playerId,{missionId,seed}) {
+  async permit(playerId,{missionId,seed,simulationVersion=SIMULATION_VERSION}) {
     // Launch authorization is stateless: no mission/session/checkpoint is saved.
     const account=await StoreInventory.findOne({playerId,environment:storeEnvironment()}).lean();
     const initial={grenades:account?.spendingBlocked?0:account?.grenades??5,ownedIds:account?.spendingBlocked?[]:account?.ownedIds??[],
       weapon:account?.spendingBlocked?null:account?.equippedWeapon??null,appearance:appearance(account??{ownedIds:[]})};
     const permit={id:new mongoose.Types.ObjectId().toString(),missionId,seed:seed??crypto.randomInt(0,4294967296),
-      simulationVersion:SIMULATION_VERSION,issuedAt:Date.now(),maxTicks:432000,initial};
+      simulationVersion,issuedAt:Date.now(),maxTicks:432000,initial};
     const token=jwt.sign(permit,env.jwtSecret,{algorithm:'HS256',audience,issuer:'rivals',subject:String(playerId),expiresIn:'7d'});
     return {...permit,token};
   }
   authorize(playerId,token) {
     try {
       const permit=jwt.verify(token,env.jwtSecret,{algorithms:['HS256'],audience,issuer:'rivals'});
-      if(permit.sub!==String(playerId)||permit.simulationVersion!==SIMULATION_VERSION||!mongoose.isValidObjectId(permit.id))throw Error();
+      if(permit.sub!==String(playerId)||![SIMULATION_VERSION,COLLISION_SIMULATION_VERSION].includes(permit.simulationVersion)||!mongoose.isValidObjectId(permit.id))throw Error();
       return permit;
     }catch{fail('invalid_mission_permit',403);}
   }
@@ -107,7 +107,7 @@ export class MissionCompletions {
         const endedAt=new Date(),durationSeconds=proof.durationSeconds;
         const score=scoreVerifiedRun({...proof.metrics,durationSeconds,remainingHealth:proof.health,maxHealth:proof.maxHealth});
         // All durable mission writes happen together, after successful replay.
-        await MissionSession.create([{_id:permit.id,playerId,missionId:permit.missionId,seed:permit.seed,configVersion:SIMULATION_VERSION,
+        await MissionSession.create([{_id:permit.id,playerId,missionId:permit.missionId,seed:permit.seed,configVersion:permit.simulationVersion,
           authority:true,verificationSource:'replay',proofDigest,startedAt:new Date(permit.issuedAt),endedAt,reconnectDeadline:endedAt,
           status:'verified_success',verifiedOutcome:'success',integrity:'verified',health:proof.health,maxHealth:proof.maxHealth,grenadesSpent:proof.grenadesSpent}],{session});
         const [result]=await VerifiedMissionResult.create([{playerId,sessionId:permit.id,missionId:permit.missionId,outcome:'success',

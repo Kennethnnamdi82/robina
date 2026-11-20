@@ -7,11 +7,13 @@ import { web3Middleware } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { MissionLife, MissionSession, VerifiedMissionResult } from './models.js';
 import { MissionCompletions } from './completions.js';
+import { COLLISION_SIMULATION_VERSION } from '../../generated/missionSimulation.mjs';
 
 // Exact existing assignment identifiers from the 3D game's assignments.ts.
 // This is an allowlist, not a second mission configuration or gameplay engine.
 const missionIds = ['reserve', 'reactor', 'archive', 'convoy', 'hostage', 'cargo', 'military', 'bridge', 'bridge-night'];
 const startInput = z.object({ missionId: z.enum(missionIds.map(id => `assignment-${id}`)), seed: z.number().int().min(0).max(4294967295).optional() }).strict();
+const permitInput = startInput.extend({simulationVersion:z.literal(COLLISION_SIMULATION_VERSION).optional()});
 const idInput = z.string().regex(/^[a-f\d]{24}$/i);
 const reportInput = z.object({ outcome: z.enum(['success', 'failure']) }).strict();
 const asyncRoute = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
@@ -35,7 +37,7 @@ missionRoutes.use(web3Middleware, asyncRoute(async (req, res, next) => {
 }));
 
 missionRoutes.post('/permits',missionWrites,asyncRoute(async(req,res)=>{
-  const parsed=startInput.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'invalid_mission'});
+  const parsed=permitInput.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'invalid_mission'});
   res.json({permit:await completions.permit(req.missionPlayerId,parsed.data)});
 }));
 const uploads=rateLimit({windowMs:60000,limit:600,keyGenerator:req=>String(req.missionPlayerId),standardHeaders:'draft-7',legacyHeaders:false});

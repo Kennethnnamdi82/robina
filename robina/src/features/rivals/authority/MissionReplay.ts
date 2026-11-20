@@ -1,4 +1,4 @@
-import { MissionSimulation, SIMULATION_VERSION, type AuthorityAction, type AuthorityInput } from './MissionSimulation';
+import { MissionSimulation, COLLISION_SIMULATION_VERSION,SIMULATION_VERSION, type AuthorityAction, type AuthorityInput } from './MissionSimulation';
 import { emptyCommand } from '../input/InputBuffer';
 
 export const REPLAY_VERSION = 1;
@@ -36,8 +36,8 @@ export class MissionRecorder {
   }
 }
 export function initializeReplay(permit: Omit<MissionPermit,'token'>) {
-  if(permit.simulationVersion!==SIMULATION_VERSION)throw Error('mission_version_mismatch');
-  const sim=new MissionSimulation(permit.missionId,permit.seed,permit.id);
+  if(permit.simulationVersion!==SIMULATION_VERSION&&permit.simulationVersion!==COLLISION_SIMULATION_VERSION)throw Error('mission_version_mismatch');
+  const sim=new MissionSimulation(permit.missionId,permit.seed,permit.id,permit.simulationVersion);
   sim.field.quantity=permit.initial.grenades;
   sim.appearance=structuredClone(permit.initial.appearance);
   if(permit.initial.weapon)sim.loadout.equipCollection(permit.initial.weapon,permit.initial.ownedIds,0);

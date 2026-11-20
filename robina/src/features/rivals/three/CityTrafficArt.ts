@@ -39,12 +39,12 @@ export class CityTrafficArt {
    * Waiting for draw() leaves the soldier colliding with last frame's cars. */
   syncColliders(player:T.Vector3){
     for(const car of this.simulation.cars){
-      const collider=this.colliders[car.id],collision=vehicleCollisionDimensions(car.kind);
+      const collider=this.colliders[car.id],collision=vehicleCollisionDimensions(car.kind),width=car.collisionWidth??collision.width;
       collider.enabled=carActive(car,this.active)&&Math.hypot(car.x-player.x,car.z-player.z)<105;
-      const halfX=Math.abs(car.dx)*car.length/2+Math.abs(car.dz)*collision.width/2,
-        halfZ=Math.abs(car.dz)*car.length/2+Math.abs(car.dx)*collision.width/2;
+      const halfX=Math.abs(car.dx)*car.length/2+Math.abs(car.dz)*width/2,
+        halfZ=Math.abs(car.dz)*car.length/2+Math.abs(car.dx)*width/2;
       collider.box.min.set(car.x-halfX,0,car.z-halfZ);collider.box.max.set(car.x+halfX,collision.height,car.z+halfZ);
-      collider.oriented!.center.set(car.x,collision.height/2,car.z);collider.oriented!.half.set(collision.width/2,collision.height/2,car.length/2);collider.oriented!.yaw=Math.atan2(car.dx,car.dz);
+      collider.oriented!.center.set(car.x,collision.height/2,car.z);collider.oriented!.half.set(width/2,collision.height/2,car.length/2);collider.oriented!.yaw=Math.atan2(car.dx,car.dz);
     }
   }
   draw(player:T.Vector3,night:boolean,camera?:T.Camera,alpha=1,vehicleYaw?:number) {

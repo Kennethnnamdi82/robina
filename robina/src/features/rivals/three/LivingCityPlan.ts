@@ -25,6 +25,14 @@ export function waterfrontRails(){
 export interface CityBlock { x: number; z: number; park: boolean; building?: CityBuilding }
 export interface CityPlan { seed: number; district: CityDistrict; label: string; weather: CityWeather; blocks: CityBlock[]; buildings: CityBuilding[]; signature: string }
 export interface CityPoint { x: number; z: number }
+export const streetLampPlacements=Array.from({length:25},(_,i)=>({
+  x:20+(i%5-1)*24-6.7,z:20+(Math.floor(i/5)-1)*24-6.7,height:5.2,width:1,depth:1,yaw:Math.PI/2,
+}));
+export const avenueLightPosts=STREET_CENTRES.flatMap(x=>STREET_CENTRES.map(z=>({x:x-6.1,z:z-6.1})));
+export const trafficSignalPosts=STREET_CENTRES.flatMap(x=>STREET_CENTRES.flatMap(z=>
+  (['x','z'] as const).flatMap(axis=>[-1,1].map(side=>({
+    axis,x:x+side*(axis==='x'?5.4:5.65),z:z+side*(axis==='z'?5.4:-5.65),yaw:axis==='x'?side*Math.PI/2:side>0?0:Math.PI,
+  })))));
 export function cityRandom(seed: number) {
   let value = seed >>> 0;
   return () => { value += 0x6D2B79F5; let n = value; n = Math.imul(n ^ n >>> 15, n | 1); n ^= n + Math.imul(n ^ n >>> 7, n | 61); return ((n ^ n >>> 14) >>> 0) / 4294967296; };

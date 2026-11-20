@@ -16,7 +16,7 @@ import { convertSolids, point3, METRES, type Solid3D } from '../three/world3d';
 import { Projectile3D, type Target3D, type Bullet3D } from '../three/Projectile3D';
 import { FieldItems, ENEMY_DROPS, HEALTH_BOXES, meleeStrike, grenadeTarget } from '../three/FieldItems';
 import { Loadout } from '../three/Loadout';
-import { CitySimulation, TRAFFIC_COUNT, carActive, VEHICLE_LENGTH, vehicleCollisionDimensions } from '../three/CitySimulation';
+import { CitySimulation, TRAFFIC_COUNT, carActive, VEHICLE_LENGTH, vehicleCollisionDimensions,vehicleModelWidth } from '../three/CitySimulation';
 import { VehicleController, addParkedVehicles, vehicleOverlap } from '../three/VehicleController';
 import { PolicePursuit } from '../three/PolicePursuit';
 import { CampaignGameplay } from '../three/CampaignGameplay';
@@ -24,8 +24,10 @@ import { dodgeMotionScale } from '../three/dodgeMotion';
 import {PedestrianSimulation} from '../three/PedestrianSimulation';
 import {authoritativeMuzzle} from '../three/WeaponGeometry';
 import {MovementStream,type MovementBatch} from './MovementStream';
+import {cityMovementSolids} from '../three/CityMovementSolids';
+import {COLLISION_SIMULATION_VERSION,SIMULATION_VERSION} from './SimulationVersion';
 
-export const SIMULATION_VERSION = 3;
+export {COLLISION_SIMULATION_VERSION,SIMULATION_VERSION};
 export const SIMULATION_STEP = 1 / 60;
 export interface AuthorityInput extends PlayerCommand {
   seq: number; aim: [number, number, number]; jump: boolean; jumpHeld: boolean; highJump: boolean;
@@ -84,6 +86,7 @@ export class MissionSimulation {
   readonly loadout = new Loadout(); readonly field = new FieldItems(); readonly pool = new Projectile3D();
   readonly body = { position: new Vector3(), vertical: 0, grounded: true, jumpTime: 0 };
   readonly traffic; readonly vehicles; readonly police; readonly campaign; readonly navigation; readonly solids;
+  readonly movementSolids:Solid3D[];
   readonly crowd:PedestrianSimulation;private crowdAge=0;
   readonly enemies: TacticalEnemy[] = []; readonly targets: Target3D[] = []; readonly occupants: Solid3D[] = [];
   readonly events: SimulationEvent[] = [];
@@ -97,7 +100,7 @@ export class MissionSimulation {
   private lastObjectives = new Set<string>(); private aim = new Vector3(); private legacy = { x: 0, y: 0 };
   private command: AuthorityInput = { ...emptyCommand(), seq: -1, aim: [0, 1, 0], jump: false,
     jumpHeld: false, highJump: false, touchRepeat: false, throttle: 0, steer: 0, brake: false, stickX: 0, stickY: 0, cameraYaw: 0 };
-  constructor(readonly missionId: string, readonly seed: number, readonly sessionId: string) {
+  constructor(readonly missionId: string, readonly seed: number, readonly sessionId: string,readonly simulationVersion:number=SIMULATION_VERSION) {
     const index = ASSIGNMENTS.findIndex(a => `assignment-${a.id}` === missionId);
     if (index < 0) throw new Error('invalid_mission');
     this.operation = createAssignmentOperation(index, seed);
@@ -111,10 +114,12 @@ export class MissionSimulation {
       damage: event => this.damage(event) });
     this.world.level.enemies.forEach((spawn, i) => this.addEnemy(spawn, i * .05));
     this.traffic = new CitySimulation(this.operation.seed); addParkedVehicles(this.traffic.cars);
+    const updatedCollisions=simulationVersion===COLLISION_SIMULATION_VERSION;
+    if(updatedCollisions)for(const car of this.traffic.cars)car.collisionWidth=vehicleModelWidth(car);
     this.vehicles = new VehicleController(this.traffic.cars);
     this.crowd=new PedestrianSimulation(this.operation.seed);this.targets.push(...this.crowd.combat.targets);
     this.crowd.combat.onCrime=()=>{this.police.alert();this.crowd.threat(this.body.position,this.mission.elapsed);};
-    this.traffic.blocked = car => this.solids.some(s => !s.id.startsWith('city-traffic-') && vehicleOverlap(car, car.x, car.z, Math.atan2(car.dx, car.dz), s));
+    this.traffic.blocked = car => this.movementSolids.some(s => !s.id.startsWith('city-traffic-') && vehicleOverlap(car, car.x, car.z, Math.atan2(car.dx, car.dz), s));
     for (const car of this.traffic.cars) {
       const solid: Solid3D = { id: `city-traffic-${car.id}`, kind: 'cover', enabled: true, box: new Box3(),
         oriented: { center: new Vector3(), half: new Vector3(), yaw: 0 } };
@@ -122,6 +127,7 @@ export class MissionSimulation {
       this.targets.push({ id: `vehicle-${car.id}`, team: 'civilian', box: solid.box, alive: () => carActive(car,TRAFFIC_COUNT)&&(car.health ?? 200) > 0,
         damage: event => this.vehicles.damage(car, event.amount) });
     }
+    this.movementSolids=updatedCollisions?[...this.solids,...cityMovementSolids(this.operation.venue,this.operation.seed,ASSIGNMENTS[index])]:this.solids;
     this.police = new PolicePursuit(this.traffic.cars, new NavigationGrid(this.world.level.width, this.world.level.height, 64, this.world.blockers, 46),
       this.solids, ASSIGNMENTS[index].response, spawn => { if (this.enemies.length < 14) { this.addEnemy(spawn, .05); this.enemies.at(-1)!.alarm(1, this.legacy); } },
       (window, car) => {
@@ -164,9 +170,9 @@ export class MissionSimulation {
     }
     if (action.type === 'vehicle') {
       this.controller.stop();
-      if (this.vehicles.current) {const exited=this.vehicles.exit(this.body.position,this.solids);if(exited)this.movement.reset();return exited;}
+      if (this.vehicles.current) {const exited=this.vehicles.exit(this.body.position,this.movementSolids);if(exited)this.movement.reset();return exited;}
       this.vehicles.scan(this.body.position, 28);
-      const entered=!!this.vehicles.nearby && this.vehicles.enter(this.vehicles.nearby, this.body.position, this.solids,car=>{this.crowd.ejectDriver(car);this.crowd.combat.sync(this.crowd.active);});
+      const entered=!!this.vehicles.nearby && this.vehicles.enter(this.vehicles.nearby, this.body.position, this.movementSolids,car=>{this.crowd.ejectDriver(car);this.crowd.combat.sync(this.crowd.active);});
       if(entered)this.movement.reset();return entered;
     }
     return false;
@@ -208,7 +214,7 @@ export class MissionSimulation {
       const original = this.blockersById.get(solid.id); if (original) solid.enabled = original.enabled;
       if (solid.id.startsWith('city-traffic-')) {
         const car = this.traffic.cars[Number(solid.id.slice(13))];
-        const dimensions=vehicleCollisionDimensions(car.kind),w=dimensions.width,h=dimensions.height;
+        const dimensions=vehicleCollisionDimensions(car.kind),w=car.collisionWidth??dimensions.width,h=dimensions.height;
         const hx = Math.abs(car.dx) * car.length / 2 + Math.abs(car.dz) * w / 2,
           hz = Math.abs(car.dz) * car.length / 2 + Math.abs(car.dx) * w / 2;
         solid.box.set(new Vector3(car.x - hx, 0, car.z - hz), new Vector3(car.x + hx, h, car.z + hz));
@@ -244,11 +250,11 @@ export class MissionSimulation {
     if (this.mission.state !== 'ACTIVE') return;
     const driving = { throttle: command.throttle, steer: command.steer, brake: command.brake,
       stickX: command.stickX, stickY: command.stickY, cameraYaw: command.cameraYaw };
-    if (this.vehicles.current) { this.vehicles.step(dt, driving, this.solids, this.body.position); this.body.grounded = true; this.body.vertical = 0; }
+    if (this.vehicles.current) { this.vehicles.step(dt, driving, this.movementSolids, this.body.position); this.body.grounded = true; this.body.vertical = 0; }
     else {
       this.vehicles.step(dt, driving, this.solids, this.body.position);
       const scale = dodgeMotionScale(this.controller.dodgeRemaining, dt);
-      const p=this.body.position,nearby=[...this.solids,...this.occupants].filter(s=>s.enabled&&s.box.min.x<p.x+2&&s.box.max.x>p.x-2&&s.box.min.z<p.z+2&&s.box.max.z>p.z-2);
+      const p=this.body.position,nearby=[...this.movementSolids,...this.occupants].filter(s=>s.enabled&&s.box.min.x<p.x+2&&s.box.max.x>p.x-2&&s.box.min.z<p.z+2&&s.box.max.z>p.z-2);
       moveKinematic(this.body, this.controller.vx * METRES * dt * scale, this.controller.vy * METRES * dt * scale,
         dt, nearby, command.jump, command.jumpHeld, command.highJump);
     }

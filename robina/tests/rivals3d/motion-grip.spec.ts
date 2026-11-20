@@ -17,20 +17,23 @@ for(const model of ['realism/field-operative.glb','characters/universal-operativ
     const target=new T.Vector3(0,1.32,20),point=new T.Vector3(),prior=new T.Vector3();
     const frame={vx:0,vz:0,vertical:0,grounded:true,sprinting:false,aiming:false,angle:Math.PI/2,pov:'third',dodgeRemaining:0,dodgeSerial:0,health:100,hitSerial:0,shots:0,reload:0,reloadDuration:1.25,equipment:'rifle',independentAim:true,action:'idle'};
     let grip=0,support=0,maxWeaponStep=0,peak={},peakStep={};const clips=new Set<string>();
-    for(let i=0;i<600;i++){
-      const dt=1/120;frame.vz=i<60?0:i<180?2:i<300?9:0;frame.sprinting=i>=180&&i<300;frame.aiming=i>=300;
-      if(i>=300&&i<330&&i%10===0){frame.shots++;gun.fire();}
-      frame.reload=i>=330?Math.max(0,1.25-(i-330)*dt):0;
+    const pelvis=body.scene.getObjectByName('pelvis'),pelvisPoint=new T.Vector3(),jogHeights:number[]=[];
+    for(let i=0;i<630;i++){
+      const dt=1/120;frame.vz=i<60?0:i<180?2:i<300?5.875:i<420?9:0;frame.sprinting=i>=300&&i<420;frame.aiming=i>=420;
+      if(i>=420&&i<450&&i%10===0){frame.shots++;gun.fire();}
+      frame.reload=i>=450?Math.max(0,1.25-(i-450)*dt):0;
       animator.update(dt,frame);gun.decay(dt);gun.pose(target,frame,dt);actor.root.updateMatrixWorld(true);gun.model.getWorldPosition(point);
       grip=Math.max(grip,gun.rightGripError);if(!frame.reload&&gun.leftGripError>support){support=gun.leftGripError;peak={frame:i,error:support,target:gun.leftTarget.toArray(),wrist:body.scene.getObjectByName('hand_l').getWorldPosition(new T.Vector3()).toArray(),shoulder:body.scene.getObjectByName('upperarm_l').getWorldPosition(new T.Vector3()).toArray()};}
       if(i>1&&point.distanceTo(prior)>maxWeaponStep){maxWeaponStep=point.distanceTo(prior);peakStep={frame:i,from:prior.toArray(),to:point.toArray()};}prior.copy(point);clips.add(animator.upperClipName);
+      if(i>=205&&i<300)jogHeights.push(pelvis.getWorldPosition(pelvisPoint).y);
     }
     renderer.render(scene,camera);
-    return{grip,support,maxWeaponStep,clips:[...clips],supported:gun.supportEngaged,alignment:gun.alignment,peak,peakStep};
+    return{grip,support,maxWeaponStep,jogBob:Math.max(...jogHeights)-Math.min(...jogHeights),clips:[...clips],supported:gun.supportEngaged,alignment:gun.alignment,peak,peakStep};
   },model);
   console.log('Real soldier grip/motion audit:',JSON.stringify(result));
   expect(result.grip).toBeLessThan(.005);expect(result.support).toBeLessThan(.035);
   expect(result.maxWeaponStep).toBeLessThan(.04);expect(result.clips).toEqual(['Pistol_Aim_Neutral']);expect(result.supported).toBe(true);
   expect(result.alignment).toBeGreaterThan(.98);expect(errors).toEqual([]);
+  if(model.startsWith('realism/'))expect(result.jogBob).toBeLessThan(.13);
   await page.screenshot({path:info.outputPath('stable-rifle-grip.png')});
 });

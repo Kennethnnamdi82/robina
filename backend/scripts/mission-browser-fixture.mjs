@@ -45,10 +45,10 @@ const server=createServer(async(req,res)=>{
       return res.end(JSON.stringify({life,results,sessions,checkpoints,events,live:live?{ready:live.ready,paused:live.paused,connected:Boolean(live.socket),health:live.sim.controller.health,elapsed:live.sim.mission.elapsed,faulted:live.faulted,position:live.sim.body.position.toArray(),vehicle:live.sim.vehicles.snapshot}:null}));
     }
     if(url.pathname==='/__test/recording'){
-      const fixture=JSON.parse(gunzipSync(readFileSync(new URL('../test/fixtures/reserve-replay-v1.json.gz',import.meta.url))).toString());
-      const permit=await app.locals.missionCompletions.permit(playerId,{missionId:'assignment-reserve',seed:42});
+      const fixture=JSON.parse(gunzipSync(readFileSync(new URL('../test/fixtures/reserve-collision-replay-v1.json.gz',import.meta.url))).toString());
+      const permit=await app.locals.missionCompletions.permit(playerId,{missionId:'assignment-reserve',seed:42,simulationVersion:fixture.permit.simulationVersion});
       // Test-only clock offset for a naturally played recording; no production route can sign this.
-      const {token,...claims}=permit;claims.issuedAt=Date.now()-60000;
+      const {token,...claims}=permit;claims.issuedAt=Date.now()-120000;
       claims.token=jwt.sign(claims,process.env.JWT_SECRET,{audience:'rivals-mission-replay-v1',issuer:'rivals',subject:playerId,expiresIn:'7d'});
       return res.end(JSON.stringify({permit:claims,tape:fixture.tape}));
     }
