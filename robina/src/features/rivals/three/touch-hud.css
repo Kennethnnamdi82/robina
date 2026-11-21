@@ -1,0 +1,296 @@
+.r3-shell .r3-game {
+  --touch-left: max(14px, calc(env(safe-area-inset-left) + 8px));
+  --touch-right: max(14px, calc(env(safe-area-inset-right) + 8px));
+  --touch-bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+  --touch-stick: clamp(88px, 24dvh, 108px);
+  --touch-key: 48px;
+  --touch-trigger: 64px;
+  --touch-surface: #15232de8;
+  --touch-edge: #a1bfce8a;
+  --touch-ink: #e9f4f7;
+  --touch-accent: #ffda91;
+}
+
+.r3-shell .r3-game button.r3-touch-key {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch-key);
+  height: var(--touch-key);
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  color: var(--touch-ink);
+  background: linear-gradient(148deg, #b5e9fc15, transparent 65%), var(--touch-surface);
+  border: 1px solid var(--touch-edge);
+  border-radius: 15px 15px 6px;
+  box-shadow: inset 0 1px #f2faff26, 0 3px 10px #02060b6e;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.r3-game .r3-touch-key > svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.9;
+  pointer-events: none;
+}
+
+.r3-shell .r3-game .r3-touch-key:focus-visible {
+  outline: 2px solid var(--touch-accent);
+  outline-offset: 3px;
+}
+
+.r3-shell .r3-game .r3-touch-key:is(:active, [aria-pressed="true"]):enabled {
+  color: #fff2d1;
+  background: #624927f2;
+  border-color: var(--touch-accent);
+  box-shadow: inset 0 0 0 2px #ffd98c32, 0 2px 6px #0008;
+}
+
+.r3-shell .r3-game .r3-touch-key:disabled {
+  opacity: .52;
+}
+
+.r3-shell .r3-game .r3-touch-key.rv-touch-only {
+  display: none;
+}
+
+.r3-game .r3-action-controls,
+.r3-game .r3-drive-actions {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.r3-game .r3-action-controls > .r3-touch-key,
+.r3-game .r3-drive-actions > .r3-touch-key,
+.r3-game .r3-fps-shoot {
+  position: absolute;
+  inset: auto;
+}
+
+.r3-shell .r3-game .r3-soldier-controls.rv-controls .rv-stick-control,
+.r3-game .r3-driving-controls .rv-stick-drive {
+  width: var(--touch-stick);
+  height: var(--touch-stick);
+  bottom: var(--touch-bottom);
+}
+
+.r3-shell .r3-game .r3-soldier-controls.rv-controls .rv-stick-move,
+.r3-game .r3-driving-controls .rv-stick-drive {
+  left: var(--touch-left);
+}
+
+.r3-shell .r3-game .r3-soldier-controls.rv-controls .rv-stick-aim {
+  left: auto;
+  right: var(--touch-right);
+}
+
+.r3-shell .r3-game :is(.r3-soldier-controls, .r3-driving-controls) .rivals-stick {
+  width: 100%;
+  height: 100%;
+  border-color: #b3d4e275;
+  background:
+    repeating-conic-gradient(from -4deg, #b7d8e843 0deg 8deg, transparent 8deg 90deg),
+    radial-gradient(circle, #172b36a6 57%, #172b36e0 100%);
+  box-shadow: inset 0 0 0 6px #0a121a70, 0 3px 10px #0004;
+}
+
+.r3-shell .r3-game :is(.r3-soldier-controls, .r3-driving-controls) .rivals-stick-cross {
+  inset: 12%;
+  border-color: #bbdeec44;
+  background: #101f29b5;
+  pointer-events: none;
+}
+
+.r3-shell .r3-game :is(.r3-soldier-controls, .r3-driving-controls) .rivals-stick-knob {
+  width: 39%;
+  height: 39%;
+  top: 30.5%;
+  left: 30.5%;
+  background: radial-gradient(circle at 38% 30%, #aecad8c4, #3a5766ed 85%);
+  border: 1px solid #d5edf1b3;
+  box-shadow: inset 0 0 0 3px #bedee83c, 0 2px 6px #0005;
+}
+
+.r3-shell .r3-game :is(.r3-soldier-controls, .r3-driving-controls) .rivals-stick-label {
+  display: none;
+}
+
+/* Mobility stays close to movement. Combat follows a staggered thumb arc. */
+.r3-game .r3-action-controls .r3-sprint {
+  left: calc(var(--touch-left) + 3px);
+  bottom: calc(var(--touch-bottom) + var(--touch-stick) + 10px);
+}
+
+.r3-game .r3-action-controls .r3-dodge {
+  left: calc(var(--touch-left) + var(--touch-key) + 11px);
+  bottom: calc(var(--touch-bottom) + var(--touch-stick) + 29px);
+}
+
+.r3-game .r3-action-controls .r3-jump {
+  right: calc(var(--touch-right) + var(--touch-stick) + 10px);
+  bottom: calc(var(--touch-bottom) + var(--touch-key) + 7px);
+}
+
+.r3-game .r3-action-controls .r3-ads {
+  right: calc(var(--touch-right) + var(--touch-stick) + 18px);
+  bottom: var(--touch-bottom);
+}
+
+.r3-shell .r3-game button.r3-trigger,
+.r3-shell .r3-game button.r3-accelerate {
+  width: var(--touch-trigger);
+  height: var(--touch-trigger);
+  color: #ffdfa5;
+  background: radial-gradient(ellipse at 36% 25%, #614e32de, #27281fe8 76%);
+  border-color: #ffda92c4;
+  border-radius: 21px 21px 8px;
+  box-shadow: inset 0 0 0 3px #f9cf8b17, 0 4px 13px #0907078c;
+}
+
+.r3-game :is(.r3-trigger, .r3-accelerate) > svg {
+  width: 29px;
+  height: 29px;
+}
+
+.r3-game .r3-action-controls .r3-trigger {
+  right: calc(var(--touch-right) + 2px);
+  bottom: calc(var(--touch-bottom) + var(--touch-stick) + 10px);
+}
+
+.r3-game .r3-action-controls .r3-reload {
+  right: calc(var(--touch-right) + var(--touch-trigger) + 10px);
+  bottom: calc(var(--touch-bottom) + var(--touch-stick) + 30px);
+}
+
+.r3-game .r3-action-controls .r3-bomb {
+  right: calc(var(--touch-right) + var(--touch-stick) + 68px);
+  bottom: calc(var(--touch-bottom) + var(--touch-stick) + 7px);
+  --touch-ink: #ffd6bb;
+  --touch-edge: #e6a88b94;
+}
+
+.r3-game .r3-action-controls .r3-bomb > b,
+.r3-game .r3-utility .r3-zoom-value {
+  position: absolute;
+  top: auto;
+  right: 3px;
+  bottom: 3px;
+  min-width: 14px;
+  padding: 2px 3px;
+  border-radius: 4px;
+  color: #fff2da;
+  background: #0d161fe8;
+  font: 700 10px/1 system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.r3-shell .r3-game button.r3-fps-shoot {
+  right: calc(var(--touch-right) + 4px);
+  bottom: calc(var(--touch-bottom) + 16px);
+  z-index: 3;
+}
+
+.r3-game .r3-soldier-controls[data-pov="first"] .r3-reload {
+  right: calc(var(--touch-right) + 6px);
+  bottom: calc(var(--touch-bottom) + var(--touch-stick) + 12px);
+}
+
+.r3-game .r3-action-controls .r3-interact,
+.r3-shell .r3-game button.r3-enter-car.r3-touch-key {
+  bottom: var(--touch-bottom);
+  right: auto;
+  transform: translateX(-50%);
+  --touch-ink: #ccefea;
+  --touch-edge: #87c4b9b0;
+}
+
+.r3-game .r3-action-controls .r3-interact {
+  left: calc(50% - 30px);
+}
+
+.r3-shell .r3-game button.r3-enter-car.r3-touch-key {
+  left: calc(50% + 30px);
+}
+
+.r3-game .r3-drive-actions .r3-accelerate {
+  right: var(--touch-right);
+  bottom: var(--touch-bottom);
+}
+
+.r3-game .r3-drive-actions .r3-brake {
+  right: calc(var(--touch-right) + var(--touch-trigger) + 12px);
+  bottom: calc(var(--touch-bottom) + 10px);
+  --touch-ink: #ffdacd;
+  --touch-edge: #e8a693c4;
+  --touch-surface: #4c2928e8;
+}
+
+.r3-game .r3-drive-actions .r3-reverse {
+  right: calc(var(--touch-right) + 8px);
+  bottom: calc(var(--touch-bottom) + var(--touch-trigger) + 9px);
+}
+
+.r3-shell .r3-game .r3-drive-actions .r3-exit-car {
+  right: calc(var(--touch-right) + var(--touch-trigger) + 24px);
+  bottom: calc(var(--touch-bottom) + var(--touch-key) + 20px);
+  left: auto;
+  transform: none;
+}
+
+.r3-game .r3-utility {
+  width: auto;
+  gap: 6px;
+}
+
+.r3-shell .r3-game .r3-utility button.r3-touch-key {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.r3-game .r3-utility .r3-zoom-value {
+  font-size: 8px;
+}
+
+@media (pointer: coarse), (max-width: 900px) {
+  .r3-shell .r3-game button.r3-touch-key.rv-touch-only {
+    display: grid;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 390px) {
+  .r3-shell .r3-game {
+    --touch-stick: 80px;
+    --touch-trigger: 60px;
+  }
+  .r3-shell .r3-game .r3-utility {
+    right: max(106px, calc(env(safe-area-inset-right) + 98px));
+  }
+}
+
+@media (orientation: portrait) and (max-width: 600px) {
+  .r3-shell .r3-game {
+    --touch-stick: 92px;
+  }
+  .r3-game .r3-action-controls .r3-bomb {
+    right: calc(var(--touch-right) + 6px);
+    bottom: calc(var(--touch-bottom) + var(--touch-stick) + 85px);
+  }
+  .r3-game .r3-action-controls .r3-interact,
+  .r3-shell .r3-game button.r3-enter-car.r3-touch-key {
+    bottom: calc(var(--touch-bottom) + var(--touch-stick) + 105px);
+  }
+}
+
+@media (orientation: portrait) and (max-width: 340px) {
+  .r3-shell .r3-game {
+    --touch-stick: 84px;
+    --touch-trigger: 60px;
+  }
+}

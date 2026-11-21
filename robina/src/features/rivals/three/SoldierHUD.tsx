@@ -1,4 +1,4 @@
-import { ArrowUp, Bomb, Crosshair, Shield, Wind, Zap,LogOut } from 'lucide-react';
+import { ArrowDown, ArrowUpFromLine, Bomb, CircleStop, Crosshair, Footprints, Gauge, Hand, LogOut, RotateCw, Shield, Zap } from 'lucide-react';
 import type { SandboxSession } from './SandboxSession';
 import type { RaidRuntime } from './RaidRuntime';
 import { useArenaValue } from '../ui/useArenaValue';
@@ -7,6 +7,7 @@ import { press } from './controlPress';
 import {useEffect,useState} from 'react';
 import {FpsTouchControls} from './FpsTouchControls';
 import {useFireLook} from './useFireLook';
+import {FireGlyph} from './FireGlyph';
 
 function EquipmentGlyph({ id }: { id: string }) {
   return <svg className="r3-equipment-glyph" viewBox="0 0 88 30" aria-hidden="true" fill="currentColor">
@@ -24,15 +25,15 @@ export function SoldierControls({ session,runtime,pov }: { session: SandboxSessi
   return <div className="rv-controls r3-soldier-controls" data-mobile="auto" data-pov={pov}>
     <TouchStick kind="move" disabled={disabled} onMove={session.setMovement}/>
     {pov==='first'?<FpsTouchControls session={session} runtime={runtime} disabled={disabled}/>:<TouchStick kind="aim" disabled={disabled} onMove={session.setAim} onPress={held => session.input.setFire(held && session.canControl())}/>}
-    <button className="rv-sprint-control rv-touch-only" disabled={disabled} aria-label="Toggle sprint" aria-pressed={sprint} {...press(session.toggleSprint)}><Wind size={19}/><span>{sprint ? 'SPRINT ON' : 'SPRINT'}</span></button>
-    <div className="rv-action-buttons">
-      <button className="r3-reload" aria-label="Reload weapon" disabled={disabled||Boolean(state?.slots[state.active]?.kind==='melee')} {...press(session.reload)}><span>↻</span><span>RELOAD</span></button>
-      <button className="rv-dodge-control" aria-label="Dodge" disabled={disabled || cooldown > .01} {...press(session.dodge)}><Zap size={20}/><span>{cooldown > .01 ? cooldown.toFixed(1) + 's' : 'EVADE'}</span></button>
-      <button className="rv-interact-control" aria-label="Inspect nearby equipment" disabled={disabled || !nearby} {...press(session.interact)}><Crosshair size={19}/><span>COLLECT</span></button>
-      <button className="rv-fire-control" aria-label="Fire weapon" disabled={disabled} {...fire}><Crosshair size={22}/><span>FIRE</span></button>
-      <button className="r3-bomb" aria-label="Throw bomb" disabled={disabled || !state?.canThrow} {...press(() => runtime?.throwBomb())}><Bomb size={20}/><b>{state?.bombs ?? 0}</b><span>GRENADE</span></button>
-      <button className="r3-jump" aria-label="Jump" disabled={disabled} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); runtime?.holdJump(true); }} onPointerUp={() => runtime?.holdJump(false)} onPointerCancel={() => runtime?.holdJump(false)} onLostPointerCapture={() => runtime?.holdJump(false)} onClick={e => { if (e.detail === 0) runtime?.requestJump(); }}><ArrowUp size={20}/><span>HOLD JUMP</span></button>
-      {(pov === 'first' || pov === 'third') && <button className="r3-ads" aria-label="Aim down sights" aria-pressed={ads} disabled={disabled || state?.slots[state.active]?.kind === 'melee'} {...press(()=>{if(runtime){runtime.rig.ads=!runtime.rig.ads;setAds(runtime.rig.ads);}})}><Crosshair size={19}/><span>{ads?'SIGHTS ON':'SIGHTS'}</span></button>}
+    <div className="r3-action-controls">
+      <button className="r3-touch-key r3-sprint rv-touch-only" disabled={disabled} aria-label="Toggle sprint" title="Sprint" aria-pressed={sprint} {...press(session.toggleSprint)}><Footprints aria-hidden="true"/></button>
+      <button className="r3-touch-key r3-dodge" aria-label="Dodge" title={cooldown > .01 ? `Dodge ready in ${cooldown.toFixed(1)} seconds` : 'Dodge'} disabled={disabled || cooldown > .01} {...press(session.dodge)}><Zap aria-hidden="true"/></button>
+      <button className="r3-touch-key r3-reload" aria-label="Reload weapon" title="Reload" disabled={disabled||Boolean(state?.slots[state.active]?.kind==='melee')} {...press(session.reload)}><RotateCw aria-hidden="true"/></button>
+      {nearby && <button className="r3-touch-key r3-interact" aria-label="Inspect nearby equipment" title={nearby.name} disabled={disabled} {...press(session.interact)}><Hand aria-hidden="true"/></button>}
+      {pov !== 'first' && <button className="r3-touch-key r3-trigger rv-touch-only" aria-label="Fire weapon" title="Fire" disabled={disabled} {...fire}><FireGlyph/></button>}
+      <button className="r3-touch-key r3-bomb" aria-label="Throw bomb" aria-description={`${state?.bombs ?? 0} grenades`} title="Throw grenade" disabled={disabled || !state?.canThrow} {...press(() => runtime?.throwBomb())}><Bomb aria-hidden="true"/><b aria-hidden="true">{state?.bombs ?? 0}</b></button>
+      <button className="r3-touch-key r3-jump" aria-label="Jump" title="Jump" disabled={disabled} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); runtime?.holdJump(true); }} onPointerUp={() => runtime?.holdJump(false)} onPointerCancel={() => runtime?.holdJump(false)} onLostPointerCapture={() => runtime?.holdJump(false)} onClick={e => { if (e.detail === 0) runtime?.requestJump(); }}><ArrowUpFromLine aria-hidden="true"/></button>
+      {(pov === 'first' || pov === 'third') && <button className="r3-touch-key r3-ads" aria-label="Aim down sights" title="Aim down sights" aria-pressed={ads} disabled={disabled || state?.slots[state.active]?.kind === 'melee'} {...press(()=>{if(runtime){runtime.rig.ads=!runtime.rig.ads;setAds(runtime.rig.ads);}})}><Crosshair aria-hidden="true"/></button>}
     </div>
   </div>;
 }
@@ -43,8 +44,12 @@ export function DrivingControls({runtime,disabled}:{runtime:RaidRuntime;disabled
   return <div className="r3-driving-controls" aria-label="Driving controls">
     <TouchStick kind="drive" disabled={disabled} onMove={vector=>runtime.setDriving({stickX:vector.x,stickY:vector.y})}/>
     {vehicle.burning&&<strong className="r3-engine-warning" role="alert">ENGINE FIRE — EXIT NOW{vehicle.escapeSeconds!=null?' · '+Math.ceil(vehicle.escapeSeconds)+'s':''}</strong>}
-    <div className="r3-pedals"><button aria-label="Reverse vehicle" disabled={disabled} {...held({throttle:-1})}>REVERSE</button><button aria-label="Brake vehicle" disabled={disabled} {...held({brake:true})}>BRAKE</button><button aria-label="Accelerate vehicle" disabled={disabled} {...held({throttle:1})}>ACCEL</button></div>
-    <button className="r3-exit-car" aria-label="Exit vehicle" title="Exit vehicle · F" disabled={disabled} onClick={runtime.vehicleInteract}><LogOut size={18}/><span>EXIT</span></button>
+    <div className="r3-drive-actions">
+      <button className="r3-touch-key r3-reverse" aria-label="Reverse vehicle" title="Reverse" disabled={disabled} {...held({throttle:-1})}><ArrowDown aria-hidden="true"/></button>
+      <button className="r3-touch-key r3-brake" aria-label="Brake vehicle" title="Brake" disabled={disabled} {...held({brake:true})}><CircleStop aria-hidden="true"/></button>
+      <button className="r3-touch-key r3-accelerate" aria-label="Accelerate vehicle" title="Accelerate" disabled={disabled} {...held({throttle:1})}><Gauge aria-hidden="true"/></button>
+      <button className="r3-touch-key r3-exit-car" aria-label="Exit vehicle" title="Exit vehicle · F" disabled={disabled} onClick={runtime.vehicleInteract}><LogOut aria-hidden="true"/></button>
+    </div>
   </div>;
 }
 export function SoldierDock({ session,runtime }: { session: SandboxSession; runtime: RaidRuntime | undefined }) {

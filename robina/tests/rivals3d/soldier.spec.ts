@@ -54,7 +54,7 @@ test('two real touch sticks move, aim and fire; releasing aim stops fire; contro
     await expect.poll(async () => Number(await telemetry(page).getAttribute('data-mission-elapsed')) - time).toBeGreaterThan(.35); expect(Number(await telemetry(page).getAttribute('data-shots'))).toBe(shots); expect(Number(await telemetry(page).getAttribute('data-speed'))).toBeGreaterThan(0);
     await cdp.send('Input.dispatchTouchEvent',{ type: 'touchEnd',touchPoints: [] }); await expect.poll(async () => Number(await telemetry(page).getAttribute('data-speed'))).toBe(0);
     const overlaps = await page.evaluate(() => {
-      const nodes = [...document.querySelectorAll<HTMLElement>('.rv-action-buttons button,.rv-sprint-control,[data-testid=movement-stick],[data-testid=aim-stick]')].filter(n => getComputedStyle(n).display !== 'none' && n.getClientRects().length && !n.hidden);
+      const nodes = [...document.querySelectorAll<HTMLElement>('.r3-action-controls button,.r3-fps-shoot,[data-testid=movement-stick],[data-testid=aim-stick]')].filter(n => getComputedStyle(n).display !== 'none' && n.getClientRects().length && !n.hidden);
       const problems: string[] = []; for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const a = nodes[i].getBoundingClientRect(),b = nodes[j].getBoundingClientRect(); if (Math.min(a.right,b.right) - Math.max(a.left,b.left) > 2 && Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top) > 2) problems.push(nodes[i].getAttribute('aria-label') + '/' + nodes[j].getAttribute('aria-label')); } return problems;
     }); expect(overlaps).toEqual([]); await page.screenshot({ path: info.outputPath('mobile-landscape.png') });
     await camera(page,'THIRD-PERSON / TPS');
@@ -62,7 +62,7 @@ test('two real touch sticks move, aim and fire; releasing aim stops fire; contro
       await page.setViewportSize({ width,height });
       const layout = await page.evaluate(() => {
         const stick = document.querySelector<HTMLElement>('[data-testid=aim-stick]')!.getBoundingClientRect(),reload = document.querySelector<HTMLElement>('[aria-label="Throw bomb"]')!.getBoundingClientRect(),dock = document.querySelector<HTMLElement>('.r3-loadout')!.getBoundingClientRect();
-        const controls = [...document.querySelectorAll<HTMLElement>('.rv-action-buttons button,.rv-sprint-control')].filter(n => getComputedStyle(n).display !== 'none' && n.getClientRects().length);
+        const controls = [...document.querySelectorAll<HTMLElement>('.r3-action-controls button,.r3-fps-shoot')].filter(n => getComputedStyle(n).display !== 'none' && n.getClientRects().length);
         const bad: string[] = []; for (let i = 0; i < controls.length; i++) { const a = controls[i].getBoundingClientRect(); if (a.left < 0 || a.right > innerWidth + 1 || a.top < 0 || a.bottom > innerHeight + 1 || a.width < 43 || a.height < 43) bad.push('bounds:' + controls[i].ariaLabel); for (let j = i + 1; j < controls.length; j++) { const b = controls[j].getBoundingClientRect(); if (Math.min(a.right,b.right) - Math.max(a.left,b.left) > 2 && Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top) > 2) bad.push('overlap:' + controls[i].ariaLabel + '/' + controls[j].ariaLabel); } }
         return { bad,gap: stick.top - reload.bottom,centreClear: dock.bottom < innerHeight / 2 - 15 };
       }); expect(layout.bad).toEqual([]); expect(layout.gap).toBeGreaterThan(10); expect(layout.gap).toBeLessThan(60); expect(layout.centreClear).toBe(true); await page.screenshot({ path: info.outputPath(`mobile-${width}x${height}.png`) });

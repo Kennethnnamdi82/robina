@@ -28,6 +28,7 @@ import './command-hud.css';
 import './gameplay-clarity.css';
 import './cinematic-hud.css';
 import './cinematic-gameplay.css';
+import './touch-hud.css';
 import { CampaignOverlays, MissionRewardReceipt } from './CampaignOverlays';
 import { type PlayerEconomy } from '../progression/PlayerEconomy';
 import { missionsApi } from '@/services/missions';
@@ -153,8 +154,11 @@ function Raid({ session,restart,next,exit,development,preferences,renderSettings
     <ArenaHUD session={session} onAudio={audio} pauseRef={pause} securityOnMap level={session.operation.level}/><MissionRadar session={session} metrics={metrics}/><BossHUD session={session}/>
     {status==='playing'&&<DirectionGuide metrics={metrics}/>}
     {status==='playing'&&<CampaignStatus operation={session.operation} metrics={metrics}/>}
-    {status==='playing'&&!runtime.current?.vehicles?.current&&!metrics?.vehicle?.driving&&metrics?.vehicle?.nearby&&<button className="r3-enter-car" aria-label={'Enter '+metrics.vehicle.nearby} title={'Enter '+metrics.vehicle.nearby+' · F'} onClick={()=>runtime.current?.vehicleInteract()}><CarFront size={18}/><span>ENTER</span></button>}
-    <div className="r3-utility"><button aria-label="Cycle camera view" title="Cycle view (V)" disabled={status !== 'playing' || Boolean(soldier?.replacement)} {...press(() => runtime.current?.cyclePOV())}><Camera size={18}/><span>{metrics?.pov === 'first' ? 'FPS' : metrics?.pov === 'third' ? 'TPS' : metrics?.pov === 'side' ? 'SIDE' : 'VIEW'}</span></button><button aria-label="Camera zoom" title="Cycle zoom (Z)" disabled={status !== 'playing'} {...press(() => runtime.current?.zoom())}><ZoomIn size={18}/><span>{(metrics?.zoom ?? 1).toFixed(1)}×</span></button></div>
+    {status==='playing'&&!runtime.current?.vehicles?.current&&!metrics?.vehicle?.driving&&metrics?.vehicle?.nearby&&<button className="r3-enter-car r3-touch-key" aria-label={'Enter '+metrics.vehicle.nearby} title={'Enter '+metrics.vehicle.nearby+' · F'} onClick={()=>runtime.current?.vehicleInteract()}><CarFront aria-hidden="true"/></button>}
+    <div className="r3-utility">
+      <button className="r3-touch-key" aria-label="Cycle camera view" title="Cycle view (V)" disabled={status !== 'playing' || Boolean(soldier?.replacement)} {...press(() => runtime.current?.cyclePOV())}><Camera aria-hidden="true"/></button>
+      <button className="r3-touch-key" aria-label="Camera zoom" title="Cycle zoom (Z)" disabled={status !== 'playing'} {...press(() => runtime.current?.zoom())}><ZoomIn aria-hidden="true"/><span className="r3-zoom-value" aria-hidden="true">{Number((metrics?.zoom ?? 1).toFixed(1))}×</span></button>
+    </div>
     {status === 'playing' && <><SoldierControls session={session} runtime={runtime.current} pov={metrics?.pov ?? 'tactical'}/><SoldierDock session={session} runtime={runtime.current}/></>}
     {soldier?.replacement && <div className="rivals-arena-overlay r3-modal"><section ref={dialog} className="rivals-pause-panel" role="dialog" aria-modal="true" aria-label="Replace weapon" onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); runtime.current?.replacePickup(); } else trapFocus(e); }}><span className="rivals-overline">RECOVERED EQUIPMENT</span><h2>Replace weapon</h2><p>Choose one slot. Your other weapons and ammunition stay equipped.</p>{soldier.slots.map((slot,i) => <button className="rivals-secondary" key={i} onClick={() => runtime.current?.replacePickup(i)}>Replace Slot {i + 1}: {slot?.name ?? 'Empty'}</button>)}<button className="rivals-secondary" onClick={() => runtime.current?.replacePickup()}>Cancel</button></section></div>}
     {metrics?.social?.notice&&<div className="r3-social-toast" role="status">{metrics.social.notice}</div>}

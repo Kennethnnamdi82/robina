@@ -4,7 +4,7 @@ test('real driving controls have separate touch targets on small phones',async({
   await page.route('**/tests/rivals3d/entry.tsx',r=>r.fulfill({contentType:'application/javascript',body:''}));await page.goto('/tests/rivals3d/index.html');
   await page.evaluate(async()=>{
     const load=(url:string)=>import(/* @vite-ignore */url);
-    for(const url of ['/src/features/rivals/rivals.css','/src/features/rivals/three/sandbox.css','/src/features/rivals/three/command-hud.css'])await load(url);
+    for(const url of ['/src/features/rivals/rivals.css','/src/features/rivals/three/sandbox.css','/src/features/rivals/three/command-hud.css','/src/features/rivals/three/gameplay-clarity.css','/src/features/rivals/three/cinematic-hud.css','/src/features/rivals/three/cinematic-gameplay.css','/src/features/rivals/three/touch-hud.css'])await load(url);
     const React=(await load('/node_modules/.vite-rivals3d/deps/react.js')).default,{createRoot}=(await load('/node_modules/.vite-rivals3d/deps/react-dom_client.js')).default,{DrivingControls}=await load('/src/features/rivals/three/SoldierHUD.tsx');
     document.body.innerHTML='<main class="rivals-shell r3-shell"><section class="rivals-game-view r3-game"><div id="driving-fixture"></div></section></main>';
     createRoot(document.getElementById('driving-fixture')).render(React.createElement(DrivingControls,{runtime:{vehicles:{snapshot:{speed:0,kind:'sedan',health:200}},setDriving:()=>{},vehicleInteract:()=>{}},disabled:false}));

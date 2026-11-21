@@ -1,8 +1,8 @@
 import {useEffect,useRef} from 'react';
-import {Crosshair} from 'lucide-react';
 import type {SandboxSession} from './SandboxSession';
 import type {RaidRuntime} from './RaidRuntime';
 import {useFireLook} from './useFireLook';
+import {FireGlyph} from './FireGlyph';
 
 /** Independent pointer ownership allows move + look + trigger simultaneously. */
 export function FpsTouchControls({session,runtime,disabled}:{session:SandboxSession;runtime:RaidRuntime|undefined;disabled:boolean}){
@@ -15,6 +15,6 @@ export function FpsTouchControls({session,runtime,disabled}:{session:SandboxSess
       onPointerUp={e=>{if(look.current?.id===e.pointerId)look.current=null;}}
       onPointerCancel={e=>{if(look.current?.id===e.pointerId)look.current=null;}}
       onLostPointerCapture={e=>{if(look.current?.id===e.pointerId)look.current=null;}}/>
-    <button className="r3-fps-shoot" aria-label="Shoot weapon" disabled={disabled} {...fire}><Crosshair size={28}/><span>SHOOT</span></button>
+    <button className="r3-touch-key r3-trigger r3-fps-shoot rv-touch-only" aria-label="Shoot weapon" title="Shoot" disabled={disabled} {...fire}><FireGlyph/></button>
   </>;
 }
