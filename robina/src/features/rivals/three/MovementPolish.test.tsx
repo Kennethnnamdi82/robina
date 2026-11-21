@@ -53,7 +53,8 @@ describe('focused movement and HUD regressions',()=>{
     const runtime={vehicles:{snapshot:{speed:10,kind:'sedan',health:200}},vehicleInteract,setDriving:vi.fn()} as unknown as RaidRuntime;
     render(<DrivingControls runtime={runtime} disabled={false}/>);
     const button=screen.getByRole('button',{name:'Exit vehicle'});
-    expect(button.textContent).toBe('EXIT');button.click();expect(vehicleInteract).toHaveBeenCalledTimes(1);
+    expect(button.textContent).toBe('');expect(button.querySelector('svg[aria-hidden=true]')).not.toBeNull();
+    button.click();expect(vehicleInteract).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/KM\/H|POINT TO DRIVE/)).toBeNull();
   });
   it.each(POVS)('avoids redundant projection rebuilds while following in %s',pov=>{
